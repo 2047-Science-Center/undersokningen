@@ -27,8 +27,8 @@ export type ValvId = 'lag1' | 'lag2'
 export const APP_ID = 'undersokningen'
 
 /** Stationens nummer i riggen. Topic-namespace blir `station<N>/…`.
- *  TODO: ANTA ALDRIG ett legacy-nummer — bekräfta mot riggen innan skarp koppling. */
-export const STATION_N = 0
+ *  Station 3 (bekräftat av Josef 2026-10-19 för prototypen). */
+export const STATION_N = 3
 
 export const config = {
   /** 'pilot' = BroadcastChannel + skärm-ljus + mock-identitet/resultat.
@@ -52,12 +52,30 @@ export const config = {
    *  värdet med Josef mot faktiskt monteravstånd. 1 = kitets 115%-bas. */
   uiScale: 1,
 
-  /** MQTT/WS-adresser fylls i driftläget (miljövariabler, ej här). */
+  /** MQTT-broker för den FYSISKA sömmen (scan/confirm/home/state), över
+   *  WebSocket. Tom = ingen fysisk söm (pilot mockar med knappar). Kan sättas
+   *  här för drift, men överrids enklast per skärm med `?mqtt=ws://host:9001/mqtt`
+   *  i URL:en — då funkar MQTT-scan ÄVEN i pilotläge (lokala skärmar via
+   *  BroadcastChannel). Ingen hemlighet i koden. */
+  mqtt: {
+    url: '',
+  },
+
+  /** WS för skärm↔skärm-synk i drift (NUC-orkestrator). Fylls i driftläget. */
   production: {
     wsUrl: '',
     mqttUrl: '',
   },
 } as const
+
+/** Broker-url för den fysiska sömmen: ?mqtt= i URL:en vinner över config.mqtt.url. */
+export function resolveMqttUrl(): string {
+  if (typeof window !== 'undefined') {
+    const p = new URLSearchParams(window.location.search).get('mqtt')
+    if (p) return p
+  }
+  return config.mqtt.url
+}
 
 /**
  * Bygger en url till en fil i public/ som funkar oavsett bas-sökväg:
@@ -192,9 +210,10 @@ export const LIVE_DATASET: Dataset = {
   bank: ALL_BANK,
   cases: [
     // Prov 1 → SPIK-3 "Taggkrona" (spetsig/röd/12/taggig är unikt i banken).
-    { id: 'spot-1', tag: 'TAG0000001', image: 'prov/spot-1.png', features: ['form_spetsig', 'karna_rod', 'utskott_12', 'yta_taggig'], answer: 'v03' },
+    // Tagg = fysisk NTAG213-sticker (UID från bänk-testet).
+    { id: 'spot-1', tag: '04E1A6A1772681', image: 'prov/spot-1.png', features: ['form_spetsig', 'karna_rod', 'utskott_12', 'yta_taggig'], answer: 'v03' },
     // Prov 2 → HALO-2 "Ringdimma" (rund/blå/halo/symmetrisk är unikt i banken).
-    { id: 'spot-2', tag: 'TAG0000002', image: 'prov/spot-2.png', features: ['form_runda', 'karna_bla', 'yta_halo', 'symmetrisk'], answer: 'v04' },
+    { id: 'spot-2', tag: '04DFA6A1772681', image: 'prov/spot-2.png', features: ['form_runda', 'karna_bla', 'yta_halo', 'symmetrisk'], answer: 'v04' },
   ],
 }
 

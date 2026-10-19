@@ -48,6 +48,9 @@ export const sv: Record<string, string> = {
   'falt.no_sample': 'Inget prov scannat ännu.',
   'falt.next_sample': 'SCANNA NÄSTA',
   'falt.solved': 'LÖST ✓',
+  'falt.unknown_tag': 'Okänd tagg: {uid}',
+  'falt.unknown_hint': 'Läs av UID:t och mappa det till ett prov i config.',
+  'seam.mqtt_on': 'FYSISK SÖM: MQTT',
 
   // --- Labb-konsol (A) ---
   'lab.title': 'LABBKONSOL',
@@ -62,6 +65,15 @@ export const sv: Record<string, string> = {
   'lab.clear_filter': 'Rensa filter',
   'lab.correct': 'RÄTT — patogen identifierad ✓',
   'lab.wrong': 'FEL — exponering stiger',
+
+  // --- Mikroskop (Dino-Lite, labb-sidan) ---
+  'mikroskop.title': 'MIKROSKOP',
+  'mikroskop.mirror': 'Spegla',
+  'mikroskop.freeze': 'Frys',
+  'mikroskop.opening': 'Öppnar kameran …',
+  'mikroskop.failed': 'Kunde inte öppna kameran',
+  'mikroskop.unsupported': 'Webbläsaren stöder inte kameraåtkomst.',
+  'mikroskop.allow': 'Plugga in Dino-Lite och tillåt kameran.',
 
   // --- Exponeringsmätare (delad) ---
   'exposure.title': 'EXPONERING',

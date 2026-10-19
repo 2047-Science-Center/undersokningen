@@ -14,6 +14,7 @@ import Icon from './Icon.vue'
 import Placeholder from './Placeholder.vue'
 import FeatureChip from './FeatureChip.vue'
 import ExposureMeter from './ExposureMeter.vue'
+import Microscope from './Microscope.vue'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -86,6 +87,9 @@ const feedback = computed(() => {
 
     <p v-if="feedback === 'correct'" class="lab__feedback lab__feedback--ok">{{ t('lab.correct') }}</p>
     <p v-else-if="feedback === 'wrong'" class="lab__feedback lab__feedback--bad">{{ t('lab.wrong') }}</p>
+
+    <!-- Dino-Lite: labbets hands-on "titta närmare"-verktyg (USB-webbkamera) -->
+    <Microscope class="lab__scope" />
 
     <div class="lab__body">
       <!-- Filter -->
@@ -205,8 +209,12 @@ const feedback = computed(() => {
 .lab__feedback--bad {
   color: var(--color-danger);
 }
+.lab__scope {
+  flex: 1 1 38%;
+  min-height: 190px;
+}
 .lab__body {
-  flex: 1;
+  flex: 1 1 62%;
   min-height: 0;
   display: grid;
   grid-template-columns: minmax(210px, 0.8fr) minmax(0, 2fr);

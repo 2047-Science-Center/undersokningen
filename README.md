@@ -94,9 +94,48 @@ UT  station<N>/state   { "exposure": n, "phase": "..." }   valfritt till ljus/lj
 ```
 
 Taggen bär **bara ett ID**; appen slår upp `tag → prov` i config. Hårdvara
-(RC522 + ESP32) speglar checkin-läsaren `xy-rigg/esp32-rfid-reader`. Ett
-bänk-test för att verifiera att läsaren känner av NTAG213-taggarna ligger i
-[`bench/rc522_tagtest/`](bench/rc522_tagtest/).
+(RC522 + ESP32) speglar checkin-läsaren `xy-rigg/esp32-rfid-reader`.
+
+- [`bench/rc522_tagtest/`](bench/rc522_tagtest/) — bänk-test: verifiera att
+  läsaren känner av NTAG213-taggarna (skriver UID i seriemonitorn).
+- [`bench/rc522_scanner_mqtt/`](bench/rc522_scanner_mqtt/) — scanner-firmware:
+  läser tagg → publicerar `station3/scan {"tag":"<UID>"}` på MQTT.
+
+### Koppla ihop den fysiska sömmen (prototyp på Mac)
+
+Browsern pratar MQTT **över WebSocket** — kör en lokal mosquitto med både en
+TCP- och en WS-listener (portar valda för att inte krocka med husets tjänster):
+
+```bash
+mosquitto -c deploy/broker/mosquitto.conf -v     # 1883 (TCP, ESP32) + 9001 (WS, appen)
+```
+
+Öppna sedan appen med broker-adressen som URL-param (funkar även i pilotläge —
+lokala skärmar synkas ändå via BroadcastChannel):
+
+- Labb-skärm: `http://localhost:5173/?mqtt=ws://localhost:9001/mqtt#lag1`
+- Fält-skärm: `http://localhost:5173/?mqtt=ws://localhost:9001/mqtt#lag2`
+
+Från en annan enhet (ESP32/scanner): byt `localhost` mot Mac:ens LAN-IP
+(`ipconfig getifaddr en0`). ESP32:n publicerar rå MQTT till port **1883**.
+
+**Mocka utan hårdvara** (verifierar hela kedjan broker → app → UI):
+
+```bash
+mosquitto_pub -h localhost -t station3/scan    -m '{"tag":"04E1A6A1772681"}'   # → PROV spot-1
+mosquitto_pub -h localhost -t station3/confirm -m '{"id":"v03"}'               # labbet låser in
+```
+
+Taggarnas UID → prov mappas i `src/config.ts` (`SampleCase.tag`). En **okänd
+tagg** visar sitt UID på fält-skärmen — läs av det och lägg in mappningen.
+Station = **3** (`station3/…`). Payload tål både `{"tag":"..."}` och ett rått UID.
+
+### Dino-Lite på labb-skärmen
+
+Mikroskopet renderas direkt i labb-konsolen (`components/Microscope.vue`) —
+ansluts som en USB-webbkamera via `getUserMedia`, appen väljer "dino"-enheten
+själv. Öppna labb-skärmen i en **riktig webbläsare** på Mac:en (inte Claude-
+panelen) och tillåt kameran. Den fristående vyn finns också på `/<base>mikroskop/`.
 
 ## Kör som permanent station på en NUC (två skärmar)
 

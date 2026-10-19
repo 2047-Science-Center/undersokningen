@@ -34,9 +34,17 @@ const activeFeatures = computed(() =>
         </div>
       </div>
       <div class="falt__progress mono">
+        <span v-if="store.mqttOn" class="falt__seam">◉ {{ t('seam.mqtt_on') }}</span>
         {{ t('progress.title') }} {{ t('progress.count', { solved: store.solvedCount, total: store.totalCount }) }}
       </div>
     </header>
+
+    <!-- Okänd tagg: visa UID så man kan mappa den i config -->
+    <div v-if="store.lastUnknownTag" class="falt__unknown">
+      <Icon name="scanner" :size="18" />
+      <span class="mono">{{ t('falt.unknown_tag', { uid: store.lastUnknownTag }) }}</span>
+      <span class="falt__unknown-hint">{{ t('falt.unknown_hint') }}</span>
+    </div>
 
     <!-- Aktivt prov: signalement -->
     <section v-if="store.activeCase" class="falt__sample">
@@ -110,6 +118,30 @@ const activeFeatures = computed(() =>
 }
 .falt__progress {
   color: var(--color-ink-strong);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.falt__seam {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--color-primary);
+  letter-spacing: 0.04em;
+}
+.falt__unknown {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--color-danger);
+  border-radius: 10px;
+  color: var(--color-danger);
+}
+.falt__unknown-hint {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--color-ink-muted);
 }
 .falt__sample {
   display: grid;

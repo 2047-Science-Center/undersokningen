@@ -7,6 +7,7 @@
  */
 
 import type { StateSignal } from '../engine/types'
+import type { MqttClient } from './mqtt'
 
 export interface StateOut {
   set(sig: StateSignal): void
@@ -27,21 +28,26 @@ export class MockStateOut implements StateOut {
   }
 }
 
+/** Publicerar station<N>/state (retained) över MQTT — ljus/ljud kan spegla det. */
 export class MqttStateOut implements StateOut {
   private topic: string
 
-  constructor(stationN: number) {
+  constructor(
+    stationN: number,
+    private client: MqttClient,
+  ) {
     this.topic = `station${stationN}/state`
   }
 
   set(sig: StateSignal): void {
-    const _payload = JSON.stringify({ phase: sig.phase, exposure: sig.exposure })
-    // TODO(drift): mqtt.publish(this.topic, _payload)
-    void this.topic
-    void _payload
+    this.client.publish(
+      this.topic,
+      JSON.stringify({ phase: sig.phase, exposure: sig.exposure }),
+      { retain: true },
+    )
   }
 
   reset(): void {
-    // TODO(drift): mqtt.publish(this.topic, JSON.stringify({ state: 'reset' }))
+    this.client.publish(this.topic, JSON.stringify({ state: 'reset' }), { retain: true })
   }
 }

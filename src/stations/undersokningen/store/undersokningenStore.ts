@@ -77,6 +77,10 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   const now = ref(Date.now())
   const lastActivityAt = ref(Date.now())
   const resetSignal = ref(0)
+  /** Senast scannade okända taggen (UID) — visas på skärmen för att mappa i config. */
+  const lastUnknownTag = ref<string | null>(null)
+  /** Är den fysiska MQTT-sömmen på? (annars mockas scan med knappar). */
+  const mqttOn = ref(false)
 
   // Effekt-jämförelse (modullokalt via refs i closure).
   let prevPhase: GameState['phase'] | null = null
@@ -199,7 +203,13 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     if (ev.kind === 'scan') {
       const ds = datasetById(state.value.datasetId)
       const c = ds.cases.find((x) => x.tag === ev.tag)
-      if (c) dispatch({ type: 'scan', caseId: c.id })
+      if (c) {
+        lastUnknownTag.value = null
+        dispatch({ type: 'scan', caseId: c.id })
+      } else {
+        // Okänd tagg → visa UID på skärmen (läs av för att mappa i config).
+        lastUnknownTag.value = ev.tag
+      }
     } else if (ev.kind === 'confirm') {
       dispatch({ type: 'confirm', virusId: ev.id })
     } else if (ev.kind === 'home') {
@@ -346,6 +356,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
 
   function init(): void {
     if (!seam.value) seam.value = createSeam()
+    mqttOn.value = !!seam.value.mqtt
     seam.value.transport.subscribe(onMessage)
     seam.value.scan.subscribe(handleScanEvent)
     seam.value.transport.send({ kind: 'hello', payload: null })
@@ -362,6 +373,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     timer = null
     seam.value?.transport.close()
     seam.value?.scan.close()
+    seam.value?.mqtt?.end()
   }
 
   return {
@@ -376,6 +388,8 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     sessionActive,
     now,
     resetSignal,
+    lastUnknownTag,
+    mqttOn,
     idleWarn,
     idleSecondsLeft,
     dataset,
