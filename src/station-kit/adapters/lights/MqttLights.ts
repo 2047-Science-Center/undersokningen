@@ -6,8 +6,7 @@
  *   mosquitto_pub -t station0/lights -m '{"hatch":1,"state":"active","winner":null}'
  */
 
-import type { Lights } from './Lights'
-import type { HatchLight } from '@/stations/forhandlingen/engine/types'
+import type { Lights, HatchLight } from './Lights'
 
 export interface MqttPublisher {
   publish(topic: string, payload: string): void

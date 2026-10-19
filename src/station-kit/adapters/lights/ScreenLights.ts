@@ -5,8 +5,7 @@
  */
 
 import { ref, type Ref } from 'vue'
-import type { Lights } from './Lights'
-import type { HatchLight } from '@/stations/forhandlingen/engine/types'
+import type { Lights, HatchLight } from './Lights'
 
 export class ScreenLights implements Lights {
   /** Reaktivt — luckrad-komponenten binder mot detta. */
