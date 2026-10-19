@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Undersökningen – mikroskop</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0a0a0c; color: #e8e8ea;
+    font: 15px/1.4 -apple-system, system-ui, sans-serif; }
+  body { display: flex; flex-direction: column; }
+
+  #stage { flex: 1; position: relative; display: flex; align-items: center;
+    justify-content: center; overflow: hidden; }
+  video { max-width: 100%; max-height: 100%; background: #000; display: block; }
+  video.mirror { transform: scaleX(-1); }
+
+  #msg { position: absolute; inset: 0; display: flex; align-items: center;
+    justify-content: center; text-align: center; padding: 2rem; color: #9a9aa2; }
+  #msg.hidden { display: none; }
+
+  #bar { display: flex; gap: .5rem; align-items: center; padding: .6rem .8rem;
+    background: #141418; border-top: 1px solid #26262c; flex-wrap: wrap; }
+  select, button { font: inherit; color: #e8e8ea; background: #26262c;
+    border: 1px solid #3a3a42; border-radius: 8px; padding: .4rem .7rem; cursor: pointer; }
+  button:hover, select:hover { background: #32323a; }
+  button.on { background: #2b6cff; border-color: #2b6cff; }
+  .spacer { flex: 1; }
+  .hint { color: #7a7a82; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div id="stage">
+    <video id="video" autoplay playsinline muted></video>
+    <div id="msg">Startar kamera…<br><span class="hint">Tillåt kameraåtkomst i webbläsaren.</span></div>
+  </div>
+
+  <div id="bar">
+    <label class="hint" for="cam">Kamera</label>
+    <select id="cam"></select>
+    <button id="mirror">Spegla</button>
+    <button id="freeze">Frys</button>
+    <button id="snap">Spara bild</button>
+    <div class="spacer"></div>
+    <span id="status" class="hint"></span>
+  </div>
+
+<script>
+const video  = document.getElementById('video');
+const msg    = document.getElementById('msg');
+const camSel = document.getElementById('cam');
+const status = document.getElementById('status');
+let stream = null;
+let frozen = false;
+
+function showMsg(text) { msg.innerHTML = text; msg.classList.remove('hidden'); }
+function hideMsg()     { msg.classList.add('hidden'); }
+
+// Välj Dino-Lite automatiskt om vi hittar den på namnet.
+function pickDefault(devices) {
+  const dino = devices.find(d => /dino/i.test(d.label));
+  return (dino || devices[0] || {}).deviceId;
+}
+
+async function listCameras() {
+  const devices = (await navigator.mediaDevices.enumerateDevices())
+    .filter(d => d.kind === 'videoinput');
+  camSel.innerHTML = '';
+  devices.forEach((d, i) => {
+    const o = document.createElement('option');
+    o.value = d.deviceId;
+    o.textContent = d.label || ('Kamera ' + (i + 1));
+    camSel.appendChild(o);
+  });
+  return devices;
+}
+
+async function start(deviceId) {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  frozen = false; video.play().catch(()=>{});
+  showMsg('Öppnar kamera…');
+  try {
+    const constraints = {
+      audio: false,
+      video: deviceId
+        ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+        : { width: { ideal: 1920 }, height: { ideal: 1080 } }
+    };
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    video.srcObject = stream;
+    hideMsg();
+    const track = stream.getVideoTracks()[0];
+    const s = track.getSettings();
+    status.textContent = (track.label || '') + '  ' + (s.width||'?') + '×' + (s.height||'?');
+    // Etiketterna blir tillgängliga först efter beviljad åtkomst – uppdatera listan.
+    const devices = await listCameras();
+    if (track.getSettings().deviceId) camSel.value = track.getSettings().deviceId;
+    return devices;
+  } catch (err) {
+    showMsg('Kunde inte öppna kameran.<br><span class="hint">' + err.name + ': ' + err.message + '</span>');
+  }
+}
+
+document.getElementById('mirror').onclick = (e) => {
+  video.classList.toggle('mirror');
+  e.currentTarget.classList.toggle('on');
+};
+
+document.getElementById('freeze').onclick = (e) => {
+  frozen = !frozen;
+  if (frozen) video.pause(); else video.play();
+  e.currentTarget.classList.toggle('on', frozen);
+};
+
+document.getElementById('snap').onclick = () => {
+  if (!video.videoWidth) return;
+  const c = document.createElement('canvas');
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  const ctx = c.getContext('2d');
+  if (video.classList.contains('mirror')) { ctx.translate(c.width, 0); ctx.scale(-1, 1); }
+  ctx.drawImage(video, 0, 0);
+  const a = document.createElement('a');
+  a.download = 'mikroskop-' + Date.now() + '.png';
+  a.href = c.toDataURL('image/png');
+  a.click();
+};
+
+camSel.onchange = () => start(camSel.value);
+
+(async function init() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    showMsg('Den här webbläsaren stöder inte kameraåtkomst.');
+    return;
+  }
+  // Starta direkt – be om åtkomst, välj sedan Dino-Lite om den finns.
+  const devices = await start();
+  if (devices && devices.length) {
+    const want = pickDefault(devices);
+    if (want && want !== (stream?.getVideoTracks()[0]?.getSettings().deviceId)) {
+      await start(want);
+    }
+  }
+})();
+</script>
+</body>
+</html>
