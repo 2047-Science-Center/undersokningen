@@ -100,6 +100,16 @@ export const FEATURES: Feature[] = [
 
 export type FeatureId = (typeof FEATURES)[number]['id']
 
+export function featureById(id: string): Feature | undefined {
+  return FEATURES.find((f) => f.id === id)
+}
+
+/** Särdragen grupperade per dimension (för labbets filter-uppställning). */
+export const FEATURE_DIMS: Feature['dim'][] = ['form', 'karna', 'utskott', 'symmetri', 'yta']
+export function featuresByDim(dim: Feature['dim']): Feature[] {
+  return FEATURES.filter((f) => f.dim === dim)
+}
+
 /* ------------------------------------------------------------------ *
  * PROVBANK — 10–20 kända virus. Varje kort: namn + bild (placeholder) + samma
  * sorts särdrags-chips. Särdragen är valda så varje virus är UNIKT på sin fulla
