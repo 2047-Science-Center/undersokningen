@@ -1,8 +1,9 @@
 /**
  * Stölden — ren spelmotor (reducer). Inga sidoeffekter. Spot→person avgörs i
  * config/store och skickas in i `scanSpot`, så motorn förblir ren och testbar.
- * Invarianter som Förhandlingen: clone per mutation, version++, samma-referens-
- * guards, sync adopterar högsta version.
+ *
+ * Under investigate undersöker man bara. Gissningen i slutet: `selectThief`
+ * (markera) → `confirmThief` (ett enda utpekande) → solved/failed.
  */
 
 import type { GameState, Person, StateSignal, ValvId } from './types'
@@ -23,10 +24,8 @@ export function initialState(members: Record<ValvId, Person[]> = emptyMembers())
     revealedPersonIds: [],
     scanCounts: {},
     activeSpotId: null,
-    uncertainty: 0,
-    uncertaintyMax: 3,
+    verdictPick: null,
     thiefId: '',
-    lastWrongId: null,
     outcome: null,
     members,
     version: 0,
@@ -39,11 +38,12 @@ function clone(state: GameState): GameState {
 
 export type Action =
   | { type: 'setMembers'; members: Record<ValvId, Person[]> }
-  | { type: 'start'; thiefId: string; uncertaintyMax: number }
+  | { type: 'start'; thiefId: string }
   | { type: 'scanSpot'; spotId: string; person: string } // person = personId | 'smudge'
   | { type: 'closePopup' }
   | { type: 'openVerdict' }
-  | { type: 'pickThief'; personId: string }
+  | { type: 'selectThief'; personId: string }
+  | { type: 'confirmThief' }
   | { type: 'reset'; members?: Record<ValvId, Person[]> }
   | { type: 'sync'; state: GameState }
 
@@ -63,10 +63,8 @@ export function reduce(state: GameState, action: Action): GameState {
       next.revealedPersonIds = []
       next.scanCounts = {}
       next.activeSpotId = null
-      next.uncertainty = 0
-      next.uncertaintyMax = action.uncertaintyMax
+      next.verdictPick = null
       next.thiefId = action.thiefId
-      next.lastWrongId = null
       next.outcome = null
       next.version += 1
       return next
@@ -99,24 +97,28 @@ export function reduce(state: GameState, action: Action): GameState {
       const next = clone(state)
       next.phase = 'verdict'
       next.activeSpotId = null
+      next.verdictPick = null
       next.version += 1
       return next
     }
 
-    case 'pickThief': {
+    case 'selectThief': {
       if (state.phase !== 'verdict') return state
       const next = clone(state)
-      if (action.personId === next.thiefId) {
+      next.verdictPick = action.personId
+      next.version += 1
+      return next
+    }
+
+    case 'confirmThief': {
+      if (state.phase !== 'verdict' || !state.verdictPick) return state
+      const next = clone(state)
+      if (next.verdictPick === next.thiefId) {
         next.phase = 'solved'
         next.outcome = 'win'
-        next.lastWrongId = null
       } else {
-        next.uncertainty += 1
-        next.lastWrongId = action.personId
-        if (next.uncertainty >= next.uncertaintyMax) {
-          next.phase = 'failed'
-          next.outcome = 'lost'
-        }
+        next.phase = 'failed'
+        next.outcome = 'lost'
       }
       next.version += 1
       return next
@@ -140,7 +142,6 @@ export function scanCountOf(state: GameState, personId: string): number {
   return state.scanCounts[personId] ?? 0
 }
 
-/** Personer med fler än ett avtryck (återkommande = misstänkta). */
 export function repeatSuspects(state: GameState): string[] {
   return Object.entries(state.scanCounts)
     .filter(([, n]) => n >= 2)
@@ -152,10 +153,5 @@ export function isFinished(state: GameState): boolean {
 }
 
 export function stateSignal(state: GameState): StateSignal {
-  return {
-    phase: state.phase,
-    uncertainty: state.uncertainty,
-    uncertaintyMax: state.uncertaintyMax,
-    revealed: state.revealedPersonIds.length,
-  }
+  return { phase: state.phase, revealed: state.revealedPersonIds.length }
 }

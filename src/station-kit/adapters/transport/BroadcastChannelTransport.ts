@@ -18,7 +18,12 @@ export class BroadcastChannelTransport implements Transport {
   }
 
   send(msg: TransportMessage): void {
-    this.channel.postMessage(msg)
+    // Kanalen kan vara stängd under nedrivning/HMR — tappa då tyst.
+    try {
+      this.channel.postMessage(msg)
+    } catch {
+      /* channel closed */
+    }
   }
 
   subscribe(handler: TransportHandler): () => void {

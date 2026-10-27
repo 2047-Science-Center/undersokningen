@@ -65,6 +65,10 @@
   --radius: 14px;
   --frame-glow: 0 0 40px rgba(var(--mode-accent-rgb), calc(0.28 * var(--crt-intensity)));
 
+  /* --- Rörelse (Emil-kurvor): starka custom-easings, inga svaga inbyggda --- */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
   color-scheme: dark;
 }
 
@@ -233,11 +237,16 @@ body {
   cursor: pointer;
   box-shadow: var(--glow-soft);
   text-shadow: var(--glow-soft);
-  transition: background 0.12s ease;
+  transition: background 0.12s ease, transform 0.14s var(--ease-out);
 }
 
 .crt-button:hover:not(:disabled) {
   background: rgba(255, 149, 0, 0.12);
+}
+
+/* Instant press-feedback — knappen känns lyhörd. */
+.crt-button:active:not(:disabled) {
+  transform: scale(0.97);
 }
 
 .crt-button:disabled {

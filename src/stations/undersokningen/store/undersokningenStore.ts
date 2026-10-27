@@ -65,7 +65,6 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   const timerEndsAt = ref<number | null>(null)
 
   let prevPhase: GameState['phase'] | null = null
-  let prevUncertainty = 0
   let prevRevealedSpots = 0
   let prevActiveSpot: string | null = null
   let resultSent = false
@@ -90,7 +89,6 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
         if (spot) audio.play(spot.person === 'smudge' ? 'deny' : 'render')
       }
     }
-    if (s.uncertainty > prevUncertainty) audio.play('deny')
     if (prevPhase !== 'solved' && s.phase === 'solved') audio.play('win')
     if (prevPhase !== 'failed' && s.phase === 'failed') audio.play('deny')
 
@@ -102,7 +100,6 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     if (s.phase !== 'solved' && s.phase !== 'failed') resultSent = false
 
     prevPhase = s.phase
-    prevUncertainty = s.uncertainty
     prevRevealedSpots = s.revealedSpotIds.length
     prevActiveSpot = s.activeSpotId
   }
@@ -193,7 +190,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /* ---------------- verdikt / omgång ---------------- */
 
   function startLive(): void {
-    dispatch({ type: 'start', thiefId: THIEF_ID, uncertaintyMax: 3 })
+    dispatch({ type: 'start', thiefId: THIEF_ID })
     const ends = Date.now() + config.timerSeconds * 1000
     timerEndsAt.value = ends
     seam.value?.transport.send({ kind: 'timer', payload: ends })
@@ -203,8 +200,12 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     dispatch({ type: 'openVerdict' })
     notifyActivity()
   }
-  function pickThief(personId: string): void {
-    dispatch({ type: 'pickThief', personId })
+  function selectThief(personId: string): void {
+    dispatch({ type: 'selectThief', personId })
+    notifyActivity()
+  }
+  function confirmThief(): void {
+    dispatch({ type: 'confirmThief' })
     notifyActivity()
   }
 
@@ -252,8 +253,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
 
   const phase = computed(() => state.value.phase)
   const outcome = computed(() => state.value.outcome)
-  const uncertainty = computed(() => state.value.uncertainty)
-  const uncertaintyMax = computed(() => state.value.uncertaintyMax)
+  const verdictPick = computed(() => state.value.verdictPick)
 
   const activeSpot = computed<Spot | null>(() =>
     state.value.activeSpotId ? (SPOTS.find((s) => s.id === state.value.activeSpotId) ?? null) : null,
@@ -317,6 +317,8 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     seam.value?.transport.close()
     seam.value?.scan.close()
     seam.value?.mqtt?.end()
+    // Släpp den stängda sömmen så en ny init() skapar en färsk (bl.a. vid HMR).
+    seam.value = null
   }
 
   return {
@@ -335,8 +337,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     timerWarn,
     phase,
     outcome,
-    uncertainty,
-    uncertaintyMax,
+    verdictPick,
     activeSpot,
     activePerson,
     activeIsSmudge,
@@ -351,7 +352,8 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     closePopup,
     startLive,
     openVerdict,
-    pickThief,
+    selectThief,
+    confirmThief,
     reset,
     setPaused,
     togglePause,

@@ -42,7 +42,7 @@ export class MqttStateOut implements StateOut {
   set(sig: StateSignal): void {
     this.client.publish(
       this.topic,
-      JSON.stringify({ phase: sig.phase, uncertainty: sig.uncertainty }),
+      JSON.stringify({ phase: sig.phase, revealed: sig.revealed }),
       { retain: true },
     )
   }

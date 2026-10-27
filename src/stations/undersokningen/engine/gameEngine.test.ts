@@ -14,7 +14,7 @@ function run(actions: Action[], from: GameState = initialState(roster)): GameSta
   return actions.reduce((s, a) => reduce(s, a), from)
 }
 function started(): GameState {
-  return run([{ type: 'start', thiefId: 'ravi', uncertaintyMax: 3 }])
+  return run([{ type: 'start', thiefId: 'ravi' }])
 }
 
 describe('start', () => {
@@ -23,87 +23,53 @@ describe('start', () => {
     expect(s.phase).toBe('investigate')
     expect(s.thiefId).toBe('ravi')
     expect(s.revealedPersonIds).toEqual([])
-    expect(s.uncertainty).toBe(0)
+    expect(s.verdictPick).toBeNull()
   })
 })
 
-describe('scanSpot', () => {
-  it('avslöjar en person och räknar avtryck', () => {
-    const s = run(
-      [{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'scanSpot', spotId: 's4', person: 'ravi' }],
-      started(),
-    )
+describe('scanSpot (undersökning)', () => {
+  it('avslöjar person och räknar avtryck', () => {
+    const s = run([{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'scanSpot', spotId: 's4', person: 'ravi' }], started())
     expect(s.revealedPersonIds).toEqual(['ravi'])
     expect(scanCountOf(s, 'ravi')).toBe(2)
     expect(s.activeSpotId).toBe('s4')
   })
-
   it('smudge avslöjar ingen person', () => {
     const s = run([{ type: 'scanSpot', spotId: 's8', person: 'smudge' }], started())
     expect(s.revealedPersonIds).toEqual([])
-    expect(s.activeSpotId).toBe('s8')
   })
-
   it('samma spot igen ökar inte räknaren', () => {
-    const s = run(
-      [{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'scanSpot', spotId: 's1', person: 'ravi' }],
-      started(),
-    )
+    const s = run([{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'scanSpot', spotId: 's1', person: 'ravi' }], started())
     expect(scanCountOf(s, 'ravi')).toBe(1)
   })
-
-  it('repeatSuspects = personer med ≥2 avtryck', () => {
-    const s = run(
-      [
-        { type: 'scanSpot', spotId: 's1', person: 'ravi' },
-        { type: 'scanSpot', spotId: 's4', person: 'ravi' },
-        { type: 'scanSpot', spotId: 's7', person: 'iris' },
-      ],
-      started(),
-    )
+  it('repeatSuspects = ≥2 avtryck', () => {
+    const s = run([{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'scanSpot', spotId: 's4', person: 'ravi' }, { type: 'scanSpot', spotId: 's7', person: 'iris' }], started())
     expect(repeatSuspects(s)).toEqual(['ravi'])
   })
-
   it('closePopup nollar aktiv popup', () => {
-    const s = run(
-      [{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'closePopup' }],
-      started(),
-    )
+    const s = run([{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'closePopup' }], started())
     expect(s.activeSpotId).toBeNull()
   })
 })
 
-describe('verdikt', () => {
-  it('rätt person → solved/win', () => {
-    const s = run([{ type: 'openVerdict' }, { type: 'pickThief', personId: 'ravi' }], started())
+describe('verdikt (ett utpekande i slutet)', () => {
+  it('välj + bekräfta rätt → solved/win', () => {
+    const s = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'ravi' }, { type: 'confirmThief' }], started())
     expect(s.phase).toBe('solved')
     expect(s.outcome).toBe('win')
   })
-
-  it('fel person → osäkerhet stiger, stannar i verdict', () => {
-    const s = run([{ type: 'openVerdict' }, { type: 'pickThief', personId: 'maj' }], started())
-    expect(s.uncertainty).toBe(1)
-    expect(s.lastWrongId).toBe('maj')
-    expect(s.phase).toBe('verdict')
-  })
-
-  it('full osäkerhet → failed/lost', () => {
-    const s = run(
-      [
-        { type: 'openVerdict' },
-        { type: 'pickThief', personId: 'maj' },
-        { type: 'pickThief', personId: 'tomas' },
-        { type: 'pickThief', personId: 'iris' },
-      ],
-      started(),
-    )
+  it('välj + bekräfta fel → failed/lost', () => {
+    const s = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'maj' }, { type: 'confirmThief' }], started())
     expect(s.phase).toBe('failed')
     expect(s.outcome).toBe('lost')
   })
-
-  it('pickThief utanför verdict ignoreras (samma referens)', () => {
+  it('bekräfta utan val ignoreras (samma referens)', () => {
+    const v = run([{ type: 'openVerdict' }], started())
+    expect(reduce(v, { type: 'confirmThief' })).toBe(v)
+  })
+  it('select utanför verdict ignoreras', () => {
     const base = started()
-    expect(reduce(base, { type: 'pickThief', personId: 'ravi' })).toBe(base)
+    expect(reduce(base, { type: 'selectThief', personId: 'ravi' })).toBe(base)
   })
 })
 
@@ -114,17 +80,13 @@ describe('sync + scoring', () => {
     expect(reduce(local, { type: 'sync', state: remote })).toBe(remote)
     expect(reduce(remote, { type: 'sync', state: local })).toBe(remote)
   })
-
-  it('poäng = löst minus osäkerhet', () => {
-    const s = run(
-      [{ type: 'openVerdict' }, { type: 'pickThief', personId: 'maj' }, { type: 'pickThief', personId: 'ravi' }],
-      started(),
-    )
-    expect(roundScore(s).solved).toBe(true)
-    expect(roundScore(s).score).toBe(2) // 3 - 1 osäkerhet
+  it('poäng = löst (1) annars 0', () => {
+    const win = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'ravi' }, { type: 'confirmThief' }], started())
+    expect(roundScore(win).score).toBe(1)
+    const lost = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'maj' }, { type: 'confirmThief' }], started())
+    expect(roundScore(lost).score).toBe(0)
   })
-
-  it('stateSignal speglar fas/osäkerhet', () => {
-    expect(stateSignal(started())).toEqual({ phase: 'investigate', uncertainty: 0, uncertaintyMax: 3, revealed: 0 })
+  it('stateSignal', () => {
+    expect(stateSignal(started())).toEqual({ phase: 'investigate', revealed: 0 })
   })
 })

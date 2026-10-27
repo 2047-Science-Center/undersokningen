@@ -1,14 +1,12 @@
 /**
- * Poäng — ren funktion av sluttillståndet. Kooperativt: gemensam poäng =
- * löst (1) minus osäkerhet (felpekningar), aldrig under 0. Per-person-raderna
- * bär könssiffrans fält; result_value platshållare tills System 1 kopplas.
+ * Poäng — ren funktion av sluttillståndet. Ett enda utpekande i slutet:
+ * löst = 1, annars 0. Per-person-rader bär könssiffrans fält.
  */
 
 import type { GameState, Role, ValvId } from './types'
 
 export interface RoundScore {
   solved: boolean
-  uncertainty: number
   outcome: GameState['outcome']
   score: number
 }
@@ -23,8 +21,7 @@ export interface PersonResult {
 
 export function roundScore(state: GameState): RoundScore {
   const solved = state.phase === 'solved'
-  const score = Math.max(0, (solved ? 3 : 0) - state.uncertainty)
-  return { solved, uncertainty: state.uncertainty, outcome: state.outcome, score }
+  return { solved, outcome: state.outcome, score: solved ? 1 : 0 }
 }
 
 export function personResults(state: GameState): Record<ValvId, PersonResult[]> {

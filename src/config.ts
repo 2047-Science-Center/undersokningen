@@ -136,10 +136,10 @@ export const LOG = {
  * bland de fysiska Q-proven (Q1–Q6 ligger på bordet).
  * ------------------------------------------------------------------ */
 
-export const HAIR_CLASSES: { label: string; text: string }[] = [
-  { label: 'Människohår', text: 'jämn färg, fin–medel grovlek, smal eller osynlig märg (medulla).' },
-  { label: 'Djurhår', text: 'ofta bandad färg, grövre, bred eller stegformad märg.' },
-  { label: 'Syntet / fiber', text: 'helt jämntjockt, glansigt, ingen inre struktur.' },
+export const HAIR_CLASSES: { label: string; text: string; icon: 'har_manniska' | 'har_djur' | 'har_syntet' }[] = [
+  { label: 'Människohår', text: 'jämn färg, fin märg.', icon: 'har_manniska' },
+  { label: 'Djurhår', text: 'bandad färg, bred märg.', icon: 'har_djur' },
+  { label: 'Syntet / fiber', text: 'jämntjockt, glansigt.', icon: 'har_syntet' },
 ]
 
 /* ------------------------------------------------------------------ *
@@ -149,18 +149,25 @@ export const HAIR_CLASSES: { label: string; text: string }[] = [
 
 export interface RefBeat {
   kind: 'avtryck' | 'logg' | 'har' | 'slutsats'
+  /** Ikon-illustration för steget. */
+  icon: 'finger' | 'logg' | 'mikroskop' | 'check'
   text: string
+  /** Valfri bild (t.ex. Danas övervakningsbild på avtryck-steget). */
+  image?: string
 }
+
+/** Referensfallets person (tutorial). Egen bild så "Dana"-grejen landar. */
+export const DANA_IMAGE = 'personer/dana.png'
 
 export const REF_CASE = {
   id: '2-911',
   title: 'ÄRENDE 2-911 — LÖST',
-  intro: 'Så här löste vi ett tidigare fall. Titta — alla tre bitarna behövdes.',
+  intro: 'Så här löste vi ett tidigare fall. Alla tre bitarna behövdes.',
   beats: [
-    { kind: 'avtryck', text: 'Vi scannade ett fingeravtryck — IDENTIFIERAD SOM Dana Falk. Och samma avtryck igen. Hon återkom två gånger.' },
-    { kind: 'logg', text: 'Loggen: "en i orange väst vid luckan 02:14." Det stämde med Dana.' },
-    { kind: 'har', text: 'Men både Dana och Nils hade avtryck på platsen. I mikroskopet: ett fint, blont människohår — inte grovt djurhår. Det var Danas.' },
-    { kind: 'slutsats', text: 'Avtrycket gav VEM. Loggen gav NÄR. Håret AVGJORDE. Alla tre behövdes — Dana Falk var tjuven.' },
+    { kind: 'avtryck', icon: 'finger', image: DANA_IMAGE, text: 'Ett avtryck → IDENTIFIERAD SOM Dana Falk. Samma avtryck igen — hon återkom.' },
+    { kind: 'logg', icon: 'logg', text: 'Loggen: "en i orange väst vid luckan 02:14." Det stämde med Dana.' },
+    { kind: 'har', icon: 'mikroskop', text: 'Både Dana och Nils hade avtryck. I mikroskopet: fint blont människohår — inte djurhår. Det var Danas.' },
+    { kind: 'slutsats', icon: 'check', text: 'Avtryck gav VEM, loggen NÄR, håret AVGJORDE. Dana Falk var tjuven.' },
   ] as RefBeat[],
 }
 

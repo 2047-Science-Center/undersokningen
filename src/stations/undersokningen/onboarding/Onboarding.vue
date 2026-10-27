@@ -12,6 +12,8 @@ import ModeLegend from '@/station-kit/components/ModeLegend.vue'
 import { OTHER } from '../engine/gameEngine'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import BarrierWait from './BarrierWait.vue'
+import Icon from '../components/Icon.vue'
+import Placeholder from '../components/Placeholder.vue'
 
 const props = defineProps<{ team: ValvId; shared?: boolean }>()
 const store = useUndersokningenStore()
@@ -61,10 +63,16 @@ watch([bothReady], () => {
     <!-- Referensfall-beats -->
     <template v-else-if="phase === 'beats'">
       <p class="tut__case">{{ REF_CASE.title }}</p>
-      <div class="tut__beat amber-frame">
-        <span class="tut__beat-label">{{ beatLabel }}</span>
-        <p class="tut__beat-text">{{ beat.text }}</p>
-      </div>
+      <Transition name="beat" mode="out-in">
+        <div class="tut__beat amber-frame" :key="beatIx">
+          <div class="tut__visual">
+            <Placeholder v-if="beat.image" class="tut__visual-img" :path="beat.image" label="Dana Falk" />
+            <div v-else class="tut__visual-icon"><Icon :name="beat.icon" :size="56" /></div>
+          </div>
+          <span class="tut__beat-label"><Icon :name="beat.icon" :size="15" /> {{ beatLabel }}</span>
+          <p class="tut__beat-text">{{ beat.text }}</p>
+        </div>
+      </Transition>
       <div class="tut__dots">
         <span v-for="i in REF_CASE.beats.length" :key="i" class="tut__dot" :class="{ 'tut__dot--on': i - 1 <= beatIx }" />
       </div>
@@ -88,9 +96,24 @@ watch([bothReady], () => {
 .tut { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.2rem; height: 100%; text-align: center; padding: 2rem; }
 .tut__intro { margin: 0; font-family: var(--font-mono); color: var(--color-ink-muted); max-width: 44ch; }
 .tut__case { margin: 0; font-family: var(--font-retro); letter-spacing: 0.08em; color: var(--color-primary); }
-.tut__beat { max-width: 52ch; padding: 1.2rem 1.4rem; display: flex; flex-direction: column; gap: 0.6rem; background: var(--color-background-2); }
-.tut__beat-label { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; color: var(--color-primary); }
+.tut__beat { max-width: 52ch; padding: 1.2rem 1.4rem; display: flex; flex-direction: column; align-items: center; gap: 0.7rem; background: var(--color-background-2); }
+.tut__visual { display: flex; align-items: center; justify-content: center; }
+.tut__visual-img { width: 16rem; max-width: 60vw; }
+.tut__visual-icon {
+  width: 92px; height: 92px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid var(--color-primary-dim); border-radius: 50%; color: var(--color-primary);
+  box-shadow: var(--glow-soft); background: var(--color-background);
+}
+.tut__beat-label { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.12em; color: var(--color-primary); }
 .tut__beat-text { margin: 0; font-size: 1.2rem; line-height: 1.4; color: var(--color-ink-strong); }
+/* Mjuk övergång mellan beats (ease-out + lätt blur maskerar bytet). */
+.beat-enter-active, .beat-leave-active { transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out), filter 200ms var(--ease-out); }
+.beat-enter-from { opacity: 0; transform: translateY(10px) scale(0.98); filter: blur(2px); }
+.beat-leave-to { opacity: 0; transform: translateY(-8px); filter: blur(2px); }
+@media (prefers-reduced-motion: reduce) {
+  .beat-enter-active, .beat-leave-active { transition: opacity 180ms ease; }
+  .beat-enter-from, .beat-leave-to { transform: none; filter: none; }
+}
 .tut__dots { display: flex; gap: 0.5rem; }
 .tut__dot { width: 0.6rem; height: 0.6rem; border-radius: 50%; border: 1px solid var(--color-primary-dim); }
 .tut__dot--on { background: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 0 8px var(--color-primary); }

@@ -47,6 +47,14 @@ klistras före varje person-prompt:
 *(Tjuvens hår (mörkt/kort) vs Majs (rött/långt) är medvetet olika → hårprovet avgör.
 Tomas/Iris rensas av loggen/tid.)*
 
+**5. Dana Falk — TUTORIAL-personen** (referensfallet 2-911; orange väst, blont hår)
+> + A woman in her 30s, **blonde hair**, wearing a bright **orange safety vest** over a
+> dark overall. Caught **reaching toward a wall hatch/cabinet, glancing sideways**.
+> Timestamp "02:14:07".
+>
+> Fil: `public/personer/dana.png`. Visas i tutorialens avtryck-beat så "identifierad
+> som"-grejen landar innan skarpa fallet. (Placeholder tills den regas.)
+
 ## C. Händelselogg (längre, per-person — UTKAST)
 
 **ÄRENDE 3-074 · ÖVERVAKNINGSLOGG · SEKTOR C (valvet) · 13:00–14:35**

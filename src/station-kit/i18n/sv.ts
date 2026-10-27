@@ -38,8 +38,8 @@ export const sv: Record<string, string> = {
   'falt.smudge_title': 'OANVÄNDBART SPÅR',
   'falt.smudge_body': 'Avtrycket är utsmetat — ingen träff.',
   'falt.log_title': 'HÄNDELSELOGG',
-  'falt.submit': 'LÄMNA SVAR',
-  'falt.submit_hint': 'Klara tidigare? Lämna svar när ni är säkra.',
+  'falt.submit': 'GISSA TJUVEN',
+  'falt.submit_hint': 'Undersök först — gissningen sker här i slutet.',
 
   // --- Labb-konsol ---
   'lab.title': 'LABBKONSOL',
@@ -48,18 +48,15 @@ export const sv: Record<string, string> = {
   'lab.answer_other': 'Svara på den andra skärmen →',
   'lab.verdict_running': 'Fältet lämnar in svaret. Hjälp till att peka ut tjuven.',
 
-  // --- Osäkerhetsmätare (delad, via ExposureMeter) ---
-  'exposure.title': 'OSÄKERHET',
-  'exposure.sub': 'Varje fel utpekande ökar osäkerheten. Full mätare = fallet tappat.',
-
   // --- Fallbrief (intro) ---
   'brief.title': 'STÖLD I VALVET',
   'brief.body': 'Något är stulet ur kassaskåpet i sektor C. Ni har fingeravtryck, en övervakningslogg och spårhår. Ta reda på vem som var här — och ta tjuven.',
 
-  // --- Verdikt ---
+  // --- Verdikt (gissningen sker ENDAST i slutet) ---
   'verdict.title': 'VEM ÄR TJUVEN?',
-  'verdict.hint': 'Klicka på personen ni tror är tjuven.',
-  'verdict.wrong': 'Fel person — titta igen på bevisen.',
+  'verdict.hint': 'Nu gissar ni — markera en person och bekräfta. Ett enda utpekande.',
+  'verdict.confirm': 'PEKA UT {name} ▸',
+  'verdict.pick_first': 'Markera en person först',
   'verdict.win_title': 'FALLET LÖST',
   'verdict.lost_title': 'SPÅRET KALLNADE',
   'verdict.win_sub': 'Rätt person. Tjuven är gripen.',
