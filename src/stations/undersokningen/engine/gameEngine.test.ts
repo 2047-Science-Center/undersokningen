@@ -1,172 +1,130 @@
 import { describe, it, expect } from 'vitest'
-import { initialState, reduce, allSolved, stateSignal, type Action } from './gameEngine'
-import { roundScore, personResults } from './scoring'
-import type { EngineCase, GameState, Person, Role, ValvId } from './types'
-
-/* Fixtures ------------------------------------------------------------- */
-
-const CASES: EngineCase[] = [
-  { id: 'spot-1', answer: 'v03' },
-  { id: 'spot-2', answer: 'v04' },
-]
+import { initialState, reduce, scanCountOf, repeatSuspects, stateSignal, type Action } from './gameEngine'
+import { roundScore } from './scoring'
+import type { GameState, Person, Role, ValvId } from './types'
 
 function person(band: string, team: ValvId, role: Role): Person {
   return { band_id: band, team, chosen_role: role, assigned_role: role, role_presented_as: null }
 }
-
 const roster: Record<ValvId, Person[]> = {
   lag1: [person('syd-a', 'lag1', 'A')],
   lag2: [person('nord-b', 'lag2', 'B')],
 }
-
-/** Kör en lista actions genom reducern. */
 function run(actions: Action[], from: GameState = initialState(roster)): GameState {
   return actions.reduce((s, a) => reduce(s, a), from)
 }
-
-const EXPO = 3
-
 function started(): GameState {
-  return run([{ type: 'start', datasetId: 'live', cases: CASES, exposureMax: EXPO }])
+  return run([{ type: 'start', thiefId: 'ravi', uncertaintyMax: 3 }])
 }
-
-/* Tester --------------------------------------------------------------- */
 
 describe('start', () => {
   it('går till investigate och nollställer', () => {
     const s = started()
     expect(s.phase).toBe('investigate')
-    expect(s.datasetId).toBe('live')
-    expect(s.cases).toHaveLength(2)
-    expect(s.exposure).toBe(0)
-    expect(s.exposureMax).toBe(EXPO)
-    expect(s.solvedIds).toEqual([])
-    expect(s.activeCaseId).toBeNull()
+    expect(s.thiefId).toBe('ravi')
+    expect(s.revealedPersonIds).toEqual([])
+    expect(s.uncertainty).toBe(0)
   })
 })
 
-describe('scan', () => {
-  it('avslöjar ett prov och sätter det aktivt', () => {
-    const s = run([{ type: 'scan', caseId: 'spot-1' }], started())
-    expect(s.activeCaseId).toBe('spot-1')
-    expect(s.scannedIds).toEqual(['spot-1'])
-    expect(s.scanCount).toBe(1)
-  })
-
-  it('ignorerar okänd tagg (samma referens)', () => {
-    const base = started()
-    const s = reduce(base, { type: 'scan', caseId: 'finns-ej' })
-    expect(s).toBe(base)
-  })
-
-  it('räknar inte dubbel-scan av samma prov i scannedIds men ökar scanCount', () => {
-    const s = run([{ type: 'scan', caseId: 'spot-1' }, { type: 'scan', caseId: 'spot-1' }], started())
-    expect(s.scannedIds).toEqual(['spot-1'])
-    expect(s.scanCount).toBe(2)
-  })
-})
-
-describe('confirm — inlåsning', () => {
-  it('rätt virus löser provet', () => {
+describe('scanSpot', () => {
+  it('avslöjar en person och räknar avtryck', () => {
     const s = run(
-      [{ type: 'scan', caseId: 'spot-1' }, { type: 'confirm', virusId: 'v03' }],
+      [{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'scanSpot', spotId: 's4', person: 'ravi' }],
       started(),
     )
-    expect(s.solvedIds).toEqual(['spot-1'])
-    expect(s.lastResult).toMatchObject({ caseId: 'spot-1', correct: true })
-    expect(s.exposure).toBe(0)
-    expect(s.phase).toBe('investigate')
+    expect(s.revealedPersonIds).toEqual(['ravi'])
+    expect(scanCountOf(s, 'ravi')).toBe(2)
+    expect(s.activeSpotId).toBe('s4')
   })
 
-  it('fel virus höjer exponeringen, provet förblir olöst', () => {
+  it('smudge avslöjar ingen person', () => {
+    const s = run([{ type: 'scanSpot', spotId: 's8', person: 'smudge' }], started())
+    expect(s.revealedPersonIds).toEqual([])
+    expect(s.activeSpotId).toBe('s8')
+  })
+
+  it('samma spot igen ökar inte räknaren', () => {
     const s = run(
-      [{ type: 'scan', caseId: 'spot-1' }, { type: 'confirm', virusId: 'v01' }],
+      [{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'scanSpot', spotId: 's1', person: 'ravi' }],
       started(),
     )
-    expect(s.solvedIds).toEqual([])
-    expect(s.exposure).toBe(1)
-    expect(s.lastResult).toMatchObject({ correct: false })
+    expect(scanCountOf(s, 'ravi')).toBe(1)
   })
 
-  it('kräver ett aktivt prov (samma referens utan scan)', () => {
-    const base = started()
-    const s = reduce(base, { type: 'confirm', virusId: 'v03' })
-    expect(s).toBe(base)
-  })
-
-  it('alla prov lösta → verdict/win', () => {
+  it('repeatSuspects = personer med ≥2 avtryck', () => {
     const s = run(
       [
-        { type: 'scan', caseId: 'spot-1' },
-        { type: 'confirm', virusId: 'v03' },
-        { type: 'scan', caseId: 'spot-2' },
-        { type: 'confirm', virusId: 'v04' },
+        { type: 'scanSpot', spotId: 's1', person: 'ravi' },
+        { type: 'scanSpot', spotId: 's4', person: 'ravi' },
+        { type: 'scanSpot', spotId: 's7', person: 'iris' },
       ],
       started(),
     )
-    expect(allSolved(s)).toBe(true)
-    expect(s.phase).toBe('verdict')
+    expect(repeatSuspects(s)).toEqual(['ravi'])
+  })
+
+  it('closePopup nollar aktiv popup', () => {
+    const s = run(
+      [{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'closePopup' }],
+      started(),
+    )
+    expect(s.activeSpotId).toBeNull()
+  })
+})
+
+describe('verdikt', () => {
+  it('rätt person → solved/win', () => {
+    const s = run([{ type: 'openVerdict' }, { type: 'pickThief', personId: 'ravi' }], started())
+    expect(s.phase).toBe('solved')
     expect(s.outcome).toBe('win')
   })
 
-  it('full exponering → verdict/lost', () => {
+  it('fel person → osäkerhet stiger, stannar i verdict', () => {
+    const s = run([{ type: 'openVerdict' }, { type: 'pickThief', personId: 'maj' }], started())
+    expect(s.uncertainty).toBe(1)
+    expect(s.lastWrongId).toBe('maj')
+    expect(s.phase).toBe('verdict')
+  })
+
+  it('full osäkerhet → failed/lost', () => {
     const s = run(
       [
-        { type: 'scan', caseId: 'spot-1' },
-        { type: 'confirm', virusId: 'v01' },
-        { type: 'confirm', virusId: 'v02' },
-        { type: 'confirm', virusId: 'v05' },
+        { type: 'openVerdict' },
+        { type: 'pickThief', personId: 'maj' },
+        { type: 'pickThief', personId: 'tomas' },
+        { type: 'pickThief', personId: 'iris' },
       ],
       started(),
     )
-    expect(s.exposure).toBe(EXPO)
-    expect(s.phase).toBe('verdict')
+    expect(s.phase).toBe('failed')
     expect(s.outcome).toBe('lost')
   })
+
+  it('pickThief utanför verdict ignoreras (samma referens)', () => {
+    const base = started()
+    expect(reduce(base, { type: 'pickThief', personId: 'ravi' })).toBe(base)
+  })
 })
 
-describe('sync (snapshot)', () => {
-  it('adopterar högre version, ignorerar lägre', () => {
+describe('sync + scoring', () => {
+  it('sync adopterar högre version', () => {
     const local = started()
-    const remote = run([{ type: 'scan', caseId: 'spot-1' }], local) // version högre
-    const adopted = reduce(local, { type: 'sync', state: remote })
-    expect(adopted).toBe(remote)
-
-    const stale = reduce(remote, { type: 'sync', state: local })
-    expect(stale).toBe(remote) // lägre version ignoreras
+    const remote = run([{ type: 'scanSpot', spotId: 's1', person: 'ravi' }], local)
+    expect(reduce(local, { type: 'sync', state: remote })).toBe(remote)
+    expect(reduce(remote, { type: 'sync', state: local })).toBe(remote)
   })
-})
 
-describe('scoring', () => {
-  it('gemensam poäng = lösta minus exponering', () => {
+  it('poäng = löst minus osäkerhet', () => {
     const s = run(
-      [
-        { type: 'scan', caseId: 'spot-1' },
-        { type: 'confirm', virusId: 'v01' }, // fel → exponering 1
-        { type: 'confirm', virusId: 'v03' }, // rätt → löst
-      ],
+      [{ type: 'openVerdict' }, { type: 'pickThief', personId: 'maj' }, { type: 'pickThief', personId: 'ravi' }],
       started(),
     )
-    const rs = roundScore(s)
-    expect(rs.solved).toBe(1)
-    expect(rs.exposure).toBe(1)
-    expect(rs.score).toBe(0) // 1 löst - 1 exponering
+    expect(roundScore(s).solved).toBe(true)
+    expect(roundScore(s).score).toBe(2) // 3 - 1 osäkerhet
   })
 
-  it('per-person-rader bär könssiffrans fält', () => {
-    const s = run(
-      [{ type: 'scan', caseId: 'spot-1' }, { type: 'confirm', virusId: 'v03' }],
-      started(),
-    )
-    const pr = personResults(s)
-    expect(pr.lag1[0]).toMatchObject({ band_id: 'syd-a', chosen_role: 'A', result_value: 1 })
-    expect(pr.lag2[0]).toMatchObject({ band_id: 'nord-b', chosen_role: 'B', result_value: 1 })
-  })
-})
-
-describe('stateSignal', () => {
-  it('speglar fas/exponering/lösta för ljus & ljud', () => {
-    const sig = stateSignal(started())
-    expect(sig).toEqual({ phase: 'investigate', exposure: 0, exposureMax: EXPO, solved: 0, total: 2 })
+  it('stateSignal speglar fas/osäkerhet', () => {
+    expect(stateSignal(started())).toEqual({ phase: 'investigate', uncertainty: 0, uncertaintyMax: 3, revealed: 0 })
   })
 })

@@ -24,9 +24,9 @@
 #include <MFRC522.h>
 
 // --- FYLL I ---
-const char* WIFI_SSID = "DITT_WIFI";
-const char* WIFI_PASS = "DITT_LÖSEN";
-const char* MQTT_HOST = "192.168.1.XX";   // Mac:ens LAN-IP (ipconfig getifaddr en0)
+const char* WIFI_SSID = "";
+const char* WIFI_PASS = "";
+const char* MQTT_HOST = "192.168.68.55";  // Mac:ens LAN-IP (ipconfig getifaddr en0)
 const uint16_t MQTT_PORT = 1883;          // mosquittos TCP-listener
 
 // --- Station/topic ---

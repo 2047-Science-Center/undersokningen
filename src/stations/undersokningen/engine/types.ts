@@ -1,36 +1,20 @@
 /**
- * Typer för Undersökningens rena spelmotor (Lager B). Allt här är
- * ramverksoberoende och JSON-serialiserbart — hela state skickas rakt genom
- * transporten som snapshot (samma mönster som Förhandlingen).
- *
- * Motorn känner BARA till det den behöver för korrekthet: case-id + rätt svar
- * (`answer`) + exponering. Särdrag, bilder och namn är UI-/config-data och
- * ligger utanför motorn (i @/config), så motorn är ren och testbar utan DOM.
+ * Typer för Stölden-motorn (Lager B). Ramverksoberoende, JSON-serialiserbart.
+ * Motorn känner bara till id:n (spot→person avgörs i config/store) så den är ren.
  */
 
-/** Valv = skärm. lag1 = Syd (vänster), lag2 = Nord (höger). */
 export type ValvId = 'lag1' | 'lag2'
-
-/** A = LABB (mikroskop), B = FÄLT (UV/scanner). Matar könssiffran uppströms. */
 export type Role = 'A' | 'B'
 
 /**
- * Spelfaser:
- *  intro       — fallet presenteras (vilken yta, vad som gäller).
- *  investigate — den aktiva loopen: fält scannar prov, labbet låser in virus.
- *  verdict     — alla prov lösta (win) eller exponeringen full (lost).
+ *  intro       — fallet presenteras.
+ *  investigate — scanna avtryck, läs logg, mikroskopera; samla belägg.
+ *  verdict      — peka ut tjuven (galleri med scannade personer).
+ *  solved/failed — utfall.
  */
-export type Phase = 'intro' | 'investigate' | 'verdict'
-
+export type Phase = 'intro' | 'investigate' | 'verdict' | 'solved' | 'failed'
 export type Outcome = 'win' | 'lost'
 
-/** Det motorn behöver per prov: stabilt id + rätt virus-id. */
-export interface EngineCase {
-  id: string
-  answer: string
-}
-
-/** Person i ett valv — bär könssiffrans fält från början (som Förhandlingen). */
 export interface Person {
   band_id: string
   name?: string
@@ -40,41 +24,31 @@ export interface Person {
   role_presented_as: 'manlig' | 'kvinnlig' | null
 }
 
-/** Senaste inlåsningens utfall (för feedback-UI + ljud). */
-export interface ConfirmResult {
-  caseId: string
-  virusId: string
-  correct: boolean
-}
-
 export interface GameState {
   phase: Phase
-  datasetId: string
-  /** Proven denna omgång (bara id + facit — innehåll slås upp i config). */
-  cases: EngineCase[]
-  /** Provet som fält scannat fram och labbet jobbar mot just nu. */
-  activeCaseId: string | null
-  /** Prov som scannats (avslöjats) minst en gång. */
-  scannedIds: string[]
-  /** Prov som lösts (rätt virus inlåst). */
-  solvedIds: string[]
-  /** Delad exponeringsmätare — fel inlåsning höjer den. */
-  exposure: number
-  exposureMax: number
-  /** Antal scanningar (anti-svep-budget räknas i store/UI). */
-  scanCount: number
-  lastResult: ConfirmResult | null
+  /** Spots som scannats (avtryck). */
+  revealedSpotIds: string[]
+  /** Personer som scannats fram (för verdikt-galleriet), i upptäcktsordning. */
+  revealedPersonIds: string[]
+  /** Antal avtryck per person (upprepad närvaro). */
+  scanCounts: Record<string, number>
+  /** Spot vars popup visas just nu (person ELLER smudge), eller null. */
+  activeSpotId: string | null
+  /** Felaktiga utpekanden. */
+  uncertainty: number
+  uncertaintyMax: number
+  /** Rätt svar (sätts vid start). */
+  thiefId: string
+  /** Senast felpekade person (för "fel person"-feedback). */
+  lastWrongId: string | null
   outcome: Outcome | null
   members: Record<ValvId, Person[]>
-  /** Ökar vid varje mutation → snapshot-synk ("högst vinner"). */
   version: number
 }
 
-/** Delas ut till ljus/ljud i drift (station<N>/state). Ren härledning. */
 export interface StateSignal {
   phase: Phase
-  exposure: number
-  exposureMax: number
-  solved: number
-  total: number
+  uncertainty: number
+  uncertaintyMax: number
+  revealed: number
 }

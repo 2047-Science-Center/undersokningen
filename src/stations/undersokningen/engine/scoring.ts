@@ -1,19 +1,15 @@
 /**
- * Poäng — ren funktion av sluttillståndet. Undersökningen är kooperativ: båda
- * valv löser SAMMA fall tillsammans, så lagpoängen är gemensam (antal lösta
- * prov minus exponering). Per-person-resultatet bär könssiffrans fält;
- * `result_value` är en platshållare tills System 1 (AI-bedömning) kopplas.
+ * Poäng — ren funktion av sluttillståndet. Kooperativt: gemensam poäng =
+ * löst (1) minus osäkerhet (felpekningar), aldrig under 0. Per-person-raderna
+ * bär könssiffrans fält; result_value platshållare tills System 1 kopplas.
  */
 
 import type { GameState, Role, ValvId } from './types'
 
 export interface RoundScore {
-  solved: number
-  total: number
-  exposure: number
-  exposureMax: number
+  solved: boolean
+  uncertainty: number
   outcome: GameState['outcome']
-  /** Gemensam poäng: lösta prov, straffat av exponering (aldrig under 0). */
   score: number
 }
 
@@ -26,22 +22,11 @@ export interface PersonResult {
 }
 
 export function roundScore(state: GameState): RoundScore {
-  const solved = state.solvedIds.length
-  const score = Math.max(0, solved - state.exposure)
-  return {
-    solved,
-    total: state.cases.length,
-    exposure: state.exposure,
-    exposureMax: state.exposureMax,
-    outcome: state.outcome,
-    score,
-  }
+  const solved = state.phase === 'solved'
+  const score = Math.max(0, (solved ? 3 : 0) - state.uncertainty)
+  return { solved, uncertainty: state.uncertainty, outcome: state.outcome, score }
 }
 
-/**
- * Per-person-rader (matar X&Y-resultattabellen). Kooperativ station → alla i
- * samma grupp får samma gemensamma poäng tills System 1 differentierar.
- */
 export function personResults(state: GameState): Record<ValvId, PersonResult[]> {
   const value = roundScore(state).score
   const build = (team: ValvId): PersonResult[] =>

@@ -1,215 +1,145 @@
 <script setup lang="ts">
 /**
- * FÄLTKONSOL (roll B). Scanna ytan → provets SIGNALEMENT (bild + särdrags-chips)
- * som ska läsas upp för labbet. Fältet ser provet, labbet gör det inte — det är
- * samarbetssömmen. Flera prov per omgång. Pilot: skärmknappar mockar scannern.
+ * FÄLTKONSOL (roll B). Split: fingeravtrycksyta (mock — klickbara spots) +
+ * händelseloggen. Klicka ett avtryck → scan → övervakningsbild på en person
+ * ("IDENTIFIERAD SOM") som kan kryssas ner. Smudge → ingen träff. "LÄMNA SVAR"
+ * när som helst → verdikt.
  */
 import { computed } from 'vue'
-import { config, featureById } from '@/config'
+import { LOG } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from '../store/undersokningenStore'
-import Icon from './Icon.vue'
 import Placeholder from './Placeholder.vue'
-import FeatureChip from './FeatureChip.vue'
 import ExposureMeter from './ExposureMeter.vue'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
 
-const isPilot = config.mode === 'pilot'
-
-const activeFeatures = computed(() =>
-  (store.activeCase?.features ?? []).map((id) => featureById(id)?.label ?? id),
-)
+const person = computed(() => store.activePerson)
+const prints = computed(() => (person.value ? (store.state.scanCounts[person.value.id] ?? 0) : 0))
 </script>
 
 <template>
   <div class="falt">
     <header class="falt__head">
-      <div class="falt__role">
-        <Icon name="uv" :size="26" />
-        <div>
-          <h2 class="falt__title">{{ t('falt.title') }}</h2>
-          <p class="falt__sub">{{ t('role.falt') }} · {{ t('valv.nord') }}</p>
-        </div>
+      <div>
+        <h2 class="falt__title">{{ t('falt.title') }}</h2>
+        <p class="falt__sub">{{ t('role.falt') }} · {{ t('valv.nord') }}</p>
       </div>
-      <div class="falt__progress mono">
-        <span v-if="store.mqttOn" class="falt__seam">◉ {{ t('seam.mqtt_on') }}</span>
-        {{ t('progress.title') }} {{ t('progress.count', { solved: store.solvedCount, total: store.totalCount }) }}
-      </div>
+      <button class="crt-button crt-button--strong falt__submit" @click="store.openVerdict()">
+        {{ t('falt.submit') }} ▸
+      </button>
     </header>
 
-    <!-- Okänd tagg: visa UID så man kan mappa den i config -->
-    <div v-if="store.lastUnknownTag" class="falt__unknown">
-      <Icon name="scanner" :size="18" />
-      <span class="mono">{{ t('falt.unknown_tag', { uid: store.lastUnknownTag }) }}</span>
-      <span class="falt__unknown-hint">{{ t('falt.unknown_hint') }}</span>
+    <div class="falt__body">
+      <!-- Fingeravtrycksyta -->
+      <section class="falt__surface-wrap">
+        <div class="falt__surface-head">{{ t('falt.surface') }}</div>
+        <div class="falt__surface amber-frame">
+          <button
+            v-for="s in store.spotStatuses"
+            :key="s.id"
+            class="falt__spot"
+            :class="{ 'falt__spot--scanned': s.scanned }"
+            :style="{ left: s.x + '%', top: s.y + '%' }"
+            :title="t('falt.scan_a_print')"
+            @click="store.scanSpot(s.id)"
+          >
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true">
+              <path d="M12 4a7 7 0 00-7 7v3M19 11a7 7 0 00-3-5.7M8 20c-.6-1.2-1-2.6-1-4v-3a5 5 0 019-3M16 12v2a9 9 0 001 4M12 11v4a6 6 0 00.8 3" />
+            </svg>
+          </button>
+          <p class="falt__surface-hint">{{ t('falt.surface_hint') }}</p>
+        </div>
+        <ExposureMeter class="falt__meter" :value="store.uncertainty" :max="store.uncertaintyMax" />
+      </section>
+
+      <!-- Händelselogg -->
+      <section class="falt__log amber-frame">
+        <h3 class="falt__log-title">{{ t('falt.log_title') }}</h3>
+        <p class="falt__log-head mono">{{ LOG.header }}</p>
+        <ul class="falt__log-list">
+          <li v-for="(e, i) in LOG.entries" :key="i" class="falt__log-row">
+            <span class="falt__log-time mono">{{ e.time }}</span>
+            <span class="falt__log-text">{{ e.text }}</span>
+          </li>
+        </ul>
+      </section>
     </div>
 
-    <!-- Aktivt prov: signalement -->
-    <section v-if="store.activeCase" class="falt__sample">
-      <Placeholder class="falt__img" :path="store.activeCase.image" :label="t('falt.sample') + ' ' + store.activeCase.id" />
-      <div class="falt__sig" data-tut="signalement">
-        <h3 class="falt__sig-title">{{ t('falt.signalement') }}</h3>
-        <div class="falt__chips">
-          <FeatureChip v-for="(f, i) in activeFeatures" :key="i" :label="f" />
+    <!-- Person-popup (övervakningsbild) -->
+    <div v-if="store.activeSpot" class="falt__popup" @click.self="store.closePopup()">
+      <div class="falt__card amber-frame">
+        <button class="falt__x" :aria-label="t('common.close')" @click="store.closePopup()">✕</button>
+        <template v-if="person">
+          <Placeholder class="falt__photo" :path="person.image" :label="person.name" />
+          <div class="falt__id">
+            <span class="falt__id-eyebrow">{{ t('falt.identified_as') }}</span>
+            <span class="falt__id-name ink-strong">{{ person.name }}</span>
+            <span class="falt__id-clothing">{{ person.clothing }}</span>
+            <span class="falt__id-prints mono">{{ t('falt.prints_count', { n: prints }) }}</span>
+          </div>
+        </template>
+        <div v-else class="falt__smudge">
+          <h3 class="falt__smudge-title">{{ t('falt.smudge_title') }}</h3>
+          <p>{{ t('falt.smudge_body') }}</p>
         </div>
-        <p class="falt__report ink-strong" data-tut="report">{{ t('falt.report') }}</p>
-        <p class="falt__report-hint">{{ t('falt.report_hint') }}</p>
       </div>
-    </section>
-
-    <section v-else class="falt__empty">
-      <Icon name="scanner" :size="40" />
-      <p>{{ t('falt.no_sample') }}</p>
-      <p class="falt__scan-hint">{{ t('falt.scan_hint') }}</p>
-    </section>
-
-    <!-- Scanna-ytan-knappar (pilot mockar scannern) -->
-    <section v-if="isPilot" class="falt__scanrow" :aria-label="t('falt.scan_surface')">
-      <button
-        v-for="(c, i) in store.caseStatuses"
-        :key="c.id"
-        class="crt-button falt__scanbtn"
-        :class="{ 'falt__scanbtn--active': c.active, 'falt__scanbtn--solved': c.solved }"
-        :disabled="c.solved"
-        data-tut="scan"
-        @click="store.scanCase(c.id)"
-      >
-        <Icon name="prov" :size="18" />
-        {{ c.solved ? t('falt.solved') : t('falt.scan_spot', { n: i + 1 }) }}
-      </button>
-    </section>
-
-    <ExposureMeter :value="store.exposure" :max="store.exposureMax" />
+    </div>
   </div>
 </template>
 
 <style scoped>
-.falt {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  height: 100%;
-  min-height: 0;
+.falt { display: flex; flex-direction: column; gap: 0.8rem; height: 100%; min-height: 0; position: relative; }
+.falt__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.falt__title { margin: 0; font-size: 1.5rem; letter-spacing: 0.06em; }
+.falt__sub { margin: 0; font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-ink-muted); }
+.falt__submit { font-size: 1.2rem; }
+.falt__body { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 1rem; }
+.falt__surface-wrap { display: flex; flex-direction: column; gap: 0.6rem; min-height: 0; }
+.falt__surface-head { font-family: var(--font-retro); letter-spacing: 0.06em; color: var(--color-primary); }
+.falt__surface {
+  position: relative; flex: 1; min-height: 200px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 38px, rgba(var(--mode-accent-rgb), 0.04) 38px 39px),
+    repeating-linear-gradient(0deg, transparent 0 38px, rgba(var(--mode-accent-rgb), 0.04) 38px 39px),
+    var(--color-background-2);
 }
-.falt__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+.falt__spot {
+  position: absolute; transform: translate(-50%, -50%);
+  background: transparent; border: none; cursor: pointer;
+  color: var(--color-ink-muted); padding: 0.3rem; border-radius: 50%;
+  transition: color 0.12s, transform 0.12s;
 }
-.falt__role {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
+.falt__spot:hover { color: var(--color-primary); transform: translate(-50%, -50%) scale(1.15); }
+.falt__spot--scanned { color: var(--color-primary-dim); opacity: 0.4; }
+.falt__surface-hint {
+  position: absolute; left: 0; right: 0; bottom: 0.5rem; margin: 0; text-align: center;
+  font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-ink-muted); pointer-events: none;
 }
-.falt__title {
-  margin: 0;
-  font-size: 1.5rem;
-  letter-spacing: 0.06em;
+.falt__meter { flex: none; }
+.falt__log { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.8rem; min-height: 0; overflow: hidden; }
+.falt__log-title { margin: 0; font-size: 1rem; letter-spacing: 0.06em; color: var(--color-primary); }
+.falt__log-head { font-size: 0.72rem; color: var(--color-ink-muted); }
+.falt__log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; }
+.falt__log-row { display: grid; grid-template-columns: 3.2em 1fr; gap: 0.6rem; }
+.falt__log-time { color: var(--color-primary); }
+.falt__log-text { font-family: var(--font-mono); font-size: 0.86rem; line-height: 1.35; }
+.falt__popup {
+  position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center;
+  background: rgba(3, 9, 6, 0.82); padding: 1.5rem;
 }
-.falt__sub {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  color: var(--color-ink-muted);
+.falt__card { position: relative; display: flex; gap: 1rem; padding: 0.8rem; max-width: 46ch; background: var(--color-background-2); }
+.falt__x {
+  position: absolute; top: 0.3rem; right: 0.3rem; z-index: 2; background: transparent; border: none;
+  color: var(--color-ink-strong); font-size: 1.1rem; cursor: pointer; padding: 0.2rem 0.4rem;
 }
-.falt__progress {
-  color: var(--color-ink-strong);
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-.falt__seam {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-primary);
-  letter-spacing: 0.04em;
-}
-.falt__unknown {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.5rem 0.8rem;
-  border: 1px solid var(--color-danger);
-  border-radius: 10px;
-  color: var(--color-danger);
-}
-.falt__unknown-hint {
-  font-family: var(--font-mono);
-  font-size: 0.8rem;
-  color: var(--color-ink-muted);
-}
-.falt__sample {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
-  gap: 1rem;
-  flex: 1;
-  min-height: 0;
-}
-.falt__img {
-  max-height: 46vh;
-}
-.falt__sig {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-}
-.falt__sig-title {
-  margin: 0;
-  font-size: 1.1rem;
-  letter-spacing: 0.08em;
-  color: var(--color-primary);
-}
-.falt__chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-.falt__report {
-  margin: 0.6rem 0 0;
-  font-family: var(--font-mono);
-  font-size: 1.05rem;
-}
-.falt__report-hint {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  color: var(--color-ink-muted);
-}
-.falt__empty {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  color: var(--color-ink-muted);
-  font-family: var(--font-mono);
-  text-align: center;
-}
-.falt__scan-hint {
-  margin: 0;
-  font-size: 0.85rem;
-}
-.falt__scanrow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-.falt__scanbtn {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-}
-.falt__scanbtn--active {
-  color: var(--color-ink-strong);
-  border-color: var(--color-ink-strong);
-}
-.falt__scanbtn--solved {
-  opacity: 0.5;
-}
+.falt__photo { width: 15rem; max-width: 42vw; }
+.falt__id { display: flex; flex-direction: column; gap: 0.3rem; justify-content: center; }
+.falt__id-eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; color: var(--color-primary); }
+.falt__id-name { font-size: 1.5rem; letter-spacing: 0.03em; }
+.falt__id-clothing { font-family: var(--font-mono); font-size: 0.9rem; color: var(--color-ink-muted); }
+.falt__id-prints { color: var(--color-primary); margin-top: 0.3rem; }
+.falt__smudge { display: flex; flex-direction: column; gap: 0.4rem; justify-content: center; text-align: center; padding: 1rem 1.5rem; color: var(--color-danger); }
+.falt__smudge-title { margin: 0; letter-spacing: 0.06em; }
 </style>

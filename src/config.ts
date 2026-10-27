@@ -1,74 +1,46 @@
 /**
- * Central config för Undersökningen (X&Y-riggen).
+ * Central config för Undersökningen — narrativ "Stölden i valvet".
  *
- * Stationen är en kooperativ tvårollsstation: FÄLT (UV-penna + scanner avslöjar
- * ett prov och dess SÄRDRAG) × LABB (mikroskop + provbank med kända virus).
- * Man identifierar patogenen på SÄRDRAG, inte bildlikhet. Ingen sida kan lösa
- * ensam — fält ser provet men inte banken, labbet har banken men inte provet.
+ * Kooperativ forensisk utredning: FÄLT (klickar fram fingeravtryck → övervaknings-
+ * bild på en person + läser händelseloggen) × LABB (tittar på hårprover i Dino-Lite
+ * + hårklass-remsa). Tre bevisströmmar (avtryck = vem, logg = när, hår = avgör)
+ * konvergerar → man pekar ut tjuven. Ingen sida löser ensam.
  *
- * Pilot vs drift skiljs av EN sak: `mode`. Allt annat (STATION_N, timers,
- * exponeringstak, provbank, dataset) är konstanter här. Pilot→drift = byt MODE
- * och fyll stubbarna i adaptrarna — rör aldrig spellogiken.
- *
- * All koppling prov→särdrag→rätt-svar bor HÄR (i config/dataset), aldrig på
- * NFC-taggen ("äg sömmen, byt skalet"). INGA hemligheter i denna fil
- * (broker-url, lösenord, tokens hör hemma i miljövariabler/driftconfig).
+ * Pilot vs drift skiljs av `mode`. All innehållsdata (personer, spots, logg, hår)
+ * bor HÄR. INGA hemligheter i filen.
  */
 
 export type Mode = 'pilot' | 'production'
-
-/** Vilket valv (skärm) är vilken roll. A = LABB (mikroskop), B = FÄLT (UV/scanner).
- *  Könssiffran matas av rollvalet (A/B) uppströms — fälten bärs i datamodellen. */
 export type RoleId = 'labb' | 'falt'
 export type ValvId = 'lag1' | 'lag2'
 
-/** Används av kitets BroadcastChannel-kanalnamn (station-unik → två stationer
- *  på samma dator krockar inte). */
 export const APP_ID = 'undersokningen'
-
-/** Stationens nummer i riggen. Topic-namespace blir `station<N>/…`.
- *  Station 3 (bekräftat av Josef 2026-10-19 för prototypen). */
+/** Station 3 i riggen. Topic-namespace `station3/…`. */
 export const STATION_N = 3
 
 export const config = {
-  /** 'pilot' = BroadcastChannel + skärm-ljus + mock-identitet/resultat.
-   *  'production' = WebSocket + MQTT-ljus/identitet/resultat (stubbat). */
   mode: 'pilot' as Mode,
-
   appId: APP_ID,
   stationN: STATION_N,
-
-  /** Aktivt språk. Svenska byggd; no/svorsk stubbade (ärvs från kitet). */
   lang: 'sv' as 'sv' | 'no' | 'svorsk',
 
-  /** Delad exponeringsmätare: fel inlåsning höjer den ett steg. Når den taket
-   *  är omgången förlorad. Mjukvara (ingen fysisk mätare i prototyp). */
-  exposureMax: 3,
+  /** Nedräkning för skarpa fallet (sekunder). */
+  timerSeconds: 8 * 60,
+  /** 10-sekunders-varning när så här många sekunder återstår. */
+  timerWarnAt: 15,
 
-  /** Tak på antal scanningar per omgång (anti-svep). 0 = obegränsat. */
-  scanBudget: 0,
-
-  /** Monter-skala för läsbarhet på håll (som Minnestestet). TODO: bekräfta
-   *  värdet med Josef mot faktiskt monteravstånd. 1 = kitets 115%-bas. */
+  /** Monter-skala (bekräfta mot avstånd). 1 = kitets 115%-bas. */
   uiScale: 1,
 
-  /** MQTT-broker för den FYSISKA sömmen (scan/confirm/home/state), över
-   *  WebSocket. Tom = ingen fysisk söm (pilot mockar med knappar). Kan sättas
-   *  här för drift, men överrids enklast per skärm med `?mqtt=ws://host:9001/mqtt`
-   *  i URL:en — då funkar MQTT-scan ÄVEN i pilotläge (lokala skärmar via
-   *  BroadcastChannel). Ingen hemlighet i koden. */
-  mqtt: {
-    url: '',
-  },
-
-  /** WS för skärm↔skärm-synk i drift (NUC-orkestrator). Fylls i driftläget. */
-  production: {
-    wsUrl: '',
-    mqttUrl: '',
-  },
+  /** MQTT-broker för fysisk söm (scan över WebSocket). ?mqtt= överrider. */
+  mqtt: { url: '' },
+  production: { wsUrl: '', mqttUrl: '' },
 } as const
 
-/** Broker-url för den fysiska sömmen: ?mqtt= i URL:en vinner över config.mqtt.url. */
+export function asset(path: string): string {
+  return encodeURI(import.meta.env.BASE_URL + path.replace(/^\/+/, ''))
+}
+
 export function resolveMqttUrl(): string {
   if (typeof window !== 'undefined') {
     const p = new URLSearchParams(window.location.search).get('mqtt')
@@ -77,168 +49,130 @@ export function resolveMqttUrl(): string {
   return config.mqtt.url
 }
 
-/**
- * Bygger en url till en fil i public/ som funkar oavsett bas-sökväg:
- * `/` i dev och på NUC-hosten, `/undersokningen/` på GitHub Pages.
- */
-export function asset(path: string): string {
-  return encodeURI(import.meta.env.BASE_URL + path.replace(/^\/+/, ''))
-}
-
 /* ------------------------------------------------------------------ *
- * SÄRDRAG — katalogen av namngivna kännetecken (chips). Delas av prov
- * (signalement) och bank-kort. Labels är DATA (tunas fritt); UI-chrome går
- * via i18n. Grupperade i dimensioner så filtret i labbet kan radas upp snyggt.
+ * PERSONER — de som förekommer i fallet. Bilderna är övervaknings-stillbilder
+ * (KAM 03-stil). `hair` är det synliga håret (matchas mot hårprovet i mikroskopet).
+ * `clothing` = signalement som binder bild ↔ logg. Saknas bildfil → placeholder.
  * ------------------------------------------------------------------ */
 
-export interface Feature {
-  id: string
-  /** Visningsetikett (chip). Innehåll — tunas fritt. */
-  label: string
-  /** Dimension för gruppering i labbets filter. */
-  dim: 'form' | 'karna' | 'utskott' | 'symmetri' | 'yta'
-}
-
-export const FEATURES: Feature[] = [
-  { id: 'form_runda', label: 'runda ändar', dim: 'form' },
-  { id: 'form_avlang', label: 'avlång', dim: 'form' },
-  { id: 'form_spetsig', label: 'spetsiga ändar', dim: 'form' },
-  { id: 'karna_bla', label: 'blå kärna', dim: 'karna' },
-  { id: 'karna_rod', label: 'röd kärna', dim: 'karna' },
-  { id: 'karna_ingen', label: 'ingen synlig kärna', dim: 'karna' },
-  { id: 'utskott_6', label: '6 utskott', dim: 'utskott' },
-  { id: 'utskott_12', label: '12 utskott', dim: 'utskott' },
-  { id: 'utskott_inga', label: 'inga utskott', dim: 'utskott' },
-  { id: 'symmetrisk', label: 'symmetrisk', dim: 'symmetri' },
-  { id: 'asymmetrisk', label: 'asymmetrisk', dim: 'symmetri' },
-  { id: 'yta_slat', label: 'slät yta', dim: 'yta' },
-  { id: 'yta_taggig', label: 'taggig yta', dim: 'yta' },
-  { id: 'yta_halo', label: 'ljusgård (halo)', dim: 'yta' },
-]
-
-export type FeatureId = (typeof FEATURES)[number]['id']
-
-export function featureById(id: string): Feature | undefined {
-  return FEATURES.find((f) => f.id === id)
-}
-
-/** Särdragen grupperade per dimension (för labbets filter-uppställning). */
-export const FEATURE_DIMS: Feature['dim'][] = ['form', 'karna', 'utskott', 'symmetri', 'yta']
-export function featuresByDim(dim: Feature['dim']): Feature[] {
-  return FEATURES.filter((f) => f.dim === dim)
-}
-
-/* ------------------------------------------------------------------ *
- * PROVBANK — 10–20 kända virus. Varje kort: namn + bild (placeholder) + samma
- * sorts särdrags-chips. Särdragen är valda så varje virus är UNIKT på sin fulla
- * uppsättning — men delar enskilda särdrag med andra, så labbet måste FILTRERA
- * på det fält ropar ut (Guess Who / dikotom nyckel), inte bara matcha en bild.
- *
- * `image` pekar i public/bank/ — saknas filen renderas en placeholder-ruta med
- * filnamnet (se BankCard/ProvCard). Namn = DATA (fiktiva kodnamn, tunas fritt).
- * ------------------------------------------------------------------ */
-
-export interface Virus {
+export interface Person {
   id: string
   name: string
   image: string
-  features: FeatureId[]
+  /** Kläder-signalement (binder bild ↔ logg). */
+  clothing: string
+  /** Synligt hår (matchas mot spårhåret i Dino-Lite). */
+  hair: string
 }
 
-export const VIRUSES: Virus[] = [
-  { id: 'v01', name: 'ROS-1 "Rödöga"', image: 'bank/v01.png', features: ['form_runda', 'karna_rod', 'utskott_6', 'symmetrisk'] },
-  { id: 'v02', name: 'BLÅ-7 "Nattblom"', image: 'bank/v02.png', features: ['form_runda', 'karna_bla', 'utskott_6', 'yta_slat'] },
-  { id: 'v03', name: 'SPIK-3 "Taggkrona"', image: 'bank/v03.png', features: ['form_spetsig', 'karna_rod', 'utskott_12', 'yta_taggig'] },
-  { id: 'v04', name: 'HALO-2 "Ringdimma"', image: 'bank/v04.png', features: ['form_runda', 'karna_bla', 'yta_halo', 'symmetrisk'] },
-  { id: 'v05', name: 'STAV-9 "Långfinger"', image: 'bank/v05.png', features: ['form_avlang', 'karna_ingen', 'utskott_inga', 'yta_slat'] },
-  { id: 'v06', name: 'KAM-4 "Snedtand"', image: 'bank/v06.png', features: ['form_spetsig', 'karna_rod', 'utskott_6', 'asymmetrisk'] },
-  { id: 'v07', name: 'KLOT-1 "Slätboll"', image: 'bank/v07.png', features: ['form_runda', 'karna_ingen', 'utskott_inga', 'yta_slat'] },
-  { id: 'v08', name: 'KRON-12 "Solkrans"', image: 'bank/v08.png', features: ['form_runda', 'karna_rod', 'utskott_12', 'yta_taggig'] },
-  { id: 'v09', name: 'DUBB-6 "Blåtagg"', image: 'bank/v09.png', features: ['form_avlang', 'karna_bla', 'utskott_6', 'yta_taggig'] },
-  { id: 'v10', name: 'HALO-8 "Blekring"', image: 'bank/v10.png', features: ['form_avlang', 'karna_ingen', 'yta_halo', 'asymmetrisk'] },
-  { id: 'v11', name: 'SPIK-5 "Istapp"', image: 'bank/v11.png', features: ['form_spetsig', 'karna_bla', 'utskott_12', 'symmetrisk'] },
-  { id: 'v12', name: 'ROS-9 "Dubbelöga"', image: 'bank/v12.png', features: ['form_runda', 'karna_rod', 'utskott_6', 'yta_halo'] },
+export const PERSONS: Person[] = [
+  { id: 'ravi', name: 'Ravi Holm', image: 'personer/ravi.png', clothing: 'röd overall', hair: 'mörkt, kort, rakt' },
+  { id: 'maj', name: 'Maj Lindkvist', image: 'personer/maj.png', clothing: 'gula byxor, mörk väst', hair: 'rött, långt, lockigt' },
+  { id: 'tomas', name: 'Tomas Berg', image: 'personer/tomas.png', clothing: 'grön fältjacka', hair: 'grått, kort' },
+  { id: 'iris', name: 'Iris Sund', image: 'personer/iris.png', clothing: 'blå rock', hair: 'blont, långt' },
 ]
 
-export function virusById(id: string): Virus | undefined {
-  return VIRUSES.find((v) => v.id === id)
+export function personById(id: string): Person | undefined {
+  return PERSONS.find((p) => p.id === id)
 }
 
+/** Tjuven — det rätta svaret. Pekas ut i verdikt. */
+export const THIEF_ID = 'ravi'
+
 /* ------------------------------------------------------------------ *
- * PROV (fältets fynd) + DATASET. Ett prov = en kontaminerad plats som scannas
- * fram. `tag` = NFC-taggens UID (VERSAL hex, samma format som checkin-läsaren)
- * → mappas till provet. `features` = signalementet som visas i fält (= svarets
- * särdrag). `answer` = rätt virus-id i banken.
+ * FINGERAVTRYCK — spots på ytan (mock: klickbara). Varje spot → en person,
+ * eller 'smudge' (oanvändbart spår → ingen träff). Personer med FLERA spots
+ * återkommer (stark närvaro). x/y i procent av ytan.
  *
- * Pilot mockar scan med skärmknappar; `tag` används i drift (station<N>/scan).
+ * Fördelning: 3 misstänkta ×2 (ravi, maj, tomas) + iris ×1 + 2 smudge = 9 spots.
  * ------------------------------------------------------------------ */
 
-export interface SampleCase {
+export interface Spot {
   id: string
-  /** NFC-tagg-UID som avslöjar provet (drift). Byt mot riggens faktiska UID. */
-  tag: string
-  image: string
-  features: FeatureId[]
-  /** Rätt virus-id i banken. */
-  answer: string
+  x: number
+  y: number
+  person: string | 'smudge'
 }
 
-export interface Dataset {
-  id: string
-  /** Vilka virus som ligger i banken denna omgång (id:n ur VIRUSES). */
-  bank: string[]
-  cases: SampleCase[]
+export const SPOTS: Spot[] = [
+  { id: 's1', x: 18, y: 24, person: 'ravi' },
+  { id: 's2', x: 72, y: 18, person: 'maj' },
+  { id: 's3', x: 40, y: 38, person: 'tomas' },
+  { id: 's4', x: 61, y: 52, person: 'ravi' },
+  { id: 's5', x: 28, y: 64, person: 'maj' },
+  { id: 's6', x: 83, y: 45, person: 'tomas' },
+  { id: 's7', x: 50, y: 74, person: 'iris' },
+  { id: 's8', x: 12, y: 80, person: 'smudge' },
+  { id: 's9', x: 88, y: 72, person: 'smudge' },
+]
+
+/* ------------------------------------------------------------------ *
+ * HÄNDELSELOGG — vittnesmål/övervakning över ~1,5 h. Kläder + byggnad + beteende
+ * + tid (INTE hår — det bor i porträtten + mikroskopet).
+ * ------------------------------------------------------------------ */
+
+export interface LogEntry {
+  time: string
+  text: string
 }
 
-const ALL_BANK = VIRUSES.map((v) => v.id)
-
-/** Övningsdataset (tutorial, blått) — ett neutralt prov, liten bank så matchen
- *  är tydlig. Används för testomgången innan skarpt. */
-export const PRACTICE_DATASET: Dataset = {
-  id: 'practice',
-  bank: ['v01', 'v02', 'v05', 'v07'],
-  cases: [
-    // Övningsprovet: KLOT-1 "Slätboll" — tydligt skilt från de andra tre.
-    { id: 'ovning', tag: 'PRACTICE01', image: 'prov/ovning.png', features: ['form_runda', 'karna_ingen', 'utskott_inga', 'yta_slat'], answer: 'v07' },
-  ],
-}
-
-/** Skarpt dataset — prototyp med TVÅ prov (två taggar). Full bank (12).
- *  Byggt för 10 potentiella spots: lägg till fler cases här när riggen har dem. */
-export const LIVE_DATASET: Dataset = {
-  id: 'live',
-  bank: ALL_BANK,
-  cases: [
-    // Prov 1 → SPIK-3 "Taggkrona" (spetsig/röd/12/taggig är unikt i banken).
-    // Tagg = fysisk NTAG213-sticker (UID från bänk-testet).
-    { id: 'spot-1', tag: '04E1A6A1772681', image: 'prov/spot-1.png', features: ['form_spetsig', 'karna_rod', 'utskott_12', 'yta_taggig'], answer: 'v03' },
-    // Prov 2 → HALO-2 "Ringdimma" (rund/blå/halo/symmetrisk är unikt i banken).
-    { id: 'spot-2', tag: '04DFA6A1772681', image: 'prov/spot-2.png', features: ['form_runda', 'karna_bla', 'yta_halo', 'symmetrisk'], answer: 'v04' },
-  ],
-}
-
-export const ALL_DATASETS: Dataset[] = [PRACTICE_DATASET, LIVE_DATASET]
-
-/** Standard-dataset för skarpt spel (efter övning). */
-export const LIVE_DATASET_ID = 'live'
-
-export function datasetById(id: string): Dataset {
-  return ALL_DATASETS.find((d) => d.id === id) ?? LIVE_DATASET
+export const LOG = {
+  header: 'ÄRENDE 3-074 · ÖVERVAKNINGSLOGG · SEKTOR C · 13:00–14:35',
+  entries: [
+    { time: '13:02', text: 'Kvinna, ca 40, lugn hållning, blå rock över overallen, bär en provback. Ställer ner den vid bänken, går mot kyllagret. Lämnar sektorn 13:09.' },
+    { time: '13:15', text: 'Man, äldre, kraftig, grön fältjacka, lutar sig länge över kassaskåpets panel och antecknar siffror. Vakten ber honom flytta sig; han muttrar men går mot korridoren 13:22.' },
+    { time: '13:28', text: 'Två personer i gröna standardoveraller passerar snabbt mot verkstaden. Stannar inte i sektorn.' },
+    { time: '13:40', text: 'Mager, något kutryggig person i grå overall, ansiktet bortvänt från kameran, dröjer i korridordörren, kikar in mot skåpet och drar sig undan när lysröret flimrar till. Syns inte på bild igen.' },
+    { time: '13:55', text: 'Kvinna, slutet av 20-årsåldern, spänd, gula byxor och mörk väst. Står länge vid arkivhyllan, bläddrar stressat, stoppar hastigt något i västfickan och ser sig om flera gånger innan hon rör sig vidare.' },
+    { time: '14:10', text: 'Man, medellång, röd overall, rör sig lugnt runt kassaskåpet, lutar sig mot väggen och tycks vänta på någon. Inget uppseendeväckande.' },
+    { time: '14:24', text: 'Mannen i röd overall och kvinnan i gula byxor står nära varandra vid skåpet. Lågmält samtal, hon gestikulerar. Bilden skakar till (vibration).' },
+    { time: '14:30', text: 'LARM. Kassaskåpet står öppet. I oredan syns en av de två sträcka sig in och dra ut något mörkt — bilden skakar, det går inte att se vem av dem. Båda rör sig snabbt mot nödutgången.' },
+    { time: '14:35', text: 'Personen i grå overall har inte synts på någon kamera 14:00–14:35 (endast skymten 13:40).' },
+  ] as LogEntry[],
 }
 
 /* ------------------------------------------------------------------ *
- * Valv ↔ roll. Syd (#lag1, vänster) / Nord (#lag2, höger). A = LABB (mikroskop),
- * B = FÄLT (UV/scanner). TODO: bekräfta vilken fysisk sida som är vilken roll
- * mot riggen. Rollvalet (A/B) sätts uppströms och matar könssiffran.
+ * HÅRKLASSER — remsan på labb-skärmen. Hjälp att sålla människa/djur/syntet
+ * bland de fysiska Q-proven (Q1–Q6 ligger på bordet).
+ * ------------------------------------------------------------------ */
+
+export const HAIR_CLASSES: { label: string; text: string }[] = [
+  { label: 'Människohår', text: 'jämn färg, fin–medel grovlek, smal eller osynlig märg (medulla).' },
+  { label: 'Djurhår', text: 'ofta bandad färg, grövre, bred eller stegformad märg.' },
+  { label: 'Syntet / fiber', text: 'helt jämntjockt, glansigt, ingen inre struktur.' },
+]
+
+/* ------------------------------------------------------------------ *
+ * TUTORIAL — "ett löst fall" (referensfall 2-911). Text-beats (röst senare).
+ * Visar tre-ströms-logiken färdiglöst: avtryck → vem, logg → när, hår → avgör.
+ * ------------------------------------------------------------------ */
+
+export interface RefBeat {
+  kind: 'avtryck' | 'logg' | 'har' | 'slutsats'
+  text: string
+}
+
+export const REF_CASE = {
+  id: '2-911',
+  title: 'ÄRENDE 2-911 — LÖST',
+  intro: 'Så här löste vi ett tidigare fall. Titta — alla tre bitarna behövdes.',
+  beats: [
+    { kind: 'avtryck', text: 'Vi scannade ett fingeravtryck — IDENTIFIERAD SOM Dana Falk. Och samma avtryck igen. Hon återkom två gånger.' },
+    { kind: 'logg', text: 'Loggen: "en i orange väst vid luckan 02:14." Det stämde med Dana.' },
+    { kind: 'har', text: 'Men både Dana och Nils hade avtryck på platsen. I mikroskopet: ett fint, blont människohår — inte grovt djurhår. Det var Danas.' },
+    { kind: 'slutsats', text: 'Avtrycket gav VEM. Loggen gav NÄR. Håret AVGJORDE. Alla tre behövdes — Dana Falk var tjuven.' },
+  ] as RefBeat[],
+}
+
+/* ------------------------------------------------------------------ *
+ * Valv ↔ roll. lag1 = Syd = LABB (mikroskop). lag2 = Nord = FÄLT (avtryck+logg).
  * ------------------------------------------------------------------ */
 
 export interface ValvConfig {
   id: ValvId
-  /** Visningsnamn (Syd/Nord). */
   name: string
   side: 'vanster' | 'hoger'
   role: RoleId
-  /** Resultatroll A/B (A = labb, B = fält) — bärs i datamodellen (könssiffran). */
   resultRole: 'A' | 'B'
 }
 
@@ -247,18 +181,6 @@ export const VALV: Record<ValvId, ValvConfig> = {
   lag2: { id: 'lag2', name: 'Nord', side: 'hoger', role: 'falt', resultRole: 'B' },
 }
 
-/**
- * Riggens fulla rollflöde (rollklipp → hemligt A/B-val → könskodad presentation
- * → ombalansering) sker uppströms. Här är rollerna redan satta; datamodellen
- * bär ändå fälten från början (chosen_role/assigned_role/role_presented_as).
- */
 export const ROLE_FLOW_ENABLED = false
 
-/**
- * Drift: om ingen rör stationen på så här länge återställs den till attract så
- * nästa grupp möter en ren station. 0 = av.
- */
-export const IDLE_RESTART = {
-  minutes: 8,
-  warnSeconds: 20,
-} as const
+export const IDLE_RESTART = { minutes: 8, warnSeconds: 20 } as const

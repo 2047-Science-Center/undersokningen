@@ -1,9 +1,8 @@
 <script setup lang="ts">
 /**
- * App-skalet för Undersökningen (Lager B). Väver attract → tutorial → skarpt,
- * en eller två konsoler beroende på vy (#lag1/#lag2/#shared), och sätter
- * data-mode-wrappern (blått under tutorial, orange skarpt) via useStationMode.
- * Speglar ForhandlingenApp.
+ * App-skal för Stölden. Attract → tutorial → skarpt fall. Två fönster på en NUC
+ * (#lag1 = LABB, #lag2 = FÄLT), synk via BroadcastChannel. data-mode: blått under
+ * tutorial, orange skarpt. Timer syns under fallet; verdikt pekas ut på fält-skärmen.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { config } from '@/config'
@@ -31,28 +30,31 @@ const showGoLive = ref(false)
 const onboarded = computed(() => store.onbStage === 'live')
 const isShared = computed(() => store.view === 'shared')
 const onboardTeam = computed(() => (store.view === 'lag2' ? 'lag2' : 'lag1'))
-const liveVerdict = computed(() => onboarded.value && store.phase === 'verdict')
+/** Fält-innehåll: investigate → konsol, annars (verdict/solved/failed) → verdikt. */
+const faltVerdict = computed(() => store.phase !== 'investigate' && store.phase !== 'intro')
 
-const stationMode = computed<'tutorial' | 'live'>(() =>
-  entered.value && !onboarded.value ? 'tutorial' : 'live',
-)
+const stationMode = computed<'tutorial' | 'live'>(() => (entered.value && !onboarded.value ? 'tutorial' : 'live'))
 watch(stationMode, (m) => setMode(m), { immediate: true })
+
+const mmss = computed(() => {
+  const s = store.secondsLeft
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+})
+const showTimer = computed(() => onboarded.value && store.phase === 'investigate')
 
 function enter(): void {
   entered.value = true
 }
 watch(entered, (v) => store.setSessionActive(v))
 
-// Go-live: när tutorialen är klar, kör nedräkning → leader startar skarp runda.
 watch(onboarded, (v) => {
-  if (v && store.dataset.id !== 'live') showGoLive.value = true
+  if (v && store.phase !== 'investigate') showGoLive.value = true
 })
 function goLiveDone(): void {
   showGoLive.value = false
-  if (store.leader && store.dataset.id !== 'live') store.startLive()
+  if (store.leader && store.phase !== 'investigate') store.startLive()
 }
 
-// Reset (manuell/idle/peer) → tillbaka till attract.
 watch(
   () => store.resetSignal,
   () => {
@@ -61,14 +63,13 @@ watch(
   },
 )
 
-const ACTIVITY = ['pointerdown', 'mousedown', 'click', 'keydown', 'touchstart', 'wheel'] as const
+const ACTIVITY = ['pointerdown', 'keydown', 'touchstart'] as const
 function onActivity(): void {
   store.notifyActivity()
 }
 function onContextMenu(e: Event): void {
   e.preventDefault()
 }
-
 onMounted(() => {
   store.init()
   window.addEventListener('contextmenu', onContextMenu)
@@ -89,26 +90,29 @@ onUnmounted(() => {
     </CrtScreen>
 
     <!-- Tutorial -->
-    <template v-else-if="!onboarded">
-      <CrtScreen>
-        <Onboarding :team="onboardTeam" :shared="isShared" />
+    <CrtScreen v-else-if="!onboarded">
+      <Onboarding :team="onboardTeam" :shared="isShared" />
+    </CrtScreen>
+
+    <!-- Skarpt -->
+    <div v-else class="app__live">
+      <div v-if="showTimer" class="app__timer" :class="{ 'app__timer--warn': store.timerWarn }">
+        {{ t('timer.label') }} <span class="app__timer-num mono">{{ mmss }}</span>
+      </div>
+
+      <div v-if="isShared" class="app__split">
+        <CrtScreen><LabbConsole /></CrtScreen>
+        <CrtScreen>
+          <VerdictScreen v-if="faltVerdict" />
+          <FaltConsole v-else />
+        </CrtScreen>
+      </div>
+      <CrtScreen v-else-if="store.view === 'lag1'"><LabbConsole /></CrtScreen>
+      <CrtScreen v-else>
+        <VerdictScreen v-if="faltVerdict" />
+        <FaltConsole v-else />
       </CrtScreen>
-    </template>
-
-    <!-- Skarpt: utlåtande -->
-    <CrtScreen v-else-if="liveVerdict">
-      <VerdictScreen />
-    </CrtScreen>
-
-    <!-- Skarpt: konsoler -->
-    <div v-else-if="isShared" class="app__split">
-      <CrtScreen><LabbConsole /></CrtScreen>
-      <CrtScreen><FaltConsole /></CrtScreen>
     </div>
-    <CrtScreen v-else>
-      <LabbConsole v-if="store.view === 'lag1'" />
-      <FaltConsole v-else />
-    </CrtScreen>
 
     <!-- Overlays -->
     <MuteButton class="app__mute" />
@@ -119,66 +123,27 @@ onUnmounted(() => {
       <p class="app__pause-title">{{ t('facil.paused_title') }}</p>
       <p class="app__pause-sub">{{ t('facil.paused_sub') }}</p>
     </div>
-
-    <div v-if="store.idleWarn" class="app__idle">
-      {{ t('idle.restart_in') }} · {{ t('idle.seconds', { n: store.idleSecondsLeft }) }}
-    </div>
   </div>
 </template>
 
 <style scoped>
-.app {
-  height: 100vh;
-  padding: clamp(0.5rem, 2vh, 1.2rem);
-  background: var(--color-background);
+.app { height: 100vh; padding: clamp(0.5rem, 2vh, 1.2rem); background: var(--color-background); }
+.app__live { height: 100%; display: flex; flex-direction: column; gap: 0.6rem; }
+.app__timer {
+  align-self: center; display: flex; align-items: center; gap: 0.6rem;
+  font-family: var(--font-retro); letter-spacing: 0.08em; color: var(--color-primary);
+  border: 1px solid var(--color-primary-dim); border-radius: 999px; padding: 0.2rem 1.1rem; background: var(--color-background-2);
 }
-.app__split {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1rem;
-  height: 100%;
-}
-.app__mute {
-  position: fixed;
-  left: 0.8rem;
-  bottom: 0.8rem;
-  z-index: 300;
-}
-.app__pause {
-  position: fixed;
-  inset: 0;
-  z-index: 350;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.6rem;
-  background: rgba(3, 9, 6, 0.9);
-  text-align: center;
-}
-.app__pause-title {
-  font-size: 2.4rem;
-  letter-spacing: 0.12em;
-  color: var(--color-primary);
-  text-shadow: var(--glow-strong);
-  margin: 0;
-}
-.app__pause-sub {
-  font-family: var(--font-mono);
-  color: var(--color-ink-muted);
-  margin: 0;
-}
-.app__idle {
-  position: fixed;
-  top: 0.8rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 320;
-  background: var(--color-background-2);
-  border: 1px solid var(--color-danger);
-  border-radius: 10px;
-  padding: 0.4rem 1rem;
-  font-family: var(--font-mono);
-  color: var(--color-danger);
-}
+.app__timer-num { font-size: 1.6rem; color: var(--color-ink-strong); text-shadow: var(--glow-soft); }
+.app__timer--warn { border-color: var(--color-danger); color: var(--color-danger); animation: tpulse 0.8s ease-in-out infinite; }
+.app__timer--warn .app__timer-num { color: var(--color-danger); }
+@keyframes tpulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.app__split { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.app__split > * { min-height: 0; }
+.app__live > :not(.app__timer) { flex: 1; min-height: 0; }
+.app__mute { position: fixed; left: 0.8rem; bottom: 0.8rem; z-index: 300; }
+.app__pause { position: fixed; inset: 0; z-index: 350; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; background: rgba(3, 9, 6, 0.9); text-align: center; }
+.app__pause-title { font-size: 2.4rem; letter-spacing: 0.12em; color: var(--color-primary); text-shadow: var(--glow-strong); margin: 0; }
+.app__pause-sub { font-family: var(--font-mono); color: var(--color-ink-muted); margin: 0; }
+@media (prefers-reduced-motion: reduce) { .app__timer--warn { animation: none; } }
 </style>

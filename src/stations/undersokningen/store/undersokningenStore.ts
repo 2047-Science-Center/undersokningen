@@ -1,11 +1,7 @@
 /**
- * Pinia-store för Undersökningen — tunt orkestreringslager (ingen spellogik).
- * Binder motorn ↔ sömmen ↔ transport, exakt mönster som Förhandlingen:
- *   UI → dispatch(action) → reduce(state,action) → applyEffects() → broadcast()
- * Mottagen snapshot → reduce(state,{type:'sync'}) (ingen broadcast → ingen eko).
- *
- * Två valv synkas via transport (BroadcastChannel i pilot). "Vilket valv är
- * jag" avgörs lokalt av URL-hashen (#lag1/#lag2/#shared), aldrig av meddelandet.
+ * Pinia-store för Stölden — tunt orkestreringslager (ingen spellogik).
+ * dispatch→reduce→effekter→broadcast, transport-synk mellan de två valven,
+ * tutorial-koordinator (sync-barriär), timer och scan-söm.
  */
 
 import { defineStore } from 'pinia'
@@ -17,32 +13,24 @@ import type { ResultPayload } from '@/station-kit/adapters/result/ResultSink'
 
 import {
   config,
-  datasetById,
-  virusById,
+  SPOTS,
+  personById,
+  THIEF_ID,
   VALV,
-  PRACTICE_DATASET,
-  LIVE_DATASET_ID,
   IDLE_RESTART,
   type ValvId,
-  type SampleCase,
-  type Virus,
+  type Spot,
+  type Person as PersonInfo,
 } from '@/config'
 
-import {
-  initialState,
-  reduce,
-  stateSignal,
-  caseById,
-  type Action,
-} from '../engine/gameEngine'
+import { initialState, reduce, stateSignal, scanCountOf, type Action } from '../engine/gameEngine'
 import type { GameState, Person } from '../engine/types'
 import { personResults, roundScore } from '../engine/scoring'
 import { createSeam, type Seam } from '../seam/createSeam'
 import type { ScanEvent } from '../seam/Scan'
 
 export type ViewSide = ValvId | 'shared'
-/** Onboarding-faser (synkade över transport). 'live' = tutorial klar. */
-export type OnbStage = 'opening' | 'test' | 'testresult' | 'live'
+export type OnbStage = 'tutorial' | 'live'
 
 const IDLE_MS = IDLE_RESTART.minutes * 60_000
 
@@ -51,7 +39,6 @@ function viewFromHash(): ViewSide {
   return h === 'lag1' || h === 'lag2' || h === 'shared' ? (h as ViewSide) : 'shared'
 }
 
-/** Deterministisk pilot-roster (delas av alla fönster). */
 function defaultRoster(): Record<ValvId, Person[]> {
   return {
     lag1: [{ band_id: 'syd-a', name: 'Alva', team: 'lag1', chosen_role: 'A', assigned_role: 'A', role_presented_as: null }],
@@ -66,32 +53,25 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   const view = ref<ViewSide>(viewFromHash())
   const leader = computed(() => view.value === 'shared' || view.value === 'lag1')
 
-  // --- Onboarding-koordinator (synkad över transport) ---
-  const onbStage = ref<OnbStage>('opening')
-  const onbEpoch = ref<number | null>(null)
+  const onbStage = ref<OnbStage>('tutorial')
   const onbReady = ref<Record<ValvId, boolean>>({ lag1: false, lag2: false })
 
-  // --- Drift/idle/paus ---
   const paused = ref(false)
   const sessionActive = ref(false)
   const now = ref(Date.now())
   const lastActivityAt = ref(Date.now())
   const resetSignal = ref(0)
-  /** Senast scannade okända taggen (UID) — visas på skärmen för att mappa i config. */
-  const lastUnknownTag = ref<string | null>(null)
-  /** Är den fysiska MQTT-sömmen på? (annars mockas scan med knappar). */
   const mqttOn = ref(false)
+  const timerEndsAt = ref<number | null>(null)
 
-  // Effekt-jämförelse (modullokalt via refs i closure).
   let prevPhase: GameState['phase'] | null = null
-  let prevExposure = 0
-  let prevSolved = 0
-  let prevScanCount = 0
+  let prevUncertainty = 0
+  let prevRevealedSpots = 0
+  let prevActiveSpot: string | null = null
   let resultSent = false
-  let lastActivityBroadcast = 0
   let timer: ReturnType<typeof setInterval> | null = null
 
-  /* ---------------- kärna: dispatch ---------------- */
+  /* ---------------- kärna ---------------- */
 
   function dispatch(action: Action): void {
     const next = reduce(state.value, action)
@@ -103,34 +83,33 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
 
   function applyEffects(): void {
     const s = state.value
-    // Ljud på meningsfulla övergångar.
-    if (s.scanCount !== prevScanCount) audio.play('render')
-    if (s.exposure > prevExposure) audio.play('deny')
-    if (s.lastResult?.correct && s.solvedIds.length > prevSolved) audio.play('lockin')
-    if (prevPhase !== 'verdict' && s.phase === 'verdict') {
-      audio.play(s.outcome === 'win' ? 'win' : 'deny')
+    // Ny scan → ljud beroende på träff/smudge.
+    if (s.revealedSpotIds.length !== prevRevealedSpots || s.activeSpotId !== prevActiveSpot) {
+      if (s.activeSpotId) {
+        const spot = SPOTS.find((sp) => sp.id === s.activeSpotId)
+        if (spot) audio.play(spot.person === 'smudge' ? 'deny' : 'render')
+      }
     }
-    // State ut (ljus/ljud-rigg) + resultat en gång vid verdict.
+    if (s.uncertainty > prevUncertainty) audio.play('deny')
+    if (prevPhase !== 'solved' && s.phase === 'solved') audio.play('win')
+    if (prevPhase !== 'failed' && s.phase === 'failed') audio.play('deny')
+
     seam.value?.state.set(stateSignal(s))
-    if (s.phase === 'verdict' && !resultSent) {
+    if ((s.phase === 'solved' || s.phase === 'failed') && !resultSent) {
       resultSent = true
-      // Resultat skickas bara skarpt (ej under övning).
-      if (s.datasetId === LIVE_DATASET_ID) seam.value?.result.send(buildResultPayload())
+      seam.value?.result.send(buildResultPayload())
     }
-    if (s.phase !== 'verdict') resultSent = false
+    if (s.phase !== 'solved' && s.phase !== 'failed') resultSent = false
 
     prevPhase = s.phase
-    prevExposure = s.exposure
-    prevSolved = s.solvedIds.length
-    prevScanCount = s.scanCount
+    prevUncertainty = s.uncertainty
+    prevRevealedSpots = s.revealedSpotIds.length
+    prevActiveSpot = s.activeSpotId
   }
-
-  /* ---------------- transport ---------------- */
 
   function plainState(): GameState {
     return JSON.parse(JSON.stringify(state.value)) as GameState
   }
-
   function broadcast(): void {
     seam.value?.transport.send({ kind: 'snapshot', payload: plainState() })
   }
@@ -146,17 +125,15 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
         break
       }
       case 'hello': {
-        // Sen-ansluten skärm → ge den full bild.
         broadcast()
-        seam.value?.transport.send({ kind: 'onbStage', payload: { stage: onbStage.value, epoch: onbEpoch.value } })
-        if (paused.value) seam.value?.transport.send({ kind: 'pause', payload: { paused: true, since: now.value } })
+        seam.value?.transport.send({ kind: 'onbStage', payload: { stage: onbStage.value } })
+        if (timerEndsAt.value) seam.value?.transport.send({ kind: 'timer', payload: timerEndsAt.value })
         break
       }
       case 'onbStage': {
-        const p = msg.payload as { stage: OnbStage; epoch: number | null }
+        const p = msg.payload as { stage: OnbStage }
         if (p.stage !== onbStage.value) {
           onbStage.value = p.stage
-          onbEpoch.value = p.epoch
           onbReady.value = { lag1: false, lag2: false }
         }
         break
@@ -166,11 +143,12 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
         onbReady.value = { ...onbReady.value, [p.vault]: true }
         break
       }
-      case 'pause': {
-        const p = msg.payload as { paused: boolean }
-        paused.value = p.paused
+      case 'timer':
+        timerEndsAt.value = msg.payload as number
         break
-      }
+      case 'pause':
+        paused.value = (msg.payload as { paused: boolean }).paused
+        break
       case 'sessionReset':
         doReset(false)
         break
@@ -180,76 +158,54 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     }
   }
 
-  /* ---------------- onboarding ---------------- */
+  /* ---------------- tutorial ---------------- */
 
-  function onbGoto(stage: OnbStage, epoch: number | null = null): void {
+  function onbGoto(stage: OnbStage): void {
     if (stage === onbStage.value) return
     onbStage.value = stage
-    onbEpoch.value = epoch
     onbReady.value = { lag1: false, lag2: false }
-    seam.value?.transport.send({ kind: 'onbStage', payload: { stage, epoch } })
+    seam.value?.transport.send({ kind: 'onbStage', payload: { stage } })
   }
-
   function onbMarkReady(vault: ValvId): void {
     if (onbReady.value[vault]) return
     onbReady.value = { ...onbReady.value, [vault]: true }
     seam.value?.transport.send({ kind: 'onbReady', payload: { vault } })
   }
 
-  /* ---------------- scan-söm → motor-actions ---------------- */
+  /* ---------------- scan-söm ---------------- */
 
-  /** Översätter en scan-händelse (tagg/id) till en motor-action. */
+  function scanSpot(spotId: string): void {
+    const spot = SPOTS.find((s) => s.id === spotId)
+    if (!spot) return
+    dispatch({ type: 'scanSpot', spotId: spot.id, person: spot.person })
+    notifyActivity()
+  }
   function handleScanEvent(ev: ScanEvent): void {
-    if (ev.kind === 'scan') {
-      const ds = datasetById(state.value.datasetId)
-      const c = ds.cases.find((x) => x.tag === ev.tag)
-      if (c) {
-        lastUnknownTag.value = null
-        dispatch({ type: 'scan', caseId: c.id })
-      } else {
-        // Okänd tagg → visa UID på skärmen (läs av för att mappa i config).
-        lastUnknownTag.value = ev.tag
-      }
-    } else if (ev.kind === 'confirm') {
-      dispatch({ type: 'confirm', virusId: ev.id })
-    } else if (ev.kind === 'home') {
-      dispatch({ type: 'clearActive' })
-    }
+    // Drift: taggen = spot-id (s1..s9).
+    if (ev.kind === 'scan') scanSpot(ev.tag)
+    else if (ev.kind === 'home') dispatch({ type: 'closePopup' })
   }
-
-  // Pilot-UI (skärmknappar) går genom SAMMA väg som drift-sömmen.
-  function scanCase(caseId: string): void {
-    const ds = datasetById(state.value.datasetId)
-    const c = ds.cases.find((x) => x.id === caseId)
-    if (c) handleScanEvent({ kind: 'scan', tag: c.tag })
-    notifyActivity()
-  }
-  function confirmVirus(virusId: string): void {
-    handleScanEvent({ kind: 'confirm', id: virusId })
-    notifyActivity()
-  }
-  function clearActive(): void {
-    dispatch({ type: 'clearActive' })
+  function closePopup(): void {
+    dispatch({ type: 'closePopup' })
     notifyActivity()
   }
 
-  /* ---------------- omgångsstart ---------------- */
+  /* ---------------- verdikt / omgång ---------------- */
 
-  function start(datasetId: string): void {
-    const ds = datasetById(datasetId)
-    dispatch({
-      type: 'start',
-      datasetId: ds.id,
-      cases: ds.cases.map((c) => ({ id: c.id, answer: c.answer })),
-      exposureMax: config.exposureMax,
-    })
+  function startLive(): void {
+    dispatch({ type: 'start', thiefId: THIEF_ID, uncertaintyMax: 3 })
+    const ends = Date.now() + config.timerSeconds * 1000
+    timerEndsAt.value = ends
+    seam.value?.transport.send({ kind: 'timer', payload: ends })
     audio.play('live')
   }
-  function startPractice(): void {
-    start(PRACTICE_DATASET.id)
+  function openVerdict(): void {
+    dispatch({ type: 'openVerdict' })
+    notifyActivity()
   }
-  function startLive(): void {
-    start(LIVE_DATASET_ID)
+  function pickThief(personId: string): void {
+    dispatch({ type: 'pickThief', personId })
+    notifyActivity()
   }
 
   /* ---------------- resultat ---------------- */
@@ -257,44 +213,33 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   function buildResultPayload(): ResultPayload {
     const pr = personResults(state.value)
     const sum = (team: ValvId) => pr[team].reduce((a, p) => a + p.result_value, 0)
-    return {
-      grupp: 'pilot',
-      rollresultat_A: sum('lag1'),
-      rollresultat_B: sum('lag2'),
-      personer: [...pr.lag1, ...pr.lag2],
-    }
+    return { grupp: 'pilot', rollresultat_A: sum('lag1'), rollresultat_B: sum('lag2'), personer: [...pr.lag1, ...pr.lag2] }
   }
 
   /* ---------------- paus / idle / reset ---------------- */
 
   function setPaused(p: boolean): void {
     paused.value = p
-    seam.value?.transport.send({ kind: 'pause', payload: { paused: p, since: now.value } })
+    seam.value?.transport.send({ kind: 'pause', payload: { paused: p } })
   }
   function togglePause(): void {
     setPaused(!paused.value)
   }
-
   function notifyActivity(broadcastIt = true): void {
     lastActivityAt.value = Date.now()
-    if (broadcastIt && Date.now() - lastActivityBroadcast > 3000) {
-      lastActivityBroadcast = Date.now()
-      seam.value?.transport.send({ kind: 'activity', payload: null })
-    }
+    if (broadcastIt) seam.value?.transport.send({ kind: 'activity', payload: null })
   }
-
   function setSessionActive(v: boolean): void {
     sessionActive.value = v
     if (v) lastActivityAt.value = Date.now()
   }
-
   function doReset(broadcastIt = true): void {
     dispatch({ type: 'reset', members: defaultRoster() })
-    onbStage.value = 'opening'
-    onbEpoch.value = null
+    onbStage.value = 'tutorial'
     onbReady.value = { lag1: false, lag2: false }
     paused.value = false
     resultSent = false
+    timerEndsAt.value = null
     seam.value?.state.reset()
     resetSignal.value += 1
     if (broadcastIt) seam.value?.transport.send({ kind: 'sessionReset', payload: null })
@@ -303,46 +248,40 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     doReset(true)
   }
 
-  const idleWarn = computed(() => {
-    if (!sessionActive.value || !leader.value || IDLE_MS === 0) return false
-    const idle = now.value - lastActivityAt.value
-    return idle >= IDLE_MS - IDLE_RESTART.warnSeconds * 1000 && idle < IDLE_MS
-  })
-  const idleSecondsLeft = computed(() =>
-    Math.max(0, Math.ceil((IDLE_MS - (now.value - lastActivityAt.value)) / 1000)),
-  )
-
-  /* ---------------- härledda värden för UI ---------------- */
-
-  const dataset = computed(() => datasetById(state.value.datasetId))
-  /** Bankens virus denna omgång. */
-  const bank = computed<Virus[]>(() =>
-    dataset.value.bank.map((id) => virusById(id)).filter((v): v is Virus => !!v),
-  )
-  /** Aktivt prov (config-innehåll: särdrag + bild). */
-  const activeCase = computed<SampleCase | null>(() => {
-    const id = state.value.activeCaseId
-    if (!id) return null
-    return dataset.value.cases.find((c) => c.id === id) ?? null
-  })
-  /** Provstatus för fält-konsolen (scannad/löst). */
-  const caseStatuses = computed(() =>
-    dataset.value.cases.map((c) => ({
-      id: c.id,
-      scanned: state.value.scannedIds.includes(c.id),
-      solved: state.value.solvedIds.includes(c.id),
-      active: state.value.activeCaseId === c.id,
-    })),
-  )
+  /* ---------------- härledda värden ---------------- */
 
   const phase = computed(() => state.value.phase)
   const outcome = computed(() => state.value.outcome)
-  const exposure = computed(() => state.value.exposure)
-  const exposureMax = computed(() => state.value.exposureMax)
-  const solvedCount = computed(() => state.value.solvedIds.length)
-  const totalCount = computed(() => state.value.cases.length)
-  const lastResult = computed(() => state.value.lastResult)
+  const uncertainty = computed(() => state.value.uncertainty)
+  const uncertaintyMax = computed(() => state.value.uncertaintyMax)
+
+  const activeSpot = computed<Spot | null>(() =>
+    state.value.activeSpotId ? (SPOTS.find((s) => s.id === state.value.activeSpotId) ?? null) : null,
+  )
+  const activePerson = computed<PersonInfo | null>(() => {
+    const sp = activeSpot.value
+    if (!sp || sp.person === 'smudge') return null
+    return personById(sp.person) ?? null
+  })
+  const activeIsSmudge = computed(() => activeSpot.value?.person === 'smudge')
+
+  const spotStatuses = computed(() =>
+    SPOTS.map((s) => ({ ...s, scanned: state.value.revealedSpotIds.includes(s.id) })),
+  )
+  /** Personer man scannat fram (verdikt-galleriet), med avtrycks-räknare. */
+  const revealedPersons = computed(() =>
+    state.value.revealedPersonIds
+      .map((id) => personById(id))
+      .filter((p): p is PersonInfo => !!p)
+      .map((p) => ({ ...p, count: scanCountOf(state.value, p.id) })),
+  )
   const score = computed(() => roundScore(state.value))
+
+  const secondsLeft = computed(() => {
+    if (!timerEndsAt.value) return config.timerSeconds
+    return Math.max(0, Math.ceil((timerEndsAt.value - now.value) / 1000))
+  })
+  const timerWarn = computed(() => secondsLeft.value > 0 && secondsLeft.value <= config.timerWarnAt)
 
   function valvRole(v: ViewSide) {
     return v === 'shared' ? null : VALV[v]
@@ -358,16 +297,20 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     if (!seam.value) seam.value = createSeam()
     mqttOn.value = !!seam.value.mqtt
     seam.value.transport.subscribe(onMessage)
-    seam.value.scan.subscribe(handleScanEvent)
+    // Bara FÄLT-fönstret prenumererar på scan-söm (annars dubbelhantering).
+    if (view.value === 'lag2' || view.value === 'shared') seam.value.scan.subscribe(handleScanEvent)
     seam.value.transport.send({ kind: 'hello', payload: null })
     timer = setInterval(() => {
       now.value = Date.now()
-      if (leader.value && sessionActive.value && IDLE_MS > 0) {
-        if (now.value - lastActivityAt.value >= IDLE_MS) doReset(true)
+      // Timer slut → tvinga fram verdikt (bara leader driver).
+      if (leader.value && state.value.phase === 'investigate' && timerEndsAt.value && now.value >= timerEndsAt.value) {
+        dispatch({ type: 'openVerdict' })
       }
-    }, 1000)
+      if (leader.value && sessionActive.value && IDLE_MS > 0 && now.value - lastActivityAt.value >= IDLE_MS) {
+        doReset(true)
+      }
+    }, 500)
   }
-
   function dispose(): void {
     if (timer) clearInterval(timer)
     timer = null
@@ -377,53 +320,44 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   }
 
   return {
-    // state/härlett
     state,
     view,
     leader,
     onbStage,
-    onbEpoch,
     onbReady,
     paused,
     sessionActive,
     now,
     resetSignal,
-    lastUnknownTag,
     mqttOn,
-    idleWarn,
-    idleSecondsLeft,
-    dataset,
-    bank,
-    activeCase,
-    caseStatuses,
+    timerEndsAt,
+    secondsLeft,
+    timerWarn,
     phase,
     outcome,
-    exposure,
-    exposureMax,
-    solvedCount,
-    totalCount,
-    lastResult,
+    uncertainty,
+    uncertaintyMax,
+    activeSpot,
+    activePerson,
+    activeIsSmudge,
+    spotStatuses,
+    revealedPersons,
     score,
     valvRole,
-    caseById: (id: string | null) => caseById(state.value, id),
-    // onboarding
+    setView,
     onbGoto,
     onbMarkReady,
-    // actions
-    scanCase,
-    confirmVirus,
-    clearActive,
-    start,
-    startPractice,
+    scanSpot,
+    closePopup,
     startLive,
+    openVerdict,
+    pickThief,
     reset,
-    setView,
     setPaused,
     togglePause,
     notifyActivity,
     setSessionActive,
     buildResultPayload,
-    // livscykel
     init,
     dispose,
   }

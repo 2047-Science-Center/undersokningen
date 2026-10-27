@@ -1,16 +1,13 @@
 /**
- * Undersökningens rena spelmotor — en reducer `reduce(state, action) -> state`.
- *
- * Inga sidoeffekter: ingen Vue, inga timers, ingen IO. Storet driver effekter
- * (ljus/ljud/resultat) utifrån det nya statet. Samma invarianter som
- * Förhandlingen: clone per mutation, `version += 1`, guards returnerar SAMMA
- * referens när inget ändras, och `sync` adopterar bara högre version.
+ * Stölden — ren spelmotor (reducer). Inga sidoeffekter. Spot→person avgörs i
+ * config/store och skickas in i `scanSpot`, så motorn förblir ren och testbar.
+ * Invarianter som Förhandlingen: clone per mutation, version++, samma-referens-
+ * guards, sync adopterar högsta version.
  */
 
-import type { EngineCase, GameState, Person, Phase, StateSignal, ValvId } from './types'
+import type { GameState, Person, StateSignal, ValvId } from './types'
 
 export const OTHER: Record<ValvId, ValvId> = { lag1: 'lag2', lag2: 'lag1' }
-
 export function opponentOf(team: ValvId): ValvId {
   return OTHER[team]
 }
@@ -22,32 +19,31 @@ function emptyMembers(): Record<ValvId, Person[]> {
 export function initialState(members: Record<ValvId, Person[]> = emptyMembers()): GameState {
   return {
     phase: 'intro',
-    datasetId: '',
-    cases: [],
-    activeCaseId: null,
-    scannedIds: [],
-    solvedIds: [],
-    exposure: 0,
-    exposureMax: 0,
-    scanCount: 0,
-    lastResult: null,
+    revealedSpotIds: [],
+    revealedPersonIds: [],
+    scanCounts: {},
+    activeSpotId: null,
+    uncertainty: 0,
+    uncertaintyMax: 3,
+    thiefId: '',
+    lastWrongId: null,
     outcome: null,
     members,
     version: 0,
   }
 }
 
-/** Läser igenom reaktiva proxies och ger ett rent, muterbart state. */
 function clone(state: GameState): GameState {
   return JSON.parse(JSON.stringify(state)) as GameState
 }
 
 export type Action =
   | { type: 'setMembers'; members: Record<ValvId, Person[]> }
-  | { type: 'start'; datasetId: string; cases: EngineCase[]; exposureMax: number }
-  | { type: 'scan'; caseId: string }
-  | { type: 'confirm'; virusId: string }
-  | { type: 'clearActive' }
+  | { type: 'start'; thiefId: string; uncertaintyMax: number }
+  | { type: 'scanSpot'; spotId: string; person: string } // person = personId | 'smudge'
+  | { type: 'closePopup' }
+  | { type: 'openVerdict' }
+  | { type: 'pickThief'; personId: string }
   | { type: 'reset'; members?: Record<ValvId, Person[]> }
   | { type: 'sync'; state: GameState }
 
@@ -63,50 +59,62 @@ export function reduce(state: GameState, action: Action): GameState {
     case 'start': {
       const next = clone(state)
       next.phase = 'investigate'
-      next.datasetId = action.datasetId
-      next.cases = action.cases.map((c) => ({ id: c.id, answer: c.answer }))
-      next.activeCaseId = null
-      next.scannedIds = []
-      next.solvedIds = []
-      next.exposure = 0
-      next.exposureMax = action.exposureMax
-      next.scanCount = 0
-      next.lastResult = null
+      next.revealedSpotIds = []
+      next.revealedPersonIds = []
+      next.scanCounts = {}
+      next.activeSpotId = null
+      next.uncertainty = 0
+      next.uncertaintyMax = action.uncertaintyMax
+      next.thiefId = action.thiefId
+      next.lastWrongId = null
       next.outcome = null
       next.version += 1
       return next
     }
 
-    case 'scan': {
+    case 'scanSpot': {
       if (state.phase !== 'investigate') return state
-      const found = state.cases.find((c) => c.id === action.caseId)
-      // Okänd tagg eller redan löst prov → ignorera (samma referens).
-      if (!found || state.solvedIds.includes(action.caseId)) return state
       const next = clone(state)
-      next.activeCaseId = action.caseId
-      if (!next.scannedIds.includes(action.caseId)) next.scannedIds.push(action.caseId)
-      next.scanCount += 1
+      const isNew = !next.revealedSpotIds.includes(action.spotId)
+      if (isNew) next.revealedSpotIds.push(action.spotId)
+      next.activeSpotId = action.spotId
+      if (action.person !== 'smudge') {
+        if (!next.revealedPersonIds.includes(action.person)) next.revealedPersonIds.push(action.person)
+        if (isNew) next.scanCounts[action.person] = (next.scanCounts[action.person] ?? 0) + 1
+      }
       next.version += 1
       return next
     }
 
-    case 'confirm': {
-      if (state.phase !== 'investigate' || !state.activeCaseId) return state
-      const active = state.cases.find((c) => c.id === state.activeCaseId)
-      if (!active || state.solvedIds.includes(active.id)) return state
+    case 'closePopup': {
+      if (state.activeSpotId === null) return state
       const next = clone(state)
-      const correct = action.virusId === active.answer
-      next.lastResult = { caseId: active.id, virusId: action.virusId, correct }
-      if (correct) {
-        if (!next.solvedIds.includes(active.id)) next.solvedIds.push(active.id)
-        if (next.solvedIds.length >= next.cases.length) {
-          next.phase = 'verdict'
-          next.outcome = 'win'
-        }
+      next.activeSpotId = null
+      next.version += 1
+      return next
+    }
+
+    case 'openVerdict': {
+      if (state.phase !== 'investigate') return state
+      const next = clone(state)
+      next.phase = 'verdict'
+      next.activeSpotId = null
+      next.version += 1
+      return next
+    }
+
+    case 'pickThief': {
+      if (state.phase !== 'verdict') return state
+      const next = clone(state)
+      if (action.personId === next.thiefId) {
+        next.phase = 'solved'
+        next.outcome = 'win'
+        next.lastWrongId = null
       } else {
-        next.exposure += 1
-        if (next.exposure >= next.exposureMax) {
-          next.phase = 'verdict'
+        next.uncertainty += 1
+        next.lastWrongId = action.personId
+        if (next.uncertainty >= next.uncertaintyMax) {
+          next.phase = 'failed'
           next.outcome = 'lost'
         }
       }
@@ -114,56 +122,40 @@ export function reduce(state: GameState, action: Action): GameState {
       return next
     }
 
-    case 'clearActive': {
-      if (state.phase !== 'investigate' || state.activeCaseId === null) return state
-      const next = clone(state)
-      next.activeCaseId = null
-      next.lastResult = null
-      next.version += 1
-      return next
-    }
-
-    case 'reset': {
+    case 'reset':
       return initialState(action.members ?? emptyMembers())
-    }
 
-    case 'sync': {
-      // Synk-kärnan: adoptera inkommande snapshot bara om den är nyare.
+    case 'sync':
       if (action.state.version >= state.version) return action.state
       return state
-    }
 
     default:
       return state
   }
 }
 
-/* ---------------------------------------------------------------- *
- * Rena härledare (ingen mutation) — enda källan för ljus/ljud och UI-status.
- * ---------------------------------------------------------------- */
+/* ---------------- rena härledare ---------------- */
 
-export function caseById(state: GameState, id: string | null): EngineCase | undefined {
-  if (!id) return undefined
-  return state.cases.find((c) => c.id === id)
+export function scanCountOf(state: GameState, personId: string): number {
+  return state.scanCounts[personId] ?? 0
 }
 
-export function allSolved(state: GameState): boolean {
-  return state.cases.length > 0 && state.solvedIds.length >= state.cases.length
+/** Personer med fler än ett avtryck (återkommande = misstänkta). */
+export function repeatSuspects(state: GameState): string[] {
+  return Object.entries(state.scanCounts)
+    .filter(([, n]) => n >= 2)
+    .map(([id]) => id)
 }
 
-export function isSolved(state: GameState, caseId: string): boolean {
-  return state.solvedIds.includes(caseId)
+export function isFinished(state: GameState): boolean {
+  return state.phase === 'solved' || state.phase === 'failed'
 }
 
-/** Signal till ljus/ljud (station<N>/state) — ren funktion av statet. */
 export function stateSignal(state: GameState): StateSignal {
   return {
     phase: state.phase,
-    exposure: state.exposure,
-    exposureMax: state.exposureMax,
-    solved: state.solvedIds.length,
-    total: state.cases.length,
+    uncertainty: state.uncertainty,
+    uncertaintyMax: state.uncertaintyMax,
+    revealed: state.revealedPersonIds.length,
   }
 }
-
-export type { Phase }
