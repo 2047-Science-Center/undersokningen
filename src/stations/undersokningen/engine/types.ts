@@ -29,6 +29,8 @@ export interface GameState {
   revealedPersonIds: string[]
   /** Antal avtryck per person (upprepad närvaro). */
   scanCounts: Record<string, number>
+  /** Personer FÄLT markerat som misstänkta (topppanelen), i markeringsordning. */
+  suspectIds: string[]
   /** Spot vars popup visas just nu (person ELLER smudge), eller null. */
   activeSpotId: string | null
   /** Vald person i verdikt-fasen (innan bekräftelse). */

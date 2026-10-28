@@ -148,10 +148,11 @@ export const LOG = {
  * bland de fysiska Q-proven (Q1–Q6 ligger på bordet).
  * ------------------------------------------------------------------ */
 
-export const HAIR_CLASSES: { label: string; text: string; icon: 'har_manniska' | 'har_djur' | 'har_syntet' }[] = [
-  { label: 'Människohår', text: 'jämn färg, fin märg.', icon: 'har_manniska' },
-  { label: 'Djurhår', text: 'bandad färg, bred märg.', icon: 'har_djur' },
-  { label: 'Syntet / fiber', text: 'jämntjockt, glansigt.', icon: 'har_syntet' },
+export type HairClassId = 'manniska' | 'djur' | 'syntet'
+export const HAIR_CLASSES: { id: HairClassId; label: string; text: string; icon: 'har_manniska' | 'har_djur' | 'har_syntet' }[] = [
+  { id: 'manniska', label: 'Människohår', text: 'jämn färg, fin märg.', icon: 'har_manniska' },
+  { id: 'djur', label: 'Djurhår', text: 'bandad färg, bred märg.', icon: 'har_djur' },
+  { id: 'syntet', label: 'Syntet / fiber', text: 'jämntjockt, glansigt.', icon: 'har_syntet' },
 ]
 
 /* ------------------------------------------------------------------ *

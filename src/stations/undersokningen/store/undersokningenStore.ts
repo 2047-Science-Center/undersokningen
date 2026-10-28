@@ -191,6 +191,12 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     dispatch({ type: 'closePopup' })
     notifyActivity()
   }
+  /** FÄLT markerar en person som misstänkt (→ topppanelen) eller tar bort. */
+  function markSuspect(personId: string, suspect: boolean): void {
+    dispatch({ type: 'markSuspect', personId, suspect })
+    if (suspect) audio.play('render')
+    notifyActivity()
+  }
 
   /* ---------------- verdikt / omgång ---------------- */
 
@@ -293,6 +299,15 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
       .filter((p): p is PersonInfo => !!p)
       .map((p) => ({ ...p, count: scanCountOf(state.value, p.id) })),
   )
+  /** Misstänkta FÄLT markerat (topppanelen), i markeringsordning. */
+  const suspects = computed(() =>
+    state.value.suspectIds
+      .map((id) => personById(id))
+      .filter((p): p is PersonInfo => !!p),
+  )
+  function isSuspect(personId: string): boolean {
+    return state.value.suspectIds.includes(personId)
+  }
   const score = computed(() => roundScore(state.value))
 
   const secondsLeft = computed(() => {
@@ -361,6 +376,8 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     activeIsSmudge,
     spotStatuses,
     revealedPersons,
+    suspects,
+    isSuspect,
     score,
     valvRole,
     setView,
@@ -368,6 +385,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     onbMarkReady,
     scanSpot,
     closePopup,
+    markSuspect,
     startLive,
     openVerdict,
     selectThief,

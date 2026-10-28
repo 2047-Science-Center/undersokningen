@@ -23,6 +23,7 @@ export function initialState(members: Record<ValvId, Person[]> = emptyMembers())
     revealedSpotIds: [],
     revealedPersonIds: [],
     scanCounts: {},
+    suspectIds: [],
     activeSpotId: null,
     verdictPick: null,
     thiefId: '',
@@ -40,6 +41,7 @@ export type Action =
   | { type: 'setMembers'; members: Record<ValvId, Person[]> }
   | { type: 'start'; thiefId: string }
   | { type: 'scanSpot'; spotId: string; person: string } // person = personId | 'smudge'
+  | { type: 'markSuspect'; personId: string; suspect: boolean }
   | { type: 'closePopup' }
   | { type: 'openVerdict' }
   | { type: 'selectThief'; personId: string }
@@ -62,6 +64,7 @@ export function reduce(state: GameState, action: Action): GameState {
       next.revealedSpotIds = []
       next.revealedPersonIds = []
       next.scanCounts = {}
+      next.suspectIds = []
       next.activeSpotId = null
       next.verdictPick = null
       next.thiefId = action.thiefId
@@ -80,6 +83,19 @@ export function reduce(state: GameState, action: Action): GameState {
         if (!next.revealedPersonIds.includes(action.person)) next.revealedPersonIds.push(action.person)
         if (isNew) next.scanCounts[action.person] = (next.scanCounts[action.person] ?? 0) + 1
       }
+      next.version += 1
+      return next
+    }
+
+    case 'markSuspect': {
+      if (state.phase !== 'investigate') return state
+      if (action.personId === 'smudge') return state
+      const already = state.suspectIds.includes(action.personId)
+      if (action.suspect === already) return state
+      const next = clone(state)
+      next.suspectIds = action.suspect
+        ? [...next.suspectIds, action.personId]
+        : next.suspectIds.filter((id) => id !== action.personId)
       next.version += 1
       return next
     }

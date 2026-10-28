@@ -5,18 +5,59 @@
  * ("IDENTIFIERAD SOM") som kryssas ner; smudge → ingen träff. Gissningen sker
  * först i slutet via LÄMNA SVAR (eller när timern går ut).
  */
-import { computed } from 'vue'
-import { LOG } from '@/config'
+import { computed, ref, watch, onMounted } from 'vue'
+import { LOG, asset } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Placeholder from './Placeholder.vue'
 import Icon from './Icon.vue'
+import Lightbox from './Lightbox.vue'
+import CoachMarks from './CoachMarks.vue'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
 
 const person = computed(() => store.activePerson)
 const prints = computed(() => (person.value ? (store.state.scanCounts[person.value.id] ?? 0) : 0))
+const activeSuspect = computed(() => (person.value ? store.isSuspect(person.value.id) : false))
+
+const lightboxSrc = ref<string | null>(null)
+const lightboxLabel = ref<string>('')
+function openPhoto(p: { image: string; name?: string }): void {
+  lightboxSrc.value = asset(p.image)
+  lightboxLabel.value = p.name ?? ''
+}
+function decide(suspect: boolean): void {
+  if (!person.value) return
+  store.markSuspect(person.value.id, suspect)
+  store.closePopup()
+}
+
+/* coach-marks (per sida, en gång vid live-start) */
+const singleSide = computed(() => store.view !== 'shared')
+const coachActive = ref(false)
+let coachSeen = false
+const coachSteps = computed(() => [
+  { target: 'surface', title: t('coach.falt_scan_title'), text: t('coach.falt_scan_text') },
+  { target: 'surface', title: t('coach.falt_read_title'), text: t('coach.falt_read_text') },
+  { target: 'log', title: t('coach.falt_log_title'), text: t('coach.falt_log_text') },
+  { target: 'suspects', title: t('coach.falt_mark_title'), text: t('coach.falt_mark_text') },
+])
+function maybeCoach(): void {
+  if (store.onbStage === 'live' && store.phase === 'investigate' && !coachSeen && singleSide.value) {
+    coachSeen = true
+    coachActive.value = true
+  }
+}
+watch(() => [store.onbStage, store.phase], maybeCoach)
+onMounted(maybeCoach)
+watch(
+  () => store.resetSignal,
+  () => {
+    coachSeen = false
+    coachActive.value = false
+  },
+)
 </script>
 
 <template>
@@ -37,11 +78,25 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
       </div>
     </header>
 
+    <!-- Topppanel: misstänkta (klicka för helskärm) -->
+    <section class="falt__suspects" data-coach="suspects">
+      <span class="falt__suspects-title"><Icon name="person" :size="15" /> {{ t('falt.suspects_title') }}</span>
+      <TransitionGroup name="susp" tag="div" class="falt__suspects-row">
+        <button
+          v-for="p in store.suspects" :key="p.id" class="falt__suspect" :title="t('falt.tap_fullscreen')"
+          @click="openPhoto(p)"
+        >
+          <Placeholder class="falt__suspect-img" :path="p.image" :label="p.name || ''" />
+        </button>
+      </TransitionGroup>
+      <span v-if="!store.suspects.length" class="falt__suspects-empty">{{ t('falt.suspects_empty') }}</span>
+    </section>
+
     <div class="falt__body">
       <!-- Fingeravtrycksyta -->
       <section class="falt__surface-wrap">
         <div class="falt__surface-head"><Icon name="finger" :size="16" /> {{ t('falt.surface') }}</div>
-        <div class="falt__surface amber-frame">
+        <div class="falt__surface amber-frame" data-coach="surface">
           <button
             v-for="s in store.spotStatuses" :key="s.id"
             class="falt__spot" :class="{ 'falt__spot--scanned': s.scanned }"
@@ -64,6 +119,16 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
                     <span class="falt__id-name ink-strong">{{ person.name }}</span>
                     <span class="falt__id-clothing">{{ person.clothing }}</span>
                     <span class="falt__id-prints mono"><Icon name="finger" :size="22" /> {{ t('falt.prints_count', { n: prints }) }}</span>
+                    <p class="falt__match-hint">{{ t('falt.match_hint') }}</p>
+                    <div class="falt__decide">
+                      <button class="crt-button falt__decide-btn" @click="decide(false)">{{ t('falt.not_suspect') }}</button>
+                      <button
+                        class="crt-button crt-button--strong falt__decide-btn falt__decide-btn--yes"
+                        :class="{ 'falt__decide-btn--on': activeSuspect }" @click="decide(true)"
+                      >
+                        <Icon name="person" :size="18" /> {{ t('falt.suspect') }}
+                      </button>
+                    </div>
                   </div>
                 </template>
                 <div v-else class="falt__smudge">
@@ -78,7 +143,7 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
       </section>
 
       <!-- Händelselogg -->
-      <section class="falt__log amber-frame">
+      <section class="falt__log amber-frame" data-coach="log">
         <h3 class="falt__log-title"><Icon name="logg" :size="16" /> {{ t('falt.log_title') }}</h3>
         <p class="falt__log-head mono">{{ LOG.header }}</p>
         <ul class="falt__log-list">
@@ -90,6 +155,8 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
       </section>
     </div>
 
+    <CoachMarks :steps="coachSteps" :active="coachActive" @done="coachActive = false" />
+    <Lightbox :src="lightboxSrc" :label="lightboxLabel" @close="lightboxSrc = null" />
   </div>
 </template>
 
@@ -142,6 +209,24 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
 .falt__smudge { display: flex; flex-direction: column; gap: 0.9rem; align-items: center; justify-content: center; text-align: center; padding: 1rem 1.5rem; color: var(--color-danger); }
 .falt__smudge-title { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: 0.06em; }
 .falt__smudge p { margin: 0; font-size: clamp(1.1rem, 2.2vw, 1.5rem); max-width: 30ch; }
+
+/* Topppanel: misstänkta */
+.falt__suspects { flex: none; display: flex; align-items: center; gap: 0.7rem; padding: 0.4rem 0.6rem; background: var(--color-background-2); border: 1px solid var(--color-primary-dim); border-radius: 8px; min-height: 3.6rem; }
+.falt__suspects-title { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-retro); font-size: 0.8rem; letter-spacing: 0.1em; color: var(--color-primary); white-space: nowrap; }
+.falt__suspects-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.falt__suspect { width: 3.4rem; height: 2.6rem; padding: 0; border: 1px solid var(--color-primary); border-radius: 6px; overflow: hidden; cursor: pointer; background: #000; transition: transform 0.14s var(--ease-out); }
+.falt__suspect:active { transform: scale(0.95); }
+.falt__suspect-img { width: 100%; height: 100%; }
+.falt__suspects-empty { font-family: var(--font-mono); font-size: 0.8rem; color: var(--color-ink-muted); opacity: 0.7; }
+.susp-enter-active { transition: transform 240ms var(--ease-out), opacity 240ms var(--ease-out); }
+.susp-enter-from { opacity: 0; transform: scale(0.9); }
+
+/* Misstänkt-beslut i popupen */
+.falt__match-hint { margin: 0.5rem 0 0; font-family: var(--font-mono); font-size: clamp(0.9rem, 1.8vw, 1.1rem); line-height: 1.35; color: var(--color-ink-muted); max-width: 32ch; }
+.falt__decide { display: flex; gap: 0.6rem; margin-top: 0.7rem; }
+.falt__decide-btn { font-size: clamp(1rem, 2vw, 1.25rem); padding: 0.6em 1em; }
+.falt__decide-btn--yes { display: inline-flex; align-items: center; gap: 0.4rem; }
+.falt__decide-btn--on { box-shadow: var(--glow-strong); }
 /* Popup-entré: skala upp från 0.95 + opacity, stark ease-out (aldrig från 0). */
 .pop-enter-active { transition: opacity 180ms var(--ease-out); }
 .pop-enter-active .falt__card { transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out); }
