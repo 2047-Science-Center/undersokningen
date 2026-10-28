@@ -39,8 +39,10 @@ export const config = {
   cameraLabel: 'dino',
 
   /** MQTT-broker för fysisk söm (scan över WebSocket). ?mqtt= överrider.
-   *  2047-brokern över WebSocket (ESP32 publicerar på 1883, browsern lyssnar på 9001). */
-  mqtt: { url: 'ws://192.168.0.23:9001' },
+   *  Station-lokal mosquitto på NUC:en: ESP32 → 1883 (TCP), appen → 9001 (WS).
+   *  Allt bor på riggen → wifi-oberoende (loopback), ingen central broker.
+   *  Installeras med deploy/broker/install-broker.sh. */
+  mqtt: { url: 'ws://localhost:9001' },
   production: { wsUrl: '', mqttUrl: '' },
 } as const
 
