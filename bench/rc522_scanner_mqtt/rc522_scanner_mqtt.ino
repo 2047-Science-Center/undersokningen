@@ -24,8 +24,8 @@
 #include <MFRC522.h>
 
 // --- FYLL I ---
-const char* WIFI_SSID = "";
-const char* WIFI_PASS = "";
+const char* WIFI_SSID = "";   // fyll i vid flash (committas aldrig)
+const char* WIFI_PASS = "";   // fyll i vid flash (committas aldrig)
 const char* MQTT_HOST = "192.168.68.55";  // Mac:ens LAN-IP (ipconfig getifaddr en0)
 const uint16_t MQTT_PORT = 1883;          // mosquittos TCP-listener
 
