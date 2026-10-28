@@ -4,7 +4,7 @@
  * synkas över internet utan separat relähost — sidan hittar reläet själv via
  * `wss://<host>/ws` (byggt med VITE_RELAY_PATH=/ws).
  *
- * Kör lokalt:  npm run serve   (bygger + startar på PORT, default 8080)
+ * Kör lokalt:  npm run serve   (bygger + startar på PORT, default 8083)
  * Host (Render/Railway/Fly): startkommando `node server/server.mjs`, PORT sätts
  * av plattformen. Inga hemligheter här.
  */
@@ -14,7 +14,7 @@ import { join, normalize, extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocketServer } from 'ws'
 
-const PORT = Number(process.env.PORT ?? 8080)
+const PORT = Number(process.env.PORT ?? 8083)
 const DIST = fileURLToPath(new URL('../dist', import.meta.url))
 
 const MIME = {

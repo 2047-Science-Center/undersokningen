@@ -26,7 +26,7 @@ if [ "${XDG_SESSION_TYPE:-}" = "wayland" ]; then
 fi
 
 # --- Konfig (miljövariabler med rimliga defaults) ---
-URL_BASE="${URL_BASE:-http://localhost:8080}"   # servern (systemd-tjänsten)
+URL_BASE="${URL_BASE:-http://localhost:8083}"   # servern (systemd-tjänsten)
 PROFILE_DIR="${PROFILE_DIR:-$HOME/.undersokningen-kiosk}"
 # Vilka valv som startas: both (default) | syd | nord. syd/nord = ETT fönster —
 # praktiskt när man testar på en enda skärm.

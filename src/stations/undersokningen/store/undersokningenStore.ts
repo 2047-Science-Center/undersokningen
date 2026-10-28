@@ -181,9 +181,11 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     notifyActivity()
   }
   function handleScanEvent(ev: ScanEvent): void {
-    // Drift: taggen = spot-id (s1..s9).
-    if (ev.kind === 'scan') scanSpot(ev.tag)
-    else if (ev.kind === 'home') dispatch({ type: 'closePopup' })
+    if (ev.kind === 'scan') {
+      // RFID-sensor: UID → spot (Spot.tag). Fallback: taggen = spot-id (mock/test).
+      const spot = SPOTS.find((s) => s.tag && s.tag === ev.tag) ?? SPOTS.find((s) => s.id === ev.tag)
+      if (spot) scanSpot(spot.id)
+    } else if (ev.kind === 'home') dispatch({ type: 'closePopup' })
   }
   function closePopup(): void {
     dispatch({ type: 'closePopup' })

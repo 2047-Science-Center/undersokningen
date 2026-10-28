@@ -6,12 +6,12 @@
 #
 # Kör på NUC:en, från repo-roten:  deploy/nuc/install.sh
 # Flaggor:  --server-only   (hoppa över kiosk-tjänsten)
-#           --port <n>       (serverport, default 8080)
+#           --port <n>       (serverport, default 8083)
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(cd "$HERE/../.." && pwd)"
-PORT="${PORT:-8080}"
+PORT="${PORT:-8083}"
 INSTALL_KIOSK=1
 
 while [ $# -gt 0 ]; do

@@ -27,7 +27,7 @@ load_kiosk_env() {
 # Läs konfig + sätt de variabler som start/stopp behöver.
 kiosk_init() {
   load_kiosk_env
-  URL_BASE="${URL_BASE:-http://localhost:8080}"
+  URL_BASE="${URL_BASE:-http://localhost:8083}"
   PROFILE_DIR="${PROFILE_DIR:-$HOME/.undersokningen-kiosk}"
   VALV="${VALV:-both}"           # both | syd | nord  (syd/nord = bara ett fönster, för test med en skärm)
   LOG_FILE="$PROFILE_DIR/kiosk.log"

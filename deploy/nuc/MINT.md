@@ -77,9 +77,9 @@ cd ~/undersokningen
 bash deploy/nuc/install.sh --server-only
 ```
 **Såhär ser du att det funkade:** sista raderna säger `Servern svarar på
-http://localhost:8080 ✓` och `Klart.` Dubbelkolla:
+http://localhost:8083 ✓` och `Klart.` Dubbelkolla:
 ```bash
-curl -s localhost:8080/healthz
+curl -s localhost:8083/healthz
 ```
 → ska skriva `ok`.
 

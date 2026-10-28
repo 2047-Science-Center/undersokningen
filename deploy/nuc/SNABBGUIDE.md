@@ -10,7 +10,7 @@ positionerade med Chromes egen `--window-position` på vänster resp. höger sk�
 (geometri auto-läses ur `xrandr`). De öppnas med `--app` (helskärm, inga flikar) —
 **inte** `--kiosk`, så appens **Avsluta**-knapp kan stänga dem. Fönstren synkas via
 same-origin **WebSocket-relä** i `server/server.mjs` (båda joinar rum `station3`), så
-de behöver inte dela webbläsarprofil. Servern körs på **port 8080**.
+de behöver inte dela webbläsarprofil. Servern körs på **port 8083**.
 
 ## Installation (Linux Mint)
 
@@ -22,11 +22,11 @@ de behöver inte dela webbläsarprofil. Servern körs på **port 8080**.
    git clone https://github.com/2047-Science-Center/undersokningen.git
    cd undersokningen
    ```
-3. **Server + bygge** (installerar server-tjänsten på 8080, bygger `dist/` — men
+3. **Server + bygge** (installerar server-tjänsten på 8083, bygger `dist/` — men
    sätter INTE upp någon kiosk-autostart):
    ```bash
    bash deploy/nuc/install.sh --server-only
-   curl -s localhost:8080/healthz   # → ok
+   curl -s localhost:8083/healthz   # → ok
    ```
 4. **Skrivbordsikoner + monter-inställningar** (släcker skärmsläckare/lås/strömspar,
    skapar `kiosk.env`). **Kör UTAN `--autostart` och UTAN `--autologin`:**
@@ -60,7 +60,7 @@ rm -f ~/.config/systemd/user/undersokningen-kiosk.service
 rm -f ~/.config/autostart/undersokningen-start.desktop
 sudo rm -f /etc/lightdm/lightdm.conf.d/90-undersokningen-autologin.conf
 ```
-(Server-tjänsten `undersokningen-server` på 8080 ska vara kvar — den öppnar inga
+(Server-tjänsten `undersokningen-server` på 8083 ska vara kvar — den öppnar inga
 fönster, bara servar appen. Vill du att inget alls rör sig vid boot:
 `sudo systemctl disable undersokningen-server`, men starta då servern manuellt
 innan ikonen.)

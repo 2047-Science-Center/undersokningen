@@ -98,6 +98,9 @@ export interface Spot {
   x: number
   y: number
   person: string | 'smudge'
+  /** NFC-tagg-UID (VERSAL hex). Fylls när RFID-sensorn kopplas in — då mappar
+   *  station3/scan {tag} hit. Tomt i mock-läget (klick använder spot-id). */
+  tag?: string
 }
 
 export const SPOTS: Spot[] = [

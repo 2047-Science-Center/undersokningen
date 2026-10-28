@@ -5,6 +5,6 @@ COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build:relay
-ENV PORT=8080
-EXPOSE 8080
+ENV PORT=8083
+EXPOSE 8083
 CMD ["node", "server/server.mjs"]

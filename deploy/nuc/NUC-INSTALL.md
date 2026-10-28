@@ -18,7 +18,7 @@ Vill du **inte** pilla med boot/Xorg finns ett tryggt läge som inte kan låsa s
 kör på vanliga skrivbordet, starta med en ikon, avsluta med en knapp.
 
 1. Installera server-tjänsten en gång: `deploy/nuc/install.sh --server-only`
-   (appen finns då alltid på `http://localhost:8080`).
+   (appen finns då alltid på `http://localhost:8083`).
 2. Lägg ikonerna på skrivbordet: `bash deploy/nuc/install-launcher.sh`
    (**Starta Undersökningen**, **Starta om Undersökningen**, **Uppdatera Undersökningen**).
 3. **Start:** dubbelklicka **Starta Undersökningen** → två helskärmsfönster
@@ -65,7 +65,7 @@ deploy/nuc/install.sh
 ```
 
 Installeraren bygger appen och sätter upp **två** tjänster:
-- `undersokningen-server` (system) — app + relä på port 8080, startar vid boot,
+- `undersokningen-server` (system) — app + relä på port 8083, startar vid boot,
   startar om av sig själv (`Restart=always`).
 - `undersokningen-kiosk` (user) — startar de två kiosk-fönstren när den grafiska
   sessionen loggar in.
@@ -90,7 +90,7 @@ systemctl --user restart undersokningen-kiosk
 
 ## 4. Verifiera
 ```bash
-curl -s localhost:8080/healthz          # → ok
+curl -s localhost:8083/healthz          # → ok
 sudo systemctl status undersokningen-server
 systemctl --user status undersokningen-kiosk
 ```
@@ -127,7 +127,7 @@ systemctl --user status undersokningen-kiosk    # kioskstatus
 - **Höger fönster på fel skärm:** justera `SCREEN_W`/`RIGHT_POS` i `kiosk.env`.
 - **Andra musen styr fel:** kolla namnet i `xinput list` mot `SECOND_MOUSE`.
 - **Skärmarna synkas inte:** kontrollera att servern svarar (`/healthz`) — båda
-  fönstren pratar med `ws://localhost:8080/ws`.
+  fönstren pratar med `ws://localhost:8083/ws`.
 
 ## 8. Touchskärmar (när de kommer) — ingen omflashing
 Appen är redan byggd för touch (native kontroller). Anslut panelen — touch
