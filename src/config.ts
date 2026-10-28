@@ -38,8 +38,9 @@ export const config = {
    *  ett annat namn; operatören kan också välja manuellt i dropdownen. */
   cameraLabel: 'dino',
 
-  /** MQTT-broker för fysisk söm (scan över WebSocket). ?mqtt= överrider. */
-  mqtt: { url: '' },
+  /** MQTT-broker för fysisk söm (scan över WebSocket). ?mqtt= överrider.
+   *  2047-brokern över WebSocket (ESP32 publicerar på 1883, browsern lyssnar på 9001). */
+  mqtt: { url: 'ws://192.168.0.23:9001' },
   production: { wsUrl: '', mqttUrl: '' },
 } as const
 
@@ -104,15 +105,15 @@ export interface Spot {
 }
 
 export const SPOTS: Spot[] = [
-  { id: 's1', x: 18, y: 24, person: 'ravi' },
-  { id: 's2', x: 72, y: 18, person: 'maj' },
-  { id: 's3', x: 40, y: 38, person: 'tomas' },
-  { id: 's4', x: 61, y: 52, person: 'ravi' },
-  { id: 's5', x: 28, y: 64, person: 'maj' },
-  { id: 's6', x: 83, y: 45, person: 'tomas' },
-  { id: 's7', x: 50, y: 74, person: 'iris' },
-  { id: 's8', x: 12, y: 80, person: 'smudge' },
-  { id: 's9', x: 88, y: 72, person: 'smudge' },
+  { id: 's1', x: 18, y: 24, person: 'ravi', tag: '046F25B2312490' },
+  { id: 's2', x: 72, y: 18, person: 'maj', tag: '047824B2312490' },
+  { id: 's3', x: 40, y: 38, person: 'tomas', tag: '04572FB2312491' },
+  { id: 's4', x: 61, y: 52, person: 'ravi', tag: '044A29B2312491' },
+  { id: 's5', x: 28, y: 64, person: 'maj', tag: '043533B2312491' },
+  { id: 's6', x: 83, y: 45, person: 'tomas', tag: '044329B2312491' },
+  { id: 's7', x: 50, y: 74, person: 'iris', tag: '04F72AB2312490' },
+  { id: 's8', x: 12, y: 80, person: 'smudge', tag: '044E29B2312491' },
+  { id: 's9', x: 88, y: 72, person: 'smudge', tag: '04552AB2312491' },
 ]
 
 /* ------------------------------------------------------------------ *
