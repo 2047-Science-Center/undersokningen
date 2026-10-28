@@ -17,6 +17,7 @@ import LabbConsole from './components/LabbConsole.vue'
 import FaltConsole from './components/FaltConsole.vue'
 import VerdictScreen from './components/VerdictScreen.vue'
 import PilotPanel from './components/PilotPanel.vue'
+import FacilitatorControls from './components/FacilitatorControls.vue'
 import Onboarding from './onboarding/Onboarding.vue'
 
 const store = useUndersokningenStore()
@@ -116,6 +117,7 @@ onUnmounted(() => {
 
     <!-- Overlays -->
     <MuteButton class="app__mute" />
+    <FacilitatorControls v-if="entered" />
     <PilotPanel v-if="isPilot && entered" />
     <ModeCountdown v-if="showGoLive" :title="t('mode.golive_title')" :from="3" @done="goLiveDone" />
 

@@ -152,6 +152,9 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
       case 'activity':
         notifyActivity(false)
         break
+      case 'quit':
+        closeWindow()
+        break
     }
   }
 
@@ -247,6 +250,19 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   }
   function reset(): void {
     doReset(true)
+  }
+
+  /** Stäng fönstren → tillbaka till skrivbordet (avsluta-knappen). */
+  function closeWindow(): void {
+    try {
+      window.close()
+    } catch {
+      /* kan vara blockerat beroende på hur fönstret öppnats — deploy stänger då */
+    }
+  }
+  function quitStation(): void {
+    seam.value?.transport.send({ kind: 'quit', payload: null })
+    closeWindow()
   }
 
   /* ---------------- härledda värden ---------------- */
@@ -355,6 +371,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     selectThief,
     confirmThief,
     reset,
+    quitStation,
     setPaused,
     togglePause,
     notifyActivity,

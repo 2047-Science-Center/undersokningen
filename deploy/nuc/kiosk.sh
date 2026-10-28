@@ -173,6 +173,10 @@ common_flags=(
   --disable-features=TranslateUI
   --overscroll-history-navigation=0
   --autoplay-policy=no-user-gesture-required
+  # Labb-skärmen (#lag1) använder Dino-Lite-mikroskopet via getUserMedia.
+  # Auto-godkänn kamera-tillståndet (riktig enhet, bara tillåt-rutan fakeas) så
+  # gruppen aldrig möter en behörighetsdialog. Fält-skärmen struntar i det.
+  --use-fake-ui-for-media-stream
   --check-for-update-interval=31536000
 )
 

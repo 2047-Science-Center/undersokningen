@@ -32,6 +32,12 @@ export const config = {
   /** Monter-skala (bekräfta mot avstånd). 1 = kitets 115%-bas. */
   uiScale: 1,
 
+  /** Dino-Lite-låsning: mikroskopet väljer automatiskt den kamera vars namn
+   *  innehåller denna text (skiftlägesokänsligt). Enheten heter "Dino-Lite
+   *  Premier" på Josefs Mac → "dino" matchar. Byt här om NUC:en rapporterar
+   *  ett annat namn; operatören kan också välja manuellt i dropdownen. */
+  cameraLabel: 'dino',
+
   /** MQTT-broker för fysisk söm (scan över WebSocket). ?mqtt= överrider. */
   mqtt: { url: '' },
   production: { wsUrl: '', mqttUrl: '' },

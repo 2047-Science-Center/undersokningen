@@ -89,6 +89,15 @@ export const sv: Record<string, string> = {
   'mikroskop.allow': 'Plugga in Dino-Lite och tillåt kameran.',
 
   // --- Facilitator / idle ---
+  'facil.pause': 'Paus',
+  'facil.resume': 'Fortsätt',
+  'facil.reset': 'Nollställ',
+  'facil.reset_confirm': 'Nollställa hela stationen?',
+  'facil.reset_yes': 'Ja, nollställ',
+  'facil.exit': 'Avsluta',
+  'facil.exit_confirm': 'Avsluta och gå till skrivbordet?',
+  'facil.exit_yes': 'Ja, avsluta',
+  'facil.cancel': 'Avbryt',
   'facil.paused_title': 'PAUSAT',
   'facil.paused_sub': 'Facilitatorn har pausat. Vänta ett ögonblick.',
 
