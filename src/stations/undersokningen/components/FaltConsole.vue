@@ -51,6 +51,29 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
             <Icon name="finger" :size="26" />
           </button>
           <p class="falt__surface-hint">{{ t('falt.surface_hint') }}</p>
+
+          <!-- Person-popup — täcker BARA avtrycksytan, loggen förblir läsbar/scrollbar -->
+          <Transition name="pop">
+            <div v-if="store.activeSpot" class="falt__popup" @click.self="store.closePopup()">
+              <div class="falt__card amber-frame">
+                <button class="falt__x" :aria-label="t('common.close')" @click="store.closePopup()"><Icon name="close" :size="26" /></button>
+                <template v-if="person">
+                  <Placeholder class="falt__photo" :path="person.image" :label="person.name" />
+                  <div class="falt__id">
+                    <span class="falt__id-eyebrow">{{ t('falt.identified_as') }}</span>
+                    <span class="falt__id-name ink-strong">{{ person.name }}</span>
+                    <span class="falt__id-clothing">{{ person.clothing }}</span>
+                    <span class="falt__id-prints mono"><Icon name="finger" :size="22" /> {{ t('falt.prints_count', { n: prints }) }}</span>
+                  </div>
+                </template>
+                <div v-else class="falt__smudge">
+                  <Icon name="exponering" :size="68" />
+                  <h3 class="falt__smudge-title">{{ t('falt.smudge_title') }}</h3>
+                  <p>{{ t('falt.smudge_body') }}</p>
+                </div>
+              </div>
+            </div>
+          </Transition>
         </div>
       </section>
 
@@ -67,28 +90,6 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
       </section>
     </div>
 
-    <!-- Person-popup (övervakningsbild) -->
-    <Transition name="pop">
-      <div v-if="store.activeSpot" class="falt__popup" @click.self="store.closePopup()">
-        <div class="falt__card amber-frame">
-          <button class="falt__x" :aria-label="t('common.close')" @click="store.closePopup()"><Icon name="close" :size="18" /></button>
-          <template v-if="person">
-            <Placeholder class="falt__photo" :path="person.image" :label="person.name" />
-            <div class="falt__id">
-              <span class="falt__id-eyebrow">{{ t('falt.identified_as') }}</span>
-              <span class="falt__id-name ink-strong">{{ person.name }}</span>
-              <span class="falt__id-clothing">{{ person.clothing }}</span>
-              <span class="falt__id-prints mono"><Icon name="finger" :size="14" /> {{ t('falt.prints_count', { n: prints }) }}</span>
-            </div>
-          </template>
-          <div v-else class="falt__smudge">
-            <Icon name="exponering" :size="34" />
-            <h3 class="falt__smudge-title">{{ t('falt.smudge_title') }}</h3>
-            <p>{{ t('falt.smudge_body') }}</p>
-          </div>
-        </div>
-      </div>
-    </Transition>
   </div>
 </template>
 
@@ -127,17 +128,20 @@ const prints = computed(() => (person.value ? (store.state.scanCounts[person.val
 .falt__log-row { display: grid; grid-template-columns: 3.2em 1fr; gap: 0.6rem; }
 .falt__log-time { color: var(--color-primary); }
 .falt__log-text { font-family: var(--font-mono); font-size: 0.86rem; line-height: 1.35; }
-.falt__popup { position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(3, 9, 6, 0.82); padding: 1.5rem; }
-.falt__card { position: relative; display: flex; gap: 1rem; padding: 0.8rem; max-width: 46ch; background: var(--color-background-2); }
-.falt__x { position: absolute; top: 0.3rem; right: 0.3rem; z-index: 2; background: transparent; border: none; color: var(--color-ink-strong); cursor: pointer; padding: 0.2rem; display: inline-flex; }
-.falt__photo { width: 15rem; max-width: 42vw; }
-.falt__id { display: flex; flex-direction: column; gap: 0.3rem; justify-content: center; }
-.falt__id-eyebrow { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; color: var(--color-primary); }
-.falt__id-name { font-size: 1.5rem; letter-spacing: 0.03em; }
-.falt__id-clothing { font-family: var(--font-mono); font-size: 0.9rem; color: var(--color-ink-muted); }
-.falt__id-prints { display: inline-flex; align-items: center; gap: 0.3rem; color: var(--color-primary); margin-top: 0.3rem; }
-.falt__smudge { display: flex; flex-direction: column; gap: 0.4rem; align-items: center; justify-content: center; text-align: center; padding: 1rem 1.5rem; color: var(--color-danger); }
-.falt__smudge-title { margin: 0; letter-spacing: 0.06em; }
+/* Popupen täcker BARA avtrycksytan (ligger inuti .falt__surface) — loggen är kvar. */
+.falt__popup { position: absolute; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(3, 9, 6, 0.92); padding: 0.6rem; }
+.falt__card { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(0.6rem, 1.8vh, 1.3rem); padding: clamp(0.9rem, 2.4vh, 1.8rem); width: 100%; height: 100%; background: var(--color-background-2); overflow: hidden; }
+.falt__x { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 2; background: transparent; border: none; color: var(--color-ink-strong); cursor: pointer; padding: 0.5rem; display: inline-flex; border-radius: 50%; transition: transform 0.14s var(--ease-out); }
+.falt__x:active { transform: scale(0.9); }
+.falt__photo { width: 100%; max-width: 100%; max-height: 58%; align-self: center; }
+.falt__id { display: flex; flex-direction: column; gap: 0.45rem; justify-content: center; align-items: center; text-align: center; }
+.falt__id-eyebrow { font-family: var(--font-mono); font-size: clamp(0.85rem, 1.6vw, 1.05rem); letter-spacing: 0.14em; color: var(--color-primary); }
+.falt__id-name { font-size: clamp(2.2rem, 5vw, 3.4rem); line-height: 1.05; letter-spacing: 0.02em; }
+.falt__id-clothing { font-family: var(--font-mono); font-size: clamp(1.1rem, 2.2vw, 1.5rem); color: var(--color-ink-muted); }
+.falt__id-prints { display: inline-flex; align-items: center; gap: 0.45rem; font-size: clamp(1.1rem, 2.2vw, 1.45rem); color: var(--color-primary); margin-top: 0.4rem; }
+.falt__smudge { display: flex; flex-direction: column; gap: 0.9rem; align-items: center; justify-content: center; text-align: center; padding: 1rem 1.5rem; color: var(--color-danger); }
+.falt__smudge-title { margin: 0; font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: 0.06em; }
+.falt__smudge p { margin: 0; font-size: clamp(1.1rem, 2.2vw, 1.5rem); max-width: 30ch; }
 /* Popup-entré: skala upp från 0.95 + opacity, stark ease-out (aldrig från 0). */
 .pop-enter-active { transition: opacity 180ms var(--ease-out); }
 .pop-enter-active .falt__card { transition: transform 200ms var(--ease-out), opacity 200ms var(--ease-out); }
