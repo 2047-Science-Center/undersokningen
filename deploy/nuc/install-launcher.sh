@@ -56,16 +56,17 @@ install_one() {
 }
 
 echo "Installerar ikoner ..."
-install_one undersokningen.desktop          start.sh   undersokningen.desktop
-install_one undersokningen-restart.desktop  restart.sh undersokningen-restart.desktop
-install_one undersokningen-update.desktop   update.sh  undersokningen-update.desktop
+install_one undersokningen.desktop             start.sh       undersokningen.desktop
+install_one undersokningen-restart.desktop     restart.sh     undersokningen-restart.desktop
+install_one undersokningen-update.desktop      update.sh      undersokningen-update.desktop
+install_one undersokningen-reset-touch.desktop reset-touch.sh undersokningen-reset-touch.desktop
 
 # Uppdatera menydatabasen (om verktyget finns).
 update-desktop-database "$apps" 2>/dev/null || true
 
 # Verifiera: ikonen är körbar och betrodd (om gio finns).
 if [ -d "$desktop_dir" ] && command -v gio >/dev/null 2>&1; then
-  for n in undersokningen undersokningen-restart undersokningen-update; do
+  for n in undersokningen undersokningen-restart undersokningen-update undersokningen-reset-touch; do
     f="$desktop_dir/$n.desktop"
     t="$(gio info -a metadata::trusted "$f" 2>/dev/null | sed -n 's/^ *metadata::trusted: *//p')"
     if [ -x "$f" ] && [ "$t" = "true" ]; then
@@ -78,7 +79,7 @@ if [ -d "$desktop_dir" ] && command -v gio >/dev/null 2>&1; then
 fi
 
 echo
-echo "Klart. På skrivbordet finns nu:  Starta Undersökningen  |  Starta om Undersökningen  |  Uppdatera Undersökningen"
+echo "Klart. På skrivbordet finns nu:  Starta Undersökningen  |  Starta om  |  Uppdatera  |  Återställ touch"
 echo "Avsluta spelet med appens ✕-knapp (nere till vänster)."
 if [ "$problems" -gt 0 ]; then
   echo
