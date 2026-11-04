@@ -86,7 +86,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     if (s.revealedSpotIds.length !== prevRevealedSpots || s.activeSpotId !== prevActiveSpot) {
       if (s.activeSpotId) {
         const spot = SPOTS.find((sp) => sp.id === s.activeSpotId)
-        if (spot) audio.play(spot.person === 'smudge' ? 'deny' : 'render')
+        if (spot) audio.play(spot.person === 'smudge' ? 'deny' : 'popup')
       }
     }
     if (prevPhase !== 'solved' && s.phase === 'solved') audio.play('win')
@@ -194,7 +194,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /** FÄLT markerar en person som misstänkt (→ topppanelen) eller tar bort. */
   function markSuspect(personId: string, suspect: boolean): void {
     dispatch({ type: 'markSuspect', personId, suspect })
-    if (suspect) audio.play('render')
+    if (suspect) audio.play('stamp')
     notifyActivity()
   }
 

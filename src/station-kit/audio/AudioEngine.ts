@@ -58,6 +58,9 @@ class AudioEngine {
   private _volume = 0.6
   private unlocked = false
   private buffers = new Map<Sfx, AudioBuffer>()
+  /** Loopande bakgrundsmusik (eget HTMLAudio-lager, egen målvolym). */
+  private musicEl: HTMLAudioElement | null = null
+  private musicTarget = 0
 
   get muted(): boolean {
     return this._muted
@@ -71,6 +74,48 @@ class AudioEngine {
     this._muted = muted
     if (this.master) {
       this.master.gain.value = muted ? 0 : this._volume
+    }
+    if (this.musicEl) {
+      this.musicEl.volume = muted ? 0 : this.musicTarget
+    }
+  }
+
+  /* ---------------- bakgrundsmusik ---------------- */
+
+  /** Starta (eller återuppta) den loopande musiken på given målvolym (0–1).
+   *  Får bara anropas efter en användargest (attract-klicket). */
+  startMusic(url: string, level: number): void {
+    this.musicTarget = level
+    try {
+      if (!this.musicEl) {
+        this.musicEl = new Audio(url)
+        this.musicEl.loop = true
+        this.musicEl.preload = 'auto'
+      }
+      this.musicEl.volume = this._muted ? 0 : level
+      void this.musicEl.play().catch(() => {})
+    } catch {
+      // Musik är icke-kritisk.
+    }
+  }
+
+  /** Byt målvolym (t.ex. svagt i tutorial, högre i skarpt). */
+  setMusicLevel(level: number): void {
+    this.musicTarget = level
+    if (!this.musicEl) return
+    this.musicEl.volume = this._muted ? 0 : level
+    if (!this._muted && level > 0 && this.musicEl.paused) {
+      void this.musicEl.play().catch(() => {})
+    }
+  }
+
+  stopMusic(): void {
+    if (!this.musicEl) return
+    this.musicEl.pause()
+    try {
+      this.musicEl.currentTime = 0
+    } catch {
+      /* ignore */
     }
   }
 

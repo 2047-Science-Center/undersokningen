@@ -10,6 +10,8 @@
  * bor HÄR. INGA hemligheter i filen.
  */
 
+import type { RollvalConfig } from './station-kit/rollval/types'
+
 export type Mode = 'pilot' | 'production'
 export type RoleId = 'labb' | 'falt'
 export type ValvId = 'lag1' | 'lag2'
@@ -59,6 +61,81 @@ export function resolveMqttUrl(): string {
 }
 
 /* ------------------------------------------------------------------ *
+ * UPPDRAG — per roll. `short` = alltid synlig rad (attract + UPPDRAG-box),
+ * `full` = hela briefingen (expanderas i boxen). Betonar att den ANDRA sidan
+ * behövs. Innehåll bor här.
+ * ------------------------------------------------------------------ */
+
+export interface Mission {
+  short: string
+  full: string
+}
+
+export const MISSIONS: Record<RoleId, Mission> = {
+  falt: {
+    short: 'Hitta vilka som var i valvet — peka ut tjuven.',
+    full: 'Någon bröt sig in i valvet. Scanna fram fingeravtrycken och läs övervakningsloggen för att hitta vilka som var på plats — markera de misstänkta och peka ut tjuven. Labbet avgör vems hår som matchar.',
+  },
+  labb: {
+    short: 'Sortera hårproven — vilka är människohår?',
+    full: 'Ett av de 9 hårproverna är brottslingens. Sortera ut proven för att se vilka som är människohår — vänd er sen till andra sidan för att se vad ert resultat betyder.',
+  },
+}
+
+/* ------------------------------------------------------------------ *
+ * ATTRACT per roll — varje skärm visar sin egen rollbild + "tryck för att
+ * börja" (ersätter den gemensamma titelskärmen). Bild saknas → attract
+ * faller tillbaka på titel + uppdrag tills Josef lagt in filen.
+ * ------------------------------------------------------------------ */
+
+export const ROLE_ATTRACT: Record<RoleId, { image: string; role: string }> = {
+  falt: { image: 'attract/forensiker.png', role: 'forensiker' },
+  labb: { image: 'attract/labbtekniker.png', role: 'labbtekniker' },
+}
+
+/* ------------------------------------------------------------------ *
+ * BAKGRUNDSMUSIK — loopar genom hela sessionen: normal på attract/start,
+ * mycket svag under tutorial, mellanhög i skarpt läge. Filen bor i public/.
+ * ------------------------------------------------------------------ */
+
+export const MUSIC = {
+  track: 'Ljud/background track undersokningen.mp3',
+  attract: 0.7,
+  tutorial: 0.14,
+  live: 0.5,
+}
+
+/* ------------------------------------------------------------------ *
+ * LABB rollgenomgång — de egna stegen EFTER det gemensamma referensfallet.
+ * Illustrerade mock-animationer (inte riktiga mikroskopet). Hårbilden =
+ * REF_CASE.hairImage, korgarna = HAIR_CLASSES.
+ * ------------------------------------------------------------------ */
+
+export const LABB_TUT = {
+  prov: 'Ni har ett antal hårprover framför er. Ett av dem är tjuvens.',
+  fokus: 'Ni skannar med mikroskopet. Använd tummen på reglaget för att hitta fokus.',
+  sort_q: 'Vad tror du att det här är för hårstrå?',
+  sort: 'Frys bilden och dra den till rätt kategori.',
+  slut: 'När du sorterat alla hårstrån efter vad du tror att de är — prata med andra sidan för att se hur ni kan hjälpa varandra att lösa brottet.',
+}
+
+/* ------------------------------------------------------------------ *
+ * FÄLT rollgenomgång — verktygsstegen EFTER referensfallet, i samma vy som
+ * spelet (avtrycksyta + IDENTIFIERAD-popup + misstänkta-panel).
+ * Verktyg: lyspennan (hitta avtryck) + scannern (identifiera).
+ * Demo-personer = samma mockups som referensfallet: Dana (misstänkt) + Nils
+ * (icke misstänkt) — se REF_CASE.dana / REF_CASE.nils.
+ * ------------------------------------------------------------------ */
+
+export const FALT_TUT = {
+  lys: 'Lys med lyspennan över ytan — fingeravtrycken tänds.',
+  skanna: 'När scannern hittar ett avtryck får ni upp en bild på personen från övervakningskamerorna.',
+  markera_q: 'Var den här personen i valvet?',
+  markera: 'Markera de som var i valvet som misstänkta — övriga som icke misstänkta.',
+  slut: 'När ni tror ni vet vilka som är misstänkta, prata med labbteknikerna på andra sidan.',
+}
+
+/* ------------------------------------------------------------------ *
  * PERSONER — de som förekommer i fallet. Bilderna är övervaknings-stillbilder
  * (KAM 03-stil). `hair` är det synliga håret (matchas mot hårprovet i mikroskopet).
  * `clothing` = signalement som binder bild ↔ logg. Saknas bildfil → placeholder.
@@ -93,7 +170,8 @@ export const THIEF_ID = 'ravi'
  * eller 'smudge' (oanvändbart spår → ingen träff). Personer med FLERA spots
  * återkommer (stark närvaro). x/y i procent av ytan.
  *
- * Fördelning: 3 misstänkta ×2 (ravi, maj, tomas) + iris ×1 + 2 smudge = 9 spots.
+ * Fördelning: ravi ×2 + maj ×2 (de två finalisterna vid skåpet) + tomas ×1
+ * + iris ×1 + 3 smudge = 9 spots. Bara Ravi/Maj ska framträda som paret.
  * ------------------------------------------------------------------ */
 
 export interface Spot {
@@ -112,7 +190,7 @@ export const SPOTS: Spot[] = [
   { id: 's3', x: 40, y: 38, person: 'tomas', tag: '04572FB2312491' },
   { id: 's4', x: 61, y: 52, person: 'ravi', tag: '044A29B2312491' },
   { id: 's5', x: 28, y: 64, person: 'maj', tag: '043533B2312491' },
-  { id: 's6', x: 83, y: 45, person: 'tomas', tag: '044329B2312491' },
+  { id: 's6', x: 83, y: 45, person: 'smudge', tag: '044329B2312491' },
   { id: 's7', x: 50, y: 74, person: 'iris', tag: '04F72AB2312490' },
   { id: 's8', x: 12, y: 80, person: 'smudge', tag: '044E29B2312491' },
   { id: 's9', x: 88, y: 72, person: 'smudge', tag: '04552AB2312491' },
@@ -172,10 +250,48 @@ export interface RefBeat {
 /** Referensfallets person (tutorial). Egen bild så "Dana"-grejen landar. */
 export const DANA_IMAGE = 'personer/dana.png'
 
+/** Referens-person i övningsfallet (tutorial-only, egen enkel form). */
+export interface RefPerson {
+  name: string
+  image: string
+  clothing: string
+  hair: string
+}
+/** Rad i övningsfallets korta logg. `circle` = raden som ringas in med röd penna. */
+export interface RefLogEntry {
+  time: string
+  text: string
+  circle?: boolean
+}
+
 export const REF_CASE = {
   id: '2-911',
   title: 'ÄRENDE 2-911 — LÖST',
-  intro: 'Så här löste vi ett tidigare fall. Alla tre bitarna behövdes.',
+  intro: 'Se hur ett tidigare fall löstes.',
+
+  /** Referens-personer. Dana = tjuven (blont, orange väst), Nils = oskyldig (mörkt hår). */
+  dana: { name: 'Dana Falk', image: 'personer/dana.png', clothing: 'orange väst', hair: 'blont, långt' } as RefPerson,
+  nils: { name: 'Nils Krag', image: 'personer/nils.png', clothing: 'grå jacka', hair: 'mörkt, kort' } as RefPerson,
+
+  /** Kort övervakningslogg för övningsfallet. Raden med `circle` ringas in. */
+  log: [
+    { time: '02:05', text: 'Lugnt i sektorn. Vakten gör sin runda.' },
+    { time: '02:14', text: 'Person i orange väst vid luckan, dröjer länge vid skåpet.', circle: true },
+    { time: '02:31', text: 'Larmet går. Skåpet står öppet.' },
+  ] as RefLogEntry[],
+
+  /** Mikroskop-mockup: vad man såg i referensfallet (Danas hår). Placeholder tills bild finns. */
+  hairImage: 'mikroskop/ref-har-blont.png',
+  hairLabel: 'fint blont människohår',
+
+  /** Scen-texter för den animerade genomspelningen (FÄLT-sidan). */
+  scenes: {
+    avtryck: 'Ett avtryck → IDENTIFIERAD SOM Dana Falk. Samma avtryck igen — hon återkom.',
+    logg: 'Loggen: någon i orange väst vid luckan. Det stämde med Dana.',
+    har: 'Både Dana och Nils hade avtryck. I mikroskopet: fint blont människohår — det var Danas.',
+    slutsats: 'Avtryck gav VEM, loggen NÄR, håret AVGJORDE. Dana Falk var tjuven.',
+  },
+
   beats: [
     { kind: 'avtryck', icon: 'finger', image: DANA_IMAGE, text: 'Ett avtryck → IDENTIFIERAD SOM Dana Falk. Samma avtryck igen — hon återkom.' },
     { kind: 'logg', icon: 'logg', text: 'Loggen: "en i orange väst vid luckan 02:14." Det stämde med Dana.' },
@@ -202,5 +318,62 @@ export const VALV: Record<ValvId, ValvConfig> = {
 }
 
 export const ROLE_FLOW_ENABLED = false
+
+/* ------------------------------------------------------------------ *
+ * ROLLVAL — nytt touchskärms-flöde FÖRE stationens eget flöde (Lager A).
+ * Besökaren ser ett "en dag i livet"-klipp per roll och väljer roll på
+ * skärmen. Skippbart via ROLLVAL_ENABLED. Inramning: förmågor värda att
+ * vara bra på — IMPLICIT, copyn nämner aldrig "framtidsyrke" eller AI.
+ *
+ * Klippen bor i undersokningen/assets/ (riktiga klipp, lagda av Josef) och
+ * löses via Vite-glob nedan — matcha EXAKTA filnamn (å/ä/ö + mellanslag).
+ * Rollerna Doktorand/Metodspecialist speglar stationens FÄLT/LABB.
+ * ------------------------------------------------------------------ */
+
+/** Sätt false för att hoppa över hela rollvalet (appen kör utan det). */
+export const ROLLVAL_ENABLED = false
+
+/** Aktivt klippset. Testet kör ETT fast set (set 2 = Frederico + Essy); det
+ *  andra setet finns kvar i config. 'alternate' = växla per körning. */
+export const ROLLVAL_START_SET: number | 'alternate' = 1
+
+/** Riktiga rollklipp i undersokningen/assets/ (url via Vite). */
+const ROLLVAL_CLIPS = import.meta.glob('../assets/*.mp4', {
+  eager: true,
+  query: '?url',
+  import: 'default',
+}) as Record<string, string>
+
+function rollvalClip(file: string): string {
+  // Vite-globens nycklar är NFD (macOS dekomponerar å/ä/ö); våra literaler är
+  // NFC. Normalisera båda till NFC före jämförelsen.
+  const target = ('/' + file).normalize('NFC')
+  const hit = Object.entries(ROLLVAL_CLIPS).find(([k]) => k.normalize('NFC').endsWith(target))
+  return hit?.[1] ?? ''
+}
+
+export const ROLLVAL: RollvalConfig = {
+  stationTitle: 'Undersökningen',
+  intro: 'Två sätt att lösa ett fall ingen annan knäckt. Titta på hur en dag ser ut — välj sedan vilken du vill kliva in i.',
+  question: 'Vilken av dem känns som du?',
+  roles: [
+    {
+      id: 'doktorand',
+      name: 'Doktorand',
+      tagline: 'Den som ställer frågorna och följer spåren.',
+      description: 'Nyfiken, tålmodig och vägrar nöja sig med första svaret. Det är den som ser mönstret ingen annan la märke till som för en utredning framåt.',
+    },
+    {
+      id: 'metodspecialist',
+      name: 'Metodspecialist',
+      tagline: 'Den som vet exakt hur ett bevis ska läsas.',
+      description: 'Behärskar instrumenten och arbetar med en noggrannhet som skiljer en gissning från ett svar. Utan metod är ett spår bara en känsla.',
+    },
+  ],
+  clipSets: [
+    { doktorand: rollvalClip('Karin doktorand.mp4'), metodspecialist: rollvalClip('Dragan metodspecialist.mp4') },
+    { doktorand: rollvalClip('Frederico doktorand.mp4'), metodspecialist: rollvalClip('Essy metodspecialist.mp4') },
+  ],
+}
 
 export const IDLE_RESTART = { minutes: 8, warnSeconds: 20 } as const

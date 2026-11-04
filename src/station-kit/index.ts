@@ -6,6 +6,9 @@ export { default as CrtImage } from './components/CrtImage.vue'
 export { default as AttractScreen } from './components/AttractScreen.vue'
 export { default as MuteButton } from './components/MuteButton.vue'
 
+export { default as RoleSelect } from './rollval/RoleSelect.vue'
+export type { RollvalConfig, RollvalRole, RollvalClipSet } from './rollval/types'
+
 export { audio } from './audio/AudioEngine'
 export type { Sfx } from './audio/AudioEngine'
 

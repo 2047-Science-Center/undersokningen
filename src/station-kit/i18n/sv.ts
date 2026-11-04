@@ -31,8 +31,8 @@ export const sv: Record<string, string> = {
   // --- Fält-konsol ---
   'falt.title': 'FÄLTKONSOL',
   'falt.surface': 'FINGERAVTRYCK — SEKTOR C',
-  'falt.surface_hint': 'Dra scannern över ytan. Klicka ett avtryck för att läsa det.',
-  'falt.scan_a_print': 'klicka för att scanna',
+  'falt.surface_hint': 'Skanna ett avtryck med donet för att läsa det.',
+  'falt.scan_a_print': 'avtryck',
   'falt.identified_as': 'IDENTIFIERAD SOM',
   'falt.prints_count': '{n} avtryck',
   'falt.smudge_title': 'OANVÄNDBART SPÅR',
@@ -116,8 +116,9 @@ export const sv: Record<string, string> = {
   // --- Mikroskop (Dino-Lite) ---
   'mikroskop.title': 'MIKROSKOP',
   'mikroskop.mirror': 'Spegla',
-  'mikroskop.freeze': 'Frys',
-  'mikroskop.release': 'Släpp',
+  'mikroskop.freeze': 'FRYS BILDEN',
+  'mikroskop.release': 'GÅ TILLBAKA',
+  'mikroskop.drag_hint': 'Dra provet till rätt kategori',
   'mikroskop.opening': 'Öppnar kameran …',
   'mikroskop.failed': 'Kunde inte öppna kameran',
   'mikroskop.unsupported': 'Webbläsaren stöder inte kameraåtkomst.',

@@ -12,8 +12,9 @@ import ModeLegend from '@/station-kit/components/ModeLegend.vue'
 import { OTHER } from '../engine/gameEngine'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import BarrierWait from './BarrierWait.vue'
-import Icon from '../components/Icon.vue'
-import Placeholder from '../components/Placeholder.vue'
+import FaltRefTutorial from './FaltRefTutorial.vue'
+import LabbRoleTutorial from './LabbRoleTutorial.vue'
+import FaltRoleTutorial from './FaltRoleTutorial.vue'
 
 const props = defineProps<{ team: ValvId; shared?: boolean }>()
 const store = useUndersokningenStore()
@@ -22,24 +23,17 @@ const { t } = useI18n()
 const me = computed(() => props.team)
 const other = computed(() => OTHER[props.team])
 const leader = computed(() => props.shared || me.value === 'lag1')
+/** FÄLT: referensfall → gate. LABB: referensfall → rollgenomgång → gate. */
+const isFalt = computed(() => props.team === 'lag2')
 
-const phase = ref<'legend' | 'beats' | 'gate'>('legend')
-const beatIx = ref(0)
+const phase = ref<'legend' | 'beats' | 'role' | 'gate'>('legend')
 const iAmReady = ref(false)
-
-const beat = computed(() => REF_CASE.beats[beatIx.value])
-const isLastBeat = computed(() => beatIx.value >= REF_CASE.beats.length - 1)
-const beatLabel = computed(() => t('tut.beat_' + beat.value.kind))
 
 const bothReady = computed(() => store.onbReady[me.value] && (props.shared || store.onbReady[other.value]))
 
 function next(): void {
   audio.play('blip')
   if (phase.value === 'legend') phase.value = 'beats'
-  else if (phase.value === 'beats') {
-    if (isLastBeat.value) phase.value = 'gate'
-    else beatIx.value += 1
-  }
 }
 function markReady(): void {
   iAmReady.value = true
@@ -60,25 +54,13 @@ watch([bothReady], () => {
       <button class="crt-button crt-button--strong" @click="next">{{ t('onboarding.next') }} ▸</button>
     </template>
 
-    <!-- Referensfall-beats -->
-    <template v-else-if="phase === 'beats'">
-      <p class="tut__case">{{ REF_CASE.title }}</p>
-      <Transition name="beat" mode="out-in">
-        <div class="tut__beat amber-frame" :key="beatIx">
-          <div class="tut__visual">
-            <Placeholder v-if="beat.image" class="tut__visual-img" :path="beat.image" label="Dana Falk" />
-            <div v-else class="tut__visual-icon"><Icon :name="beat.icon" :size="88" /></div>
-          </div>
-          <span class="tut__beat-label"><Icon :name="beat.icon" :size="15" /> {{ beatLabel }}</span>
-          <p class="tut__beat-text">{{ beat.text }}</p>
-        </div>
-      </Transition>
-      <div class="tut__dots">
-        <span v-for="i in REF_CASE.beats.length" :key="i" class="tut__dot" :class="{ 'tut__dot--on': i - 1 <= beatIx }" />
-      </div>
-      <button class="crt-button crt-button--strong" @click="next">
-        {{ isLastBeat ? t('onboarding.go_live') : t('onboarding.next') }} ▸
-      </button>
+    <!-- Referensfall: gemensam animerad genomspelning (båda sidor) -->
+    <FaltRefTutorial v-else-if="phase === 'beats'" @done="phase = 'role'" />
+
+    <!-- Rollgenomgång (egna verktygen) i samma vy som spelet, efter referensfallet -->
+    <template v-else-if="phase === 'role'">
+      <FaltRoleTutorial v-if="isFalt" @done="phase = 'gate'" />
+      <LabbRoleTutorial v-else @done="phase = 'gate'" />
     </template>
 
     <!-- Barriär / go-live -->
@@ -94,7 +76,7 @@ watch([bothReady], () => {
 
 <style scoped>
 .tut { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(1rem, 2.5vh, 1.6rem); height: 100%; text-align: center; padding: clamp(1rem, 3vh, 2rem); }
-.tut__intro { margin: 0; font-family: var(--font-mono); font-size: clamp(1.1rem, 2vw, 1.5rem); line-height: 1.45; color: var(--color-ink-muted); max-width: 60ch; }
+.tut__intro { margin: 0; font-family: var(--font-retro); font-size: clamp(1.9rem, 5vw, 3.4rem); line-height: 1.25; letter-spacing: 0.03em; color: var(--color-ink-strong); text-shadow: var(--glow-soft); max-width: 24ch; }
 .tut__case { margin: 0; font-family: var(--font-retro); font-size: clamp(1.1rem, 2vw, 1.4rem); letter-spacing: 0.08em; color: var(--color-primary); }
 /* Rutan fyller nästan hela skärmen så texten blir riktigt läsbar. */
 .tut__beat { width: min(94vw, 72rem); flex: 1 1 auto; max-height: 76vh; padding: clamp(1.4rem, 4vh, 3rem) clamp(1.4rem, 4vw, 3rem); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(1rem, 2.6vh, 1.8rem); background: var(--color-background-2); }

@@ -9,11 +9,13 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { HAIR_CLASSES, type HairClassId } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
+import { audio } from '@/station-kit/audio/AudioEngine'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Microscope from './Microscope.vue'
 import Icon from './Icon.vue'
 import Lightbox from './Lightbox.vue'
 import CoachMarks from './CoachMarks.vue'
+import MissionBox from './MissionBox.vue'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -24,11 +26,16 @@ let seq = 0
 const pending = ref<{ id: string; src: string } | null>(null)
 const placed = ref<Placed[]>([])
 const lightboxSrc = ref<string | null>(null)
+const scopeRef = ref<InstanceType<typeof Microscope> | null>(null)
 
 function onCapture(src: string): void {
   // En frysning i taget att sortera: ersätt ev. osorterad fångst.
   pending.value = { id: 'spec-' + seq++, src }
   store.notifyActivity()
+}
+/** Fingret sätts på den frysta mikroskopbilden → starta drag direkt därifrån. */
+function onGrab(e: PointerEvent): void {
+  startDrag(e)
 }
 function placedIn(cat: HairClassId): Placed[] {
   return placed.value.filter((p) => p.category === cat)
@@ -52,6 +59,8 @@ function onUp(e: PointerEvent): void {
   if (cat && pending.value) {
     placed.value.push({ id: pending.value.id, src: pending.value.src, category: cat })
     pending.value = null
+    audio.play('confirm')
+    scopeRef.value?.release() // tillbaka till live för nästa prov
     store.notifyActivity()
   }
   drag.value = null
@@ -78,8 +87,11 @@ const coachSteps = computed(() => [
   { target: 'categories', title: t('coach.lab_drag_title'), text: t('coach.lab_drag_text') },
   { title: t('coach.lab_help_title'), text: t('coach.lab_help_text') },
 ])
+/** Coach-marks är avstängda på LABB — den animerade rollgenomgången (pre-gate)
+ *  täcker scanna/frys/sortera. Behålls i koden om vi vill slå på dem igen. */
+const COACH_ENABLED = false
 function maybeCoach(): void {
-  if (store.onbStage === 'live' && store.phase === 'investigate' && !coachSeen && singleSide.value) {
+  if (COACH_ENABLED && store.onbStage === 'live' && store.phase === 'investigate' && !coachSeen && singleSide.value) {
     coachSeen = true
     coachActive.value = true
   }
@@ -100,36 +112,23 @@ watch(
 <template>
   <div class="lab">
     <header class="lab__head">
-      <Icon name="mikroskop" :size="26" />
-      <div>
-        <h2 class="lab__title">{{ t('lab.title') }}</h2>
-        <p class="lab__sub">{{ t('role.labb') }} · {{ t('valv.syd') }}</p>
+      <div class="lab__role">
+        <Icon name="mikroskop" :size="26" />
+        <div>
+          <h2 class="lab__title">{{ t('lab.title') }}</h2>
+          <p class="lab__sub">{{ t('role.labb') }} · {{ t('valv.syd') }}</p>
+        </div>
       </div>
+      <MissionBox role="labb" />
     </header>
 
-    <p class="lab__hint">{{ t('lab.mission') }}</p>
+    <Microscope ref="scopeRef" class="lab__scope" data-coach="scope" @capture="onCapture" @grab="onGrab" />
 
-    <Microscope class="lab__scope" data-coach="scope" @capture="onCapture" />
-
-    <!-- Senaste frysta fångst — dra den till en kategori -->
-    <Transition name="pending">
-      <div v-if="pending" class="lab__pending">
-        <div
-          class="lab__chip" :class="{ 'lab__chip--dragging': drag }"
-          @pointerdown.prevent="startDrag"
-        >
-          <img :src="pending.src" alt="" class="lab__chip-img" />
-          <Icon name="finger" :size="16" class="lab__chip-grab" />
-        </div>
-        <span class="lab__pending-hint">{{ t('lab.capture_hint') }}</span>
-      </div>
-    </Transition>
-
-    <!-- Tre hårkategori-containrar (drop-mål) -->
+    <!-- Tre hårkategori-containrar (drop-mål) — dra provet hit från mikroskopet -->
     <section class="lab__classes" data-coach="categories">
       <div
         v-for="c in HAIR_CLASSES" :key="c.id" class="lab__class amber-frame"
-        :class="{ 'lab__class--over': overCat === c.id }" :data-drop="c.id"
+        :class="{ 'lab__class--over': overCat === c.id, 'lab__class--drop': !!drag }" :data-drop="c.id"
       >
         <div class="lab__class-head">
           <Icon :name="c.icon" :size="26" />
@@ -167,34 +166,23 @@ watch(
 
 <style scoped>
 .lab { display: flex; flex-direction: column; gap: 0.6rem; height: 100%; min-height: 0; position: relative; }
-.lab__head { display: flex; align-items: center; gap: 0.7rem; }
+.lab__head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.lab__role { display: flex; align-items: center; gap: 0.7rem; }
 .lab__title { margin: 0; font-size: 1.5rem; letter-spacing: 0.06em; }
 .lab__sub { margin: 0; font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-ink-muted); }
-.lab__hint { margin: 0; font-family: var(--font-mono); font-size: 0.9rem; color: var(--color-ink-muted); }
 .lab__scope { flex: 1 1 auto; min-height: 200px; }
 
-.lab__pending { display: flex; align-items: center; gap: 0.7rem; }
-.lab__chip {
-  position: relative; width: 4.5rem; height: 3.4rem; border: 2px solid var(--color-primary); border-radius: 8px;
-  overflow: hidden; cursor: grab; touch-action: none; box-shadow: var(--glow-soft);
-  transition: transform 0.14s var(--ease-out);
-}
-.lab__chip:active { cursor: grabbing; transform: scale(0.97); }
-.lab__chip--dragging { opacity: 0.4; }
-.lab__chip-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.lab__chip-grab { position: absolute; right: 2px; bottom: 2px; color: var(--color-primary); }
-.lab__pending-hint { font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-primary); }
-
-.lab__classes { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+.lab__classes { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
 .lab__class {
-  display: flex; flex-direction: column; gap: 0.4rem; padding: 0.6rem; background: var(--color-background-2);
-  transition: border-color 0.14s var(--ease-out), background 0.14s var(--ease-out);
+  display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem 0.8rem; background: var(--color-background-2);
+  transition: border-color 0.14s var(--ease-out), background 0.14s var(--ease-out), box-shadow 0.14s var(--ease-out);
 }
-.lab__class--over { border-color: var(--color-primary); background: rgba(var(--mode-accent-rgb), 0.12); }
-.lab__class-head { display: flex; flex-direction: column; align-items: center; gap: 0.2rem; text-align: center; }
-.lab__class-label { font-family: var(--font-retro); letter-spacing: 0.04em; }
-.lab__class-text { font-family: var(--font-mono); font-size: 0.74rem; color: var(--color-ink-muted); }
-.lab__class-grid { display: flex; flex-wrap: wrap; gap: 0.35rem; min-height: 2.6rem; align-content: flex-start; justify-content: center; }
+.lab__class--drop { border-style: dashed; border-color: var(--color-primary); }
+.lab__class--over { border-style: solid; border-color: var(--color-primary); background: rgba(var(--mode-accent-rgb), 0.18); box-shadow: var(--glow-strong); transform: scale(1.02); }
+.lab__class-head { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; text-align: center; }
+.lab__class-label { font-family: var(--font-retro); font-size: 1.15rem; letter-spacing: 0.04em; }
+.lab__class-text { font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-ink-muted); }
+.lab__class-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 4.5rem; align-content: flex-start; justify-content: center; }
 .lab__thumb {
   width: 3.1rem; height: 2.4rem; padding: 0; border: 1px solid var(--color-primary-dim); border-radius: 5px;
   overflow: hidden; cursor: pointer; background: #000; transition: transform 0.14s var(--ease-out);
@@ -220,9 +208,6 @@ watch(
 .lab__verdict-big { margin: 0; font-size: clamp(1.6rem, 4vw, 2.6rem); letter-spacing: 0.05em; text-shadow: var(--glow-strong); }
 .lab__verdict-sub { margin: 0; font-family: var(--font-mono); color: var(--color-ink-muted); max-width: 34ch; }
 
-.pending-enter-active { transition: opacity 200ms var(--ease-out); }
-.pending-enter-active .lab__chip { transition: transform 240ms var(--ease-out); }
-.pending-enter-from { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .lab__thumb { animation: none; opacity: 1; transform: none; }
 }

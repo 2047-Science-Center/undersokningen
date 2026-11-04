@@ -5,10 +5,12 @@
  * tutorial, orange skarpt. Timer syns under fallet; verdikt pekas ut på fält-skärmen.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { config } from '@/config'
+import { config, ROLLVAL, ROLLVAL_ENABLED, ROLLVAL_START_SET, MISSIONS, ROLE_ATTRACT, MUSIC, asset, type RoleId } from '@/config'
 import { useStationMode } from '@/station-kit/mode/useStationMode'
+import { audio } from '@/station-kit/audio/AudioEngine'
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
 import AttractScreen from '@/station-kit/components/AttractScreen.vue'
+import RoleSelect from '@/station-kit/rollval/RoleSelect.vue'
 import ModeCountdown from '@/station-kit/components/ModeCountdown.vue'
 import MuteButton from '@/station-kit/components/MuteButton.vue'
 import { useI18n } from '@/station-kit/i18n'
@@ -28,14 +30,59 @@ const isPilot = config.mode === 'pilot'
 const entered = ref(false)
 const showGoLive = ref(false)
 
+/** Rollval-flödet (skippbart första-steg, FÖRE tutorialen). Aktivt klippset
+ *  alternerar per körning. */
+const rollvalDone = ref(false)
+const rollvalSet = ref(0)
+const showRollval = computed(() => ROLLVAL_ENABLED && entered.value && !rollvalDone.value)
+function pickRollvalSet(): number {
+  if (ROLLVAL_START_SET !== 'alternate') return ROLLVAL_START_SET
+  const n = ROLLVAL.clipSets.length || 1
+  try {
+    const key = 'xy-rollval-set'
+    const prev = Number(localStorage.getItem(key) ?? '-1')
+    const i = (prev + 1) % n
+    localStorage.setItem(key, String(i))
+    return i
+  } catch {
+    return 0
+  }
+}
+watch(entered, (v) => {
+  if (v) {
+    rollvalDone.value = false
+    rollvalSet.value = pickRollvalSet()
+  }
+})
+function onRollvalDone(): void {
+  rollvalDone.value = true
+}
+
+/** Attract per roll: varje skärm (lag1=LABB, lag2=FÄLT) visar sin egen bild + uppdrag. */
+const attractRole = computed<RoleId | null>(() =>
+  store.view === 'lag1' ? 'labb' : store.view === 'lag2' ? 'falt' : null,
+)
+const attractImage = computed(() => (attractRole.value ? asset(ROLE_ATTRACT[attractRole.value].image) : undefined))
+const attractRoleName = computed(() => (attractRole.value ? ROLE_ATTRACT[attractRole.value].role : undefined))
+const attractMission = computed(() => (attractRole.value ? MISSIONS[attractRole.value].short : undefined))
+
 const onboarded = computed(() => store.onbStage === 'live')
 const isShared = computed(() => store.view === 'shared')
 const onboardTeam = computed(() => (store.view === 'lag2' ? 'lag2' : 'lag1'))
 /** Fält-innehåll: investigate → konsol, annars (verdict/solved/failed) → verdikt. */
 const faltVerdict = computed(() => store.phase !== 'investigate' && store.phase !== 'intro')
 
-const stationMode = computed<'tutorial' | 'live'>(() => (entered.value && !onboarded.value ? 'tutorial' : 'live'))
-watch(stationMode, (m) => setMode(m), { immediate: true })
+const stationMode = computed<'tutorial' | 'live'>(() =>
+  entered.value && !onboarded.value && !showRollval.value ? 'tutorial' : 'live',
+)
+watch(
+  stationMode,
+  (m) => {
+    setMode(m)
+    audio.setMusicLevel(m === 'live' ? MUSIC.live : MUSIC.tutorial)
+  },
+  { immediate: true },
+)
 
 const mmss = computed(() => {
   const s = store.secondsLeft
@@ -46,7 +93,12 @@ const showTimer = computed(() => onboarded.value && store.phase === 'investigate
 function enter(): void {
   entered.value = true
 }
-watch(entered, (v) => store.setSessionActive(v))
+watch(entered, (v) => {
+  store.setSessionActive(v)
+  // Attract-klicket (begin) har låst upp ljudet → starta musiken här.
+  if (v) audio.startMusic(asset(MUSIC.track), MUSIC.attract)
+  else audio.stopMusic()
+})
 
 watch(onboarded, (v) => {
   if (v && store.phase !== 'investigate') showGoLive.value = true
@@ -87,7 +139,22 @@ onUnmounted(() => {
   <div class="app" :data-mode="stationMode">
     <!-- Attract -->
     <CrtScreen v-if="!entered">
-      <AttractScreen @start="enter" />
+      <AttractScreen
+        :mission="attractMission"
+        :image="attractImage"
+        :role="attractRoleName"
+        @start="enter"
+      />
+    </CrtScreen>
+
+    <!-- Rollval: skippbart första-steg före tutorialen -->
+    <CrtScreen v-else-if="showRollval">
+      <RoleSelect
+        :config="ROLLVAL"
+        :start-set="rollvalSet"
+        @pick="onRollvalDone"
+        @skip="onRollvalDone"
+      />
     </CrtScreen>
 
     <!-- Tutorial -->

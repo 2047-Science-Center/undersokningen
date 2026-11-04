@@ -13,6 +13,7 @@ import Placeholder from './Placeholder.vue'
 import Icon from './Icon.vue'
 import Lightbox from './Lightbox.vue'
 import CoachMarks from './CoachMarks.vue'
+import MissionBox from './MissionBox.vue'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -43,8 +44,11 @@ const coachSteps = computed(() => [
   { target: 'log', title: t('coach.falt_log_title'), text: t('coach.falt_log_text') },
   { target: 'suspects', title: t('coach.falt_mark_title'), text: t('coach.falt_mark_text') },
 ])
+/** Coach-marks avstängda på FÄLT — den animerade rollgenomgången (pre-gate)
+ *  täcker lyspenna/skanna/markera. Behålls i koden om vi vill slå på dem igen. */
+const COACH_ENABLED = false
 function maybeCoach(): void {
-  if (store.onbStage === 'live' && store.phase === 'investigate' && !coachSeen && singleSide.value) {
+  if (COACH_ENABLED && store.onbStage === 'live' && store.phase === 'investigate' && !coachSeen && singleSide.value) {
     coachSeen = true
     coachActive.value = true
   }
@@ -70,11 +74,14 @@ watch(
           <p class="falt__sub">{{ t('role.falt') }} · {{ t('valv.nord') }}</p>
         </div>
       </div>
-      <div class="falt__submit-wrap">
-        <span class="falt__submit-hint">{{ t('falt.submit_hint') }}</span>
-        <button class="crt-button crt-button--strong falt__submit" @click="store.openVerdict()">
-          {{ t('falt.submit') }} ▸
-        </button>
+      <div class="falt__head-right">
+        <MissionBox role="falt" />
+        <div class="falt__submit-wrap">
+          <span class="falt__submit-hint">{{ t('falt.submit_hint') }}</span>
+          <button class="crt-button crt-button--strong falt__submit" @click="store.openVerdict()">
+            {{ t('falt.submit') }} ▸
+          </button>
+        </div>
       </div>
     </header>
 
@@ -97,14 +104,13 @@ watch(
       <section class="falt__surface-wrap">
         <div class="falt__surface-head"><Icon name="finger" :size="16" /> {{ t('falt.surface') }}</div>
         <div class="falt__surface amber-frame" data-coach="surface">
-          <button
+          <span
             v-for="s in store.spotStatuses" :key="s.id"
             class="falt__spot" :class="{ 'falt__spot--scanned': s.scanned }"
-            :style="{ left: s.x + '%', top: s.y + '%' }" :title="t('falt.scan_a_print')"
-            @click="store.scanSpot(s.id)"
+            :style="{ left: s.x + '%', top: s.y + '%' }" aria-hidden="true"
           >
             <Icon name="finger" :size="26" />
-          </button>
+          </span>
           <p class="falt__surface-hint">{{ t('falt.surface_hint') }}</p>
 
           <!-- Person-popup — täcker BARA avtrycksytan, loggen förblir läsbar/scrollbar -->
@@ -166,6 +172,7 @@ watch(
 .falt__role { display: flex; align-items: center; gap: 0.6rem; }
 .falt__title { margin: 0; font-size: 1.5rem; letter-spacing: 0.06em; }
 .falt__sub { margin: 0; font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-ink-muted); }
+.falt__head-right { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
 .falt__submit-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; }
 .falt__submit-hint { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-ink-muted); }
 .falt__submit { font-size: 1.2rem; }
@@ -179,14 +186,13 @@ watch(
     repeating-linear-gradient(0deg, transparent 0 38px, rgba(var(--mode-accent-rgb), 0.04) 38px 39px),
     var(--color-background-2);
 }
+/* Avtrycken = visuella markörer (ingen touch-fallback — scanning sker fysiskt). */
 .falt__spot {
-  position: absolute; transform: translate(-50%, -50%); background: transparent; border: none; cursor: pointer;
-  color: var(--color-ink-muted); padding: 0.3rem; border-radius: 50%;
-  transition: color 0.14s var(--ease-out), transform 0.14s var(--ease-out);
+  position: absolute; transform: translate(-50%, -50%); pointer-events: none;
+  color: var(--color-primary); opacity: 0.85; padding: 0.3rem;
+  transition: color 0.14s var(--ease-out), opacity 0.14s var(--ease-out);
 }
-.falt__spot:hover { color: var(--color-primary); transform: translate(-50%, -50%) scale(1.18); }
-.falt__spot:active { transform: translate(-50%, -50%) scale(0.95); }
-.falt__spot--scanned { color: var(--color-primary-dim); opacity: 0.4; }
+.falt__spot--scanned { color: var(--color-primary-dim); opacity: 0.35; }
 .falt__surface-hint { position: absolute; left: 0; right: 0; bottom: 0.5rem; margin: 0; text-align: center; font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-ink-muted); pointer-events: none; }
 .falt__log { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.8rem; min-height: 0; overflow: hidden; }
 .falt__log-title { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; letter-spacing: 0.06em; color: var(--color-primary); }
