@@ -80,17 +80,20 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     broadcast()
   }
 
-  function applyEffects(): void {
+  function applyEffects(fromRemote = false): void {
     const s = state.value
+    // Ljud spelas BARA på fönstret där handlingen faktiskt skedde (lokal dispatch).
+    // En mottagen snapshot (spegling från andra skärmen) uppdaterar state men
+    // spelar inget ljud — annars dubbelspelas varje scan/vinst osynkat från båda.
     // Ny scan → ljud beroende på träff/smudge.
     if (s.revealedSpotIds.length !== prevRevealedSpots || s.activeSpotId !== prevActiveSpot) {
-      if (s.activeSpotId) {
+      if (s.activeSpotId && !fromRemote) {
         const spot = SPOTS.find((sp) => sp.id === s.activeSpotId)
         if (spot) audio.play(spot.person === 'smudge' ? 'deny' : 'popup')
       }
     }
-    if (prevPhase !== 'solved' && s.phase === 'solved') audio.play('win')
-    if (prevPhase !== 'failed' && s.phase === 'failed') audio.play('deny')
+    if (!fromRemote && prevPhase !== 'solved' && s.phase === 'solved') audio.play('win')
+    if (!fromRemote && prevPhase !== 'failed' && s.phase === 'failed') audio.play('deny')
 
     seam.value?.state.set(stateSignal(s))
     if ((s.phase === 'solved' || s.phase === 'failed') && !resultSent) {
@@ -117,7 +120,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
         const next = reduce(state.value, { type: 'sync', state: msg.payload as GameState })
         if (next !== state.value) {
           state.value = next
-          applyEffects()
+          applyEffects(true) // spegling: uppdatera state men spela inget ljud
         }
         break
       }

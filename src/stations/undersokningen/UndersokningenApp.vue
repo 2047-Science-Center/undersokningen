@@ -79,7 +79,10 @@ watch(
   stationMode,
   (m) => {
     setMode(m)
-    audio.setMusicLevel(m === 'live' ? MUSIC.live : MUSIC.tutorial)
+    // Musik-nivån (svag i tutorial, högre skarpt) rampas BARA av ledar-fönstret
+    // (samma fönster som äger uppspelningen) — annars "följer" volymen båda
+    // skärmarna osynkat. setMode (blått/orange) körs däremot per skärm.
+    if (store.leader) audio.setMusicLevel(m === 'live' ? MUSIC.live : MUSIC.tutorial)
   },
   { immediate: true },
 )
@@ -95,7 +98,10 @@ function enter(): void {
 }
 watch(entered, (v) => {
   store.setSessionActive(v)
-  // Attract-klicket (begin) har låst upp ljudet → starta musiken här.
+  // Bakgrundsmusik: EN källa. Bara ledar-fönstret (lag1/shared) startar/stoppar
+  // loopen, så den inte dubbelspelas osynkat från båda skärmarna. Attract-
+  // klicket (begin) har låst upp ljudkontexten i varje fönster (för lokala SFX).
+  if (!store.leader) return
   if (v) audio.startMusic(asset(MUSIC.track), MUSIC.attract)
   else audio.stopMusic()
 })
