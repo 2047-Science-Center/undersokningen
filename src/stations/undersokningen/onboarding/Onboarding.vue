@@ -12,7 +12,7 @@ import ModeLegend from '@/station-kit/components/ModeLegend.vue'
 import { OTHER } from '../engine/gameEngine'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import BarrierWait from './BarrierWait.vue'
-import FaltRefTutorial from './FaltRefTutorial.vue'
+import IntroFilm from './introfilm/IntroFilm.vue'
 import LabbRoleTutorial from './LabbRoleTutorial.vue'
 import FaltRoleTutorial from './FaltRoleTutorial.vue'
 
@@ -54,8 +54,9 @@ watch([bothReady], () => {
       <button class="crt-button crt-button--strong" @click="next">{{ t('onboarding.next') }} ▸</button>
     </template>
 
-    <!-- Referensfall: gemensam animerad genomspelning (båda sidor) -->
-    <FaltRefTutorial v-else-if="phase === 'beats'" @done="phase = 'role'" />
+    <!-- Introfilm (3GS): gemensam genomspelning av hela fallet, båda sidor identiskt.
+         Ersätter det gamla referensfallet (FaltRefTutorial finns kvar oanvänt). -->
+    <IntroFilm v-else-if="phase === 'beats'" @done="phase = 'role'" />
 
     <!-- Rollgenomgång (egna verktygen) i samma vy som spelet, efter referensfallet -->
     <template v-else-if="phase === 'role'">
