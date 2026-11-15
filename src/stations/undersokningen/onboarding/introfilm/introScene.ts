@@ -1,15 +1,17 @@
 /**
- * INTROFILM-SCEN (3GS / Three.js) — stationen ovanifrån med gubbar som jobbar.
+ * INTROFILM-SCEN (3GS / Three.js) — stationen med gubbar som jobbar.
  * Samma bygg-mönster som Reaktorkärnans stavScene: primitiv-figurer + accent-
  * material som följer --color-primary, renderer med alpha så CRT-bakgrunden syns.
  *
- * Stationen = Förhandlingens monter UTAN mellanväggen (approx geometri; riktig .skp
- * läggs in senare). EN sammanhängande bordsenhet i mitten: FÄLT står på vänstra
- * långsidan (lyspenna + skanner över avtrycksytan), LABB på högra (mikroskop över
- * hårprover) — de står MITT EMOT varandra tvärs över samma bord, precis som i
- * Förhandlingen. Väggen som förr delade bordet vid x=0 är borttagen; de två
- * skärmarna sitter rygg-mot-rygg där väggen satt. Kameran stannar på publiksidan
- * (+Z), skiftar vänster/höger och zoomar; verktygen lyser vitt från toppen.
+ * Stationen = Förhandlingens VAGN (approx geometri; riktig .skp läggs in senare):
+ * en fristående vagn på fyra snedställda ben med hjul, hyllplan under. I mitten en
+ * KIOSK — lutad panel upp till en hög låda med ett runt sikthål (porthål) som man
+ * ser igenom till andra sidan, med en lutad skärm åt vardera håll. Lagen står på
+ * var sin sida om kiosken (ser varandra genom hålet):
+ *   FÄLT (vänster): stor, utskjutande åttkantig skiva med avtryck + skanner.
+ *   LABB (höger): liten yta med hårprover.
+ * 3 gubbar per sida. Kameran skiftar vänster/höger och zoomar; verktygen lyser
+ * vitt från toppen när de är på.
  *
  * API: render(elapsed, beatId, progress) körs varje frame från IntroFilm.vue.
  */
@@ -29,16 +31,15 @@ function place(mesh: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3, stretch
 
 /**
  * Kamera-inramningar: position + mål. Eas mjukt mellan dem när beaten byter.
- * Alla ligger på publiksidan (+Z) och tittar in mot bordet; FÄLT = vänster (−X),
- * LABB = höger (+X).
+ * FÄLT = vänster (−X, stora skivan), LABB = höger (+X, lilla ytan).
  */
 const FRAMES: Record<string, { pos: THREE.Vector3; tgt: THREE.Vector3 }> = {
-  overview: { pos: new THREE.Vector3(0, 3.4, 4.2), tgt: new THREE.Vector3(0, 0.95, 0) },
-  faltWide: { pos: new THREE.Vector3(-1.45, 2.35, 3.0), tgt: new THREE.Vector3(-0.45, 1.0, 0) },
-  faltClose: { pos: new THREE.Vector3(-1.5, 1.6, 1.95), tgt: new THREE.Vector3(-0.35, 0.98, 0) },
-  labbWide: { pos: new THREE.Vector3(1.45, 2.35, 3.0), tgt: new THREE.Vector3(0.45, 1.0, 0) },
-  labbClose: { pos: new THREE.Vector3(1.5, 1.6, 1.95), tgt: new THREE.Vector3(0.35, 0.98, 0) },
-  both: { pos: new THREE.Vector3(0, 2.7, 3.6), tgt: new THREE.Vector3(0, 1.0, 0) },
+  overview: { pos: new THREE.Vector3(0.1, 3.4, 4.3), tgt: new THREE.Vector3(-0.15, 0.95, 0) },
+  faltWide: { pos: new THREE.Vector3(-1.75, 2.35, 3.0), tgt: new THREE.Vector3(-0.95, 1.0, 0) },
+  faltClose: { pos: new THREE.Vector3(-1.85, 1.6, 2.05), tgt: new THREE.Vector3(-1.0, 0.96, 0) },
+  labbWide: { pos: new THREE.Vector3(1.5, 2.35, 3.0), tgt: new THREE.Vector3(0.55, 1.0, 0) },
+  labbClose: { pos: new THREE.Vector3(1.5, 1.55, 2.0), tgt: new THREE.Vector3(0.6, 0.96, 0) },
+  both: { pos: new THREE.Vector3(-0.1, 2.75, 3.8), tgt: new THREE.Vector3(-0.1, 1.05, 0) },
 }
 
 export interface IntroScene {
@@ -62,113 +63,140 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   key.position.set(2, 4, 3)
   scene.add(key)
 
-  // --- material (accent = --color-primary; monter mörk/neutral) ---
+  // --- material (accent = --color-primary; vagn ljus/neutral) ---
   const M = (c: number, o: Partial<THREE.MeshStandardMaterialParameters> = {}) =>
     new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true, ...o })
   const matFig = M(0xffa040)
   const matFigDark = M(0x5a3410)
-  const matDesk = M(0x1a2430, { roughness: 0.7 })
-  const matWall = M(0x121a22, { roughness: 0.95 })
-  const matScreen = new THREE.MeshStandardMaterial({ color: 0x0a1016, emissive: 0x0a2230, emissiveIntensity: 0.6, roughness: 0.4 })
+  const matCart = M(0xd9dde2, { roughness: 0.6 }) // ljus vagn/skiva som i .skp
+  const matFrame = M(0xaab0b8, { roughness: 0.5 }) // ben/ram (aluminium)
+  const matKiosk = M(0xe6e9ec, { roughness: 0.7 })
+  const matDark = M(0x1b2129, { roughness: 0.6 })
+  const matScreen = new THREE.MeshStandardMaterial({ color: 0x0a1016, emissive: 0x16324a, emissiveIntensity: 0.7, roughness: 0.4 })
   const matTool = M(0x9fb4c4, { roughness: 0.5 })
   const matGlow = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xffffff, emissiveIntensity: 1.4, roughness: 0.3 })
-  const matMark = new THREE.MeshStandardMaterial({ color: 0x20303a, emissive: 0x000000, roughness: 0.6 })
+  const matMark = new THREE.MeshStandardMaterial({ color: 0x2a3340, emissive: 0x000000, roughness: 0.6 })
   const matBubble = new THREE.MeshStandardMaterial({ color: 0xffa040, emissive: 0xffa040, emissiveIntensity: 0.9, roughness: 0.4, transparent: true, opacity: 0 })
 
-  // --- monter: U av mörka väggar + golv, öppen mot publiken (+Z) ---
-  const booth = new THREE.Group()
-  scene.add(booth)
-  const wallBack = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.0, 0.08), matWall)
-  wallBack.position.set(0, 1.5, -1.3)
-  booth.add(wallBack)
-  for (const sx of [-1, 1]) {
-    const w = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.0, 2.6), matWall)
-    w.position.set(sx * 1.55, 1.5, -0.1)
-    booth.add(w)
-  }
-  // porthål (siktluckan) + fönsterslits på bakväggen — bara dekor så montern känns igen
-  const port = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.05, 10, 28), matTool)
-  port.position.set(0, 1.9, -1.25)
-  booth.add(port)
-  const slit = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.2, 0.04), matScreen)
-  slit.position.set(0, 2.45, -1.25)
-  booth.add(slit)
+  // golv-glow (accent) så figurerna står på något
   const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(2.6, 48),
+    new THREE.CircleGeometry(2.8, 48),
     new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.06 }),
   )
   floor.rotation.x = -Math.PI / 2
   floor.position.y = 0.002
   scene.add(floor)
 
-  // --- ETT sammanhängande bord i mitten (löper i Z; de två står på var sin långsida) ---
-  const table = new THREE.Group()
-  scene.add(table)
-  // bordsskiva
-  const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.1, 2.0), matDesk)
-  top.position.set(0, TABLE_TOP - 0.05, 0)
-  table.add(top)
-  // ben i fyra hörn
-  for (const [lx, lz] of [[-0.5, 0.85], [0.5, 0.85], [-0.5, -0.85], [0.5, -0.85]] as const) {
-    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, TABLE_TOP - 0.1, 0.08), matDesk)
-    leg.position.set(lx, (TABLE_TOP - 0.1) / 2, lz)
-    table.add(leg)
-  }
-  // central "rygg" där mellanväggen satt — nu bara en låg list som bär de två skärmarna
-  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 1.4), matDesk)
-  spine.position.set(0, TABLE_TOP + 0.06, 0)
-  table.add(spine)
+  // ===================== VAGNEN =====================
+  const cart = new THREE.Group()
+  scene.add(cart)
 
-  // två skärmar rygg-mot-rygg i mitten: FÄLT-skärmen vänd åt vänster, LABB åt höger
-  function buildScreen(faceSign: 1 | -1) {
-    const grp = new THREE.Group()
-    grp.position.set(faceSign * 0.06, TABLE_TOP + 0.35, 0)
-    grp.rotation.y = faceSign * (Math.PI / 2) // vänd skärmen mot sin operatör
-    const s = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.56, 0.05), matScreen)
-    s.rotation.x = -0.12
-    grp.add(s)
-    table.add(grp)
-  }
-  buildScreen(-1) // FÄLT (vänster)
-  buildScreen(1) // LABB (höger)
-
-  // arbetsytor på var sin halva av bordsskivan (framför respektive operatör)
-  const faltSurf = { x: -0.34, y: TABLE_TOP + 0.005, z: 0 }
-  const labbSurf = { x: 0.34, y: TABLE_TOP + 0.005, z: 0 }
-  for (const s of [faltSurf, labbSurf]) {
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.02, 1.3), matDesk)
-    plate.position.set(s.x, s.y, s.z)
-    table.add(plate)
+  // bordsskiva (huvudyta) — ljus, löper mest i X
+  const topDeck = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 1.05), matCart)
+  topDeck.position.set(0, TABLE_TOP - 0.03, 0)
+  cart.add(topDeck)
+  // hyllplan under + "dator"-låda
+  const shelf = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.04, 0.95), matCart)
+  shelf.position.set(0, 0.42, 0)
+  cart.add(shelf)
+  const box = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.3, 0.45), matDark)
+  box.position.set(0.0, 0.6, -0.05)
+  cart.add(box)
+  // fyra snedställda ben med hjul
+  for (const [sx, sz] of [[-1, 1], [1, 1], [-1, -1], [1, -1]] as const) {
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.035, TABLE_TOP, 8), matFrame)
+    leg.position.set(sx * 0.72, (TABLE_TOP - 0.1) / 2 + 0.05, sz * 0.46)
+    leg.rotation.z = sx * 0.06
+    leg.rotation.x = -sz * 0.05
+    cart.add(leg)
+    const caster = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 8), matDark)
+    caster.position.set(sx * 0.78, 0.05, sz * 0.5)
+    cart.add(caster)
   }
 
-  // FÄLT: avtrycks-prickar på vänstra ytan (tänds under UV/scan)
+  // ---------- central KIOSK (lutad panel + hög låda m. porthål + skärmar) ----------
+  const kiosk = new THREE.Group()
+  kiosk.position.set(0, 0, 0)
+  cart.add(kiosk)
+  // hög låda överst
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.52, 0.78), matKiosk)
+  head.position.set(0, 1.72, 0)
+  kiosk.add(head)
+  // lutad panel ned från lådan mot skärmarna
+  const slope = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.5, 0.74), matKiosk)
+  slope.position.set(0, 1.28, 0)
+  slope.rotation.z = 0.0
+  kiosk.add(slope)
+  // runt sikthål (porthål): torus med hål-axel längs X (mellan de två sidorna)
+  const port = new THREE.Mesh(new THREE.TorusGeometry(0.17, 0.035, 12, 28), matFrame)
+  port.rotation.y = Math.PI / 2
+  port.position.set(0.251, 1.74, 0)
+  kiosk.add(port)
+  const port2 = port.clone()
+  port2.position.set(-0.251, 1.74, 0)
+  kiosk.add(port2)
+  const hole = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.52, 20), matDark)
+  hole.rotation.z = Math.PI / 2
+  hole.position.set(0, 1.74, 0)
+  kiosk.add(hole)
+  // lutad skärm åt vardera operatör (−X = FÄLT, +X = LABB)
+  function buildMonitor(sign: 1 | -1) {
+    const g = new THREE.Group()
+    g.position.set(sign * 0.27, 1.2, 0)
+    g.rotation.y = sign * (Math.PI / 2)
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.42, 0.04), matDark)
+    frame.rotation.x = -0.3
+    const sc = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.36, 0.02), matScreen)
+    sc.rotation.x = -0.3
+    sc.position.set(0, 0, 0.03)
+    g.add(frame, sc)
+    kiosk.add(g)
+  }
+  buildMonitor(-1)
+  buildMonitor(1)
+
+  // ---------- FÄLT: stor utskjutande ÅTTKANTIG skiva (−X) ----------
+  const faltCx = -1.05
+  const faltSlab = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.05, 8), matCart)
+  faltSlab.rotation.y = Math.PI / 8 // platt kant utåt
+  faltSlab.scale.set(1.35, 1, 1.0) // förlängd utåt
+  faltSlab.position.set(faltCx, TABLE_TOP - 0.02, 0)
+  scene.add(faltSlab)
+  const faltSurf = { x: faltCx, y: TABLE_TOP + 0.01, z: 0 }
+
+  // avtrycks-prickar på skivan (tänds under UV/scan)
   const marks: THREE.Mesh[] = []
   const markPts = [
-    [0.08, 0.42], [-0.1, 0.18], [0.02, -0.05], [-0.06, -0.3], [0.1, -0.52],
+    [-0.34, 0.22], [-0.12, -0.12], [0.08, 0.16], [-0.2, -0.34], [0.22, -0.2], [0.0, 0.38],
   ] as const
   for (const [mx, mz] of markPts) {
-    const m = new THREE.Mesh(new THREE.CircleGeometry(0.035, 16), matMark.clone())
+    const m = new THREE.Mesh(new THREE.CircleGeometry(0.04, 16), matMark.clone())
     m.rotation.x = -Math.PI / 2
     m.position.set(faltSurf.x + mx, faltSurf.y + 0.012, faltSurf.z + mz)
     scene.add(m)
     marks.push(m)
   }
 
-  // LABB: hårprover (tunna strån) på högra ytan
+  // ---------- LABB: liten yta med hårprover (+X) ----------
+  const labbCx = 0.62
+  const labbPlate = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.6), matDark)
+  labbPlate.position.set(labbCx, TABLE_TOP + 0.005, 0)
+  scene.add(labbPlate)
+  const labbSurf = { x: labbCx, y: TABLE_TOP + 0.02, z: 0 }
   const hairs: THREE.Mesh[] = []
   for (let i = 0; i < 5; i++) {
     const h = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.17, 6), matFig.clone())
     h.rotation.z = Math.PI / 2
     h.rotation.y = (i - 2) * 0.22
-    h.position.set(labbSurf.x + (i % 2 === 0 ? -0.04 : 0.04), labbSurf.y + 0.014, labbSurf.z - 0.44 + i * 0.22)
+    h.position.set(labbSurf.x + (i % 2 === 0 ? -0.05 : 0.05), labbSurf.y + 0.014, labbSurf.z - 0.2 + i * 0.1)
     scene.add(h)
     hairs.push(h)
   }
 
-  // --- gubbe: stående figur, ev. med en arm som håller ett verktyg mot en punkt ---
+  // ===================== GUBBAR =====================
   interface Fig {
     group: THREE.Group
-    shoulder: THREE.Vector3 // world
+    shoulder: THREE.Vector3
     arm: THREE.Mesh | null
     tool: THREE.Group | null
     glowTip: THREE.Mesh | null
@@ -195,7 +223,6 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     }
     add(new THREE.BoxGeometry(0.2, 0.05, 0.12), matFigDark).position.set(0.03, 0.03, 0.1)
     add(new THREE.BoxGeometry(0.2, 0.05, 0.12), matFigDark).position.set(0.03, 0.03, -0.1)
-    // vilo-arm (icke-verktygs-sida)
     const idleArm = add(new THREE.CylinderGeometry(0.035, 0.035, 0.42, 8))
     idleArm.position.set(-0.17, 1.15, 0)
     idleArm.rotation.z = 0.25
@@ -215,17 +242,15 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
       toolGrp = new THREE.Group()
       scene.add(toolGrp)
       if (tool === 'scanner') {
-        // streckkods-skanner-silhuett: handtag + "pistol"-huvud
         const grip = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.16, 8), matTool)
         grip.rotation.x = 0.5
         grip.position.set(0, -0.06, 0.04)
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.07, 0.18), matTool)
-        toolGrp.add(grip, head)
+        const headM = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.07, 0.18), matTool)
+        toolGrp.add(grip, headM)
         glowTip = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.01, 0.02), matGlow.clone())
         glowTip.position.set(0, -0.04, 0.095)
         toolGrp.add(glowTip)
       } else {
-        // penna (UV / mikroskop): smal penna som lyser från toppen
         const body = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.025, 0.22, 10), matTool)
         toolGrp.add(body)
         glowTip = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), matGlow.clone())
@@ -240,25 +265,25 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     function aim(point: THREE.Vector3): void {
       if (!arm || !toolGrp) return
       toolGrp.position.copy(point).add(new THREE.Vector3(0, 0.12, 0))
-      // rikta pennan/skannern ner mot punkten
       toolGrp.lookAt(point)
       _sh.copy(shoulder)
       place(arm, _sh, toolGrp.position, true)
       if (light) light.position.copy(point).add(new THREE.Vector3(0, 0.18, 0))
     }
     function lookInward(k: number): void {
-      // vrid kroppen lite extra mot bordets mitt (mot den andra sidan)
       group.rotation.y = faceY + (x < 0 ? -1 : 1) * k * 0.28
     }
     return { group, shoulder, arm, tool: toolGrp, glowTip, light, faceY, aim, lookInward }
   }
 
-  // FÄLT (vänster, vända mot +X): UV-gubbe + skanner-gubbe.
-  // LABB (höger, vända mot −X): mikroskop-gubbe + observatör.
-  const uvFig = makeFig(-0.95, 0.4, Math.PI / 2 + 0.12, 'uv')
-  const scanFig = makeFig(-0.95, -0.35, Math.PI / 2 - 0.12, 'scanner')
-  const microFig = makeFig(0.95, 0.35, -Math.PI / 2 - 0.12, 'micro')
-  makeFig(0.95, -0.4, -Math.PI / 2 + 0.12, null) // labb-observatör (står bara med)
+  // FÄLT (vänster, vända mot +X) — 3 gubbar kring stora skivan
+  const uvFig = makeFig(-1.1, 0.55, Math.PI / 2 + 0.12, 'uv')
+  const scanFig = makeFig(-1.1, -0.5, Math.PI / 2 - 0.12, 'scanner')
+  makeFig(-1.62, 0.02, Math.PI / 2, null) // fält-observatör
+  // LABB (höger, vända mot −X) — 3 gubbar kring lilla ytan
+  const microFig = makeFig(1.05, 0.5, -Math.PI / 2 - 0.12, 'micro')
+  makeFig(1.05, -0.5, -Math.PI / 2 + 0.12, null) // labb-observatör
+  makeFig(1.5, 0.02, -Math.PI / 2, null) // labb-observatör
 
   const toolFigs = [uvFig, scanFig, microFig]
   function toolActive(f: Fig, on: boolean, pt: THREE.Vector3): void {
@@ -271,11 +296,11 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     if (on) f.aim(pt)
   }
 
-  // pratbubblor (talk/finale) — ovanför var sin operatör
+  // pratbubblor (talk/finale) — ovanför var sin sida
   const bubbles: THREE.Mesh[] = []
-  for (const bx of [-0.95, 0.95]) {
+  for (const bx of [-1.1, 1.05]) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), matBubble)
-    b.position.set(bx, 1.95, 0.05)
+    b.position.set(bx, 1.98, 0.05)
     b.scale.set(1.3, 0.9, 0.2)
     scene.add(b)
     bubbles.push(b)
@@ -299,9 +324,9 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   }
 
   function sweepPoint(progress: number): THREE.Vector3 {
-    // sveper över FÄLT-ytan fram→bak (längs Z), landar mot mitt-pricken
+    // sveper över FÄLT-skivan fram→bak (längs Z)
     const t = Math.min(1, progress / 0.7)
-    const z = THREE.MathUtils.lerp(0.42, -0.3, t)
+    const z = THREE.MathUtils.lerp(0.42, -0.34, t)
     return _sweep.set(faltSurf.x, faltSurf.y, z)
   }
 
@@ -312,7 +337,6 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     const fr = FRAMES[frameKey]
     camPos.lerp(fr.pos, 0.055)
     camTgt.lerp(fr.tgt, 0.055)
-    // lätt "andning" så bilden lever
     const breath = Math.sin(elapsed * 0.6) * 0.03
     camera.position.copy(camPos).add(new THREE.Vector3(breath, breath * 0.5, 0))
     camera.lookAt(camTgt)
@@ -325,7 +349,7 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
         break
       }
       case 'skanna': {
-        const pt = _sweep.set(faltSurf.x, faltSurf.y, -0.05)
+        const pt = _sweep.set(faltSurf.x + 0.08, faltSurf.y, 0.16)
         toolActive(scanFig, true, pt)
         const pulse = 0.5 + 0.5 * Math.sin(elapsed * 10)
         ;(marks[2].material as THREE.MeshStandardMaterial).emissive.setHex(0x20406a)
@@ -340,7 +364,6 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
         break
       case 'sortera': {
         toolActive(microFig, true, _sweep.set(labbSurf.x, labbSurf.y, 0))
-        // hår "lyfts" lätt i tur och ordning
         const i = Math.floor(progress * hairs.length) % hairs.length
         hairs[i].position.y = labbSurf.y + 0.05 + Math.sin(elapsed * 6) * 0.01
         break
@@ -354,7 +377,7 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
         const bob = 0.5 + 0.5 * Math.sin(elapsed * 3)
         for (const b of bubbles) {
           ;(b.material as THREE.MeshStandardMaterial).opacity = 0.35 + 0.5 * bob
-          b.position.y = 1.95 + bob * 0.06
+          b.position.y = 1.98 + bob * 0.06
         }
         break
       }
