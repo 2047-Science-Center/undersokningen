@@ -134,15 +134,17 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   hole.rotation.z = Math.PI / 2
   hole.position.set(0, 1.28, 0)
   kiosk.add(hole)
-  // lutad skärm åt vardera operatör
+  // lutad laptop-skärm åt vardera operatör, infälld i sluttande framsidan
+  // (som .skp: skärmen sitter under porthålet, vänd upp mot den som står framför)
   function buildMonitor(sign: 1 | -1) {
     const g = new THREE.Group()
-    g.position.set(sign * 0.14, 1.04, 0)
+    g.position.set(sign * 0.12, 1.05, 0)
     g.rotation.y = sign * (Math.PI / 2)
-    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.24, 0.025), matDark)
-    frame.rotation.x = -0.32
-    const sc = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.2, 0.015), matScreen)
-    sc.rotation.x = -0.32
+    const tilt = -0.42 // lutar bakåt mot porthålet, laptop-vinkel
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.3, 0.025), matDark)
+    frame.rotation.x = tilt
+    const sc = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.26, 0.015), matScreen)
+    sc.rotation.x = tilt
     sc.position.set(0, 0, 0.02)
     g.add(frame, sc)
     kiosk.add(g)
