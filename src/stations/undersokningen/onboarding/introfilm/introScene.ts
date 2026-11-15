@@ -4,15 +4,19 @@
  * material som följer --color-primary, renderer med alpha så CRT-bakgrunden syns.
  *
  * Stationen = Förhandlingens monter UTAN mellanväggen (approx geometri; riktig .skp
- * läggs in senare). Två pods: FÄLT (vänster, lyspenna + skanner över avtrycksytan)
- * och LABB (höger, mikroskop över hårprover). Kameran glider mellan inramningar och
- * zoomar in; verktygen lyser vitt från toppen när de är på.
+ * läggs in senare). EN sammanhängande bordsenhet i mitten: FÄLT står på vänstra
+ * långsidan (lyspenna + skanner över avtrycksytan), LABB på högra (mikroskop över
+ * hårprover) — de står MITT EMOT varandra tvärs över samma bord, precis som i
+ * Förhandlingen. Väggen som förr delade bordet vid x=0 är borttagen; de två
+ * skärmarna sitter rygg-mot-rygg där väggen satt. Kameran stannar på publiksidan
+ * (+Z), skiftar vänster/höger och zoomar; verktygen lyser vitt från toppen.
  *
  * API: render(elapsed, beatId, progress) körs varje frame från IntroFilm.vue.
  */
 import * as THREE from 'three'
 
 const UP = new THREE.Vector3(0, 1, 0)
+const TABLE_TOP = 0.95
 
 /** Placera en mesh mellan två punkter (för "armar" mellan axel och verktyg). */
 const _d = new THREE.Vector3()
@@ -23,14 +27,18 @@ function place(mesh: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3, stretch
   mesh.quaternion.setFromUnitVectors(UP, _d.clone().normalize())
 }
 
-/** Kamera-inramningar: position + mål. Eas mjukt mellan dem när beaten byter. */
+/**
+ * Kamera-inramningar: position + mål. Eas mjukt mellan dem när beaten byter.
+ * Alla ligger på publiksidan (+Z) och tittar in mot bordet; FÄLT = vänster (−X),
+ * LABB = höger (+X).
+ */
 const FRAMES: Record<string, { pos: THREE.Vector3; tgt: THREE.Vector3 }> = {
-  overview: { pos: new THREE.Vector3(0, 3.5, 4.6), tgt: new THREE.Vector3(0, 1.0, -0.2) },
-  faltWide: { pos: new THREE.Vector3(-1.1, 2.7, 3.3), tgt: new THREE.Vector3(-1.7, 1.0, -0.2) },
-  faltClose: { pos: new THREE.Vector3(-1.7, 1.95, 1.75), tgt: new THREE.Vector3(-1.7, 0.98, -0.35) },
-  labbWide: { pos: new THREE.Vector3(1.1, 2.7, 3.3), tgt: new THREE.Vector3(1.7, 1.0, -0.2) },
-  labbClose: { pos: new THREE.Vector3(1.7, 1.95, 1.75), tgt: new THREE.Vector3(1.7, 0.98, -0.35) },
-  both: { pos: new THREE.Vector3(0, 3.0, 4.2), tgt: new THREE.Vector3(0, 1.05, -0.2) },
+  overview: { pos: new THREE.Vector3(0, 3.4, 4.2), tgt: new THREE.Vector3(0, 0.95, 0) },
+  faltWide: { pos: new THREE.Vector3(-1.45, 2.35, 3.0), tgt: new THREE.Vector3(-0.45, 1.0, 0) },
+  faltClose: { pos: new THREE.Vector3(-1.5, 1.6, 1.95), tgt: new THREE.Vector3(-0.35, 0.98, 0) },
+  labbWide: { pos: new THREE.Vector3(1.45, 2.35, 3.0), tgt: new THREE.Vector3(0.45, 1.0, 0) },
+  labbClose: { pos: new THREE.Vector3(1.5, 1.6, 1.95), tgt: new THREE.Vector3(0.35, 0.98, 0) },
+  both: { pos: new THREE.Vector3(0, 2.7, 3.6), tgt: new THREE.Vector3(0, 1.0, 0) },
 }
 
 export interface IntroScene {
@@ -67,78 +75,92 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   const matMark = new THREE.MeshStandardMaterial({ color: 0x20303a, emissive: 0x000000, roughness: 0.6 })
   const matBubble = new THREE.MeshStandardMaterial({ color: 0xffa040, emissive: 0xffa040, emissiveIntensity: 0.9, roughness: 0.4, transparent: true, opacity: 0 })
 
-  // --- monter: U av mörka väggar + golv, porthål + fönsterslits på bakväggen ---
+  // --- monter: U av mörka väggar + golv, öppen mot publiken (+Z) ---
   const booth = new THREE.Group()
   scene.add(booth)
-  const wallBack = new THREE.Mesh(new THREE.BoxGeometry(5.4, 3.0, 0.08), matWall)
-  wallBack.position.set(0, 1.5, -1.25)
+  const wallBack = new THREE.Mesh(new THREE.BoxGeometry(3.2, 3.0, 0.08), matWall)
+  wallBack.position.set(0, 1.5, -1.3)
   booth.add(wallBack)
   for (const sx of [-1, 1]) {
     const w = new THREE.Mesh(new THREE.BoxGeometry(0.08, 3.0, 2.6), matWall)
-    w.position.set(sx * 2.7, 1.5, -0.1)
+    w.position.set(sx * 1.55, 1.5, -0.1)
     booth.add(w)
   }
-  // porthål (siktluckan) + fönsterslits — bara dekor så montern känns igen
+  // porthål (siktluckan) + fönsterslits på bakväggen — bara dekor så montern känns igen
   const port = new THREE.Mesh(new THREE.TorusGeometry(0.26, 0.05, 10, 28), matTool)
-  port.position.set(0, 1.9, -1.2)
+  port.position.set(0, 1.9, -1.25)
   booth.add(port)
   const slit = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.2, 0.04), matScreen)
-  slit.position.set(0, 2.45, -1.2)
+  slit.position.set(0, 2.45, -1.25)
   booth.add(slit)
   const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(3.4, 48),
+    new THREE.CircleGeometry(2.6, 48),
     new THREE.MeshBasicMaterial({ color: 0xffa040, transparent: true, opacity: 0.06 }),
   )
   floor.rotation.x = -Math.PI / 2
   floor.position.y = 0.002
   scene.add(floor)
 
-  // --- en pod (desk + skärm + arbetsyta) per sida ---
-  function buildPod(cx: number) {
-    const g = new THREE.Group()
-    g.position.set(cx, 0, -0.1)
-    scene.add(g)
-    const desk = new THREE.Mesh(new THREE.BoxGeometry(1.3, 0.1, 0.8), matDesk)
-    desk.position.set(0, 0.9, 0)
-    g.add(desk)
-    for (const [lx, lz] of [[-0.55, 0.3], [0.55, 0.3], [-0.55, -0.3], [0.55, -0.3]] as const) {
-      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.9, 0.07), matDesk)
-      leg.position.set(lx, 0.45, lz)
-      g.add(leg)
-    }
-    // lutad skärm bakåt på disken
-    const screen = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.6, 0.05), matScreen)
-    screen.position.set(0, 1.28, -0.28)
-    screen.rotation.x = -0.32
-    g.add(screen)
-    // arbetsyta framför skärmen (avtryck / hårprover)
-    const surf = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.02, 0.42), matDesk)
-    surf.position.set(0, 0.96, 0.16)
-    g.add(surf)
-    return { g, surfY: 0.97, surfZ: 0.16 }
+  // --- ETT sammanhängande bord i mitten (löper i Z; de två står på var sin långsida) ---
+  const table = new THREE.Group()
+  scene.add(table)
+  // bordsskiva
+  const top = new THREE.Mesh(new THREE.BoxGeometry(1.25, 0.1, 2.0), matDesk)
+  top.position.set(0, TABLE_TOP - 0.05, 0)
+  table.add(top)
+  // ben i fyra hörn
+  for (const [lx, lz] of [[-0.5, 0.85], [0.5, 0.85], [-0.5, -0.85], [0.5, -0.85]] as const) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, TABLE_TOP - 0.1, 0.08), matDesk)
+    leg.position.set(lx, (TABLE_TOP - 0.1) / 2, lz)
+    table.add(leg)
   }
-  const faltPod = buildPod(-1.7)
-  const labbPod = buildPod(1.7)
+  // central "rygg" där mellanväggen satt — nu bara en låg list som bär de två skärmarna
+  const spine = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.12, 1.4), matDesk)
+  spine.position.set(0, TABLE_TOP + 0.06, 0)
+  table.add(spine)
 
-  // FÄLT: avtrycks-prickar på ytan (tänds under UV/scan)
+  // två skärmar rygg-mot-rygg i mitten: FÄLT-skärmen vänd åt vänster, LABB åt höger
+  function buildScreen(faceSign: 1 | -1) {
+    const grp = new THREE.Group()
+    grp.position.set(faceSign * 0.06, TABLE_TOP + 0.35, 0)
+    grp.rotation.y = faceSign * (Math.PI / 2) // vänd skärmen mot sin operatör
+    const s = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.56, 0.05), matScreen)
+    s.rotation.x = -0.12
+    grp.add(s)
+    table.add(grp)
+  }
+  buildScreen(-1) // FÄLT (vänster)
+  buildScreen(1) // LABB (höger)
+
+  // arbetsytor på var sin halva av bordsskivan (framför respektive operatör)
+  const faltSurf = { x: -0.34, y: TABLE_TOP + 0.005, z: 0 }
+  const labbSurf = { x: 0.34, y: TABLE_TOP + 0.005, z: 0 }
+  for (const s of [faltSurf, labbSurf]) {
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.02, 1.3), matDesk)
+    plate.position.set(s.x, s.y, s.z)
+    table.add(plate)
+  }
+
+  // FÄLT: avtrycks-prickar på vänstra ytan (tänds under UV/scan)
   const marks: THREE.Mesh[] = []
   const markPts = [
-    [-0.32, 0.08], [-0.05, -0.05], [0.22, 0.1], [0.38, -0.08], [0.02, 0.14],
+    [0.08, 0.42], [-0.1, 0.18], [0.02, -0.05], [-0.06, -0.3], [0.1, -0.52],
   ] as const
   for (const [mx, mz] of markPts) {
     const m = new THREE.Mesh(new THREE.CircleGeometry(0.035, 16), matMark.clone())
     m.rotation.x = -Math.PI / 2
-    m.position.set(-1.7 + mx, faltPod.surfY + 0.011, -0.1 + faltPod.surfZ + mz)
+    m.position.set(faltSurf.x + mx, faltSurf.y + 0.012, faltSurf.z + mz)
     scene.add(m)
     marks.push(m)
   }
 
-  // LABB: hårprover (tunna strån) på ytan
+  // LABB: hårprover (tunna strån) på högra ytan
   const hairs: THREE.Mesh[] = []
   for (let i = 0; i < 5; i++) {
-    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.16, 6), matFig.clone())
-    h.rotation.z = Math.PI / 2 + (i - 2) * 0.18
-    h.position.set(1.7 - 0.28 + i * 0.14, labbPod.surfY + 0.012, -0.1 + labbPod.surfZ)
+    const h = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.004, 0.17, 6), matFig.clone())
+    h.rotation.z = Math.PI / 2
+    h.rotation.y = (i - 2) * 0.22
+    h.position.set(labbSurf.x + (i % 2 === 0 ? -0.04 : 0.04), labbSurf.y + 0.014, labbSurf.z - 0.44 + i * 0.22)
     scene.add(h)
     hairs.push(h)
   }
@@ -151,6 +173,7 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     tool: THREE.Group | null
     glowTip: THREE.Mesh | null
     light: THREE.PointLight | null
+    faceY: number
     aim(point: THREE.Vector3): void
     lookInward(k: number): void
   }
@@ -224,17 +247,18 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
       if (light) light.position.copy(point).add(new THREE.Vector3(0, 0.18, 0))
     }
     function lookInward(k: number): void {
-      group.rotation.y = faceY + k * (faceY > 0 ? -0.5 : 0.5)
+      // vrid kroppen lite extra mot bordets mitt (mot den andra sidan)
+      group.rotation.y = faceY + (x < 0 ? -1 : 1) * k * 0.28
     }
-    return { group, shoulder, arm, tool: toolGrp, glowTip, light, aim, lookInward }
+    return { group, shoulder, arm, tool: toolGrp, glowTip, light, faceY, aim, lookInward }
   }
 
-  // FÄLT: UV-gubbe + skanner-gubbe + observatör. LABB: mikroskop-gubbe + observatör.
-  const uvFig = makeFig(-1.7 - 0.5, 0.75, Math.PI * 0.5 - 0.3, 'uv')
-  const scanFig = makeFig(-1.7 + 0.5, 0.78, -Math.PI * 0.5 + 0.3, 'scanner')
-  makeFig(-1.7, 1.05, Math.PI, null) // fält-observatör (står bara med)
-  const microFig = makeFig(1.7 - 0.35, 0.75, Math.PI * 0.5 - 0.3, 'micro')
-  makeFig(1.7 + 0.45, 1.0, Math.PI, null) // labb-observatör (står bara med)
+  // FÄLT (vänster, vända mot +X): UV-gubbe + skanner-gubbe.
+  // LABB (höger, vända mot −X): mikroskop-gubbe + observatör.
+  const uvFig = makeFig(-0.95, 0.4, Math.PI / 2 + 0.12, 'uv')
+  const scanFig = makeFig(-0.95, -0.35, Math.PI / 2 - 0.12, 'scanner')
+  const microFig = makeFig(0.95, 0.35, -Math.PI / 2 - 0.12, 'micro')
+  makeFig(0.95, -0.4, -Math.PI / 2 + 0.12, null) // labb-observatör (står bara med)
 
   const toolFigs = [uvFig, scanFig, microFig]
   function toolActive(f: Fig, on: boolean, pt: THREE.Vector3): void {
@@ -247,11 +271,11 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     if (on) f.aim(pt)
   }
 
-  // pratbubblor (talk/finale)
+  // pratbubblor (talk/finale) — ovanför var sin operatör
   const bubbles: THREE.Mesh[] = []
-  for (const bx of [-1.7, 1.7]) {
+  for (const bx of [-0.95, 0.95]) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 14, 10), matBubble)
-    b.position.set(bx, 1.95, 0.1)
+    b.position.set(bx, 1.95, 0.05)
     b.scale.set(1.3, 0.9, 0.2)
     scene.add(b)
     bubbles.push(b)
@@ -268,23 +292,22 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     }
     for (const f of toolFigs) toolActive(f, false, _sweep)
     for (const b of bubbles) (b.material as THREE.MeshStandardMaterial).opacity = 0
+    for (const h of hairs) h.position.y = labbSurf.y + 0.014
     uvFig.lookInward(0)
     scanFig.lookInward(0)
     microFig.lookInward(0)
   }
 
   function sweepPoint(progress: number): THREE.Vector3 {
-    // sveper över FÄLT-ytan vänster→höger, landar på mitt-pricken
+    // sveper över FÄLT-ytan fram→bak (längs Z), landar mot mitt-pricken
     const t = Math.min(1, progress / 0.7)
-    const x = -1.7 + THREE.MathUtils.lerp(-0.34, 0.24, t)
-    return _sweep.set(x, faltPod.surfY, -0.1 + faltPod.surfZ + 0.03)
+    const z = THREE.MathUtils.lerp(0.42, -0.3, t)
+    return _sweep.set(faltSurf.x, faltSurf.y, z)
   }
 
   function render(elapsed: number, beatId: string, progress: number): void {
     resetHighlights()
 
-    // kamera-mål per beat (hämtas via FILM.cam → sätts av IntroFilm.vue genom beatId-map)
-    // här mappar vi direkt beatId → frame.
     const frameKey = BEAT_FRAME[beatId] ?? 'overview'
     const fr = FRAMES[frameKey]
     camPos.lerp(fr.pos, 0.055)
@@ -298,32 +321,28 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
       case 'uv': {
         const pt = sweepPoint(progress)
         toolActive(uvFig, true, pt)
-        // pricken närmast penna tänds
         lightNearest(pt, 0x8a5bd8)
         break
       }
       case 'skanna': {
-        const pt = _sweep.set(-1.7 + 0.02, faltPod.surfY, -0.1 + faltPod.surfZ + 0.14)
+        const pt = _sweep.set(faltSurf.x, faltSurf.y, -0.05)
         toolActive(scanFig, true, pt)
-        // bipp-pulsande mark
         const pulse = 0.5 + 0.5 * Math.sin(elapsed * 10)
-        ;(marks[4].material as THREE.MeshStandardMaterial).emissive.setHex(0x20406a)
-        ;(marks[4].material as THREE.MeshStandardMaterial).emissiveIntensity = 0.4 + pulse
+        ;(marks[2].material as THREE.MeshStandardMaterial).emissive.setHex(0x20406a)
+        ;(marks[2].material as THREE.MeshStandardMaterial).emissiveIntensity = 0.4 + pulse
         break
       }
       case 'markera':
-      case 'skanna2':
-        // UI-kort tar fokus; håll ytan tänd
         lightAll(0x20406a, 0.5)
         break
       case 'lista':
         lightAll(0x20406a, 0.35)
         break
       case 'sortera': {
-        toolActive(microFig, true, _sweep.set(1.7, labbPod.surfY, -0.1 + labbPod.surfZ))
+        toolActive(microFig, true, _sweep.set(labbSurf.x, labbSurf.y, 0))
         // hår "lyfts" lätt i tur och ordning
         const i = Math.floor(progress * hairs.length) % hairs.length
-        hairs[i].position.y = labbPod.surfY + 0.05 + Math.sin(elapsed * 6) * 0.01
+        hairs[i].position.y = labbSurf.y + 0.05 + Math.sin(elapsed * 6) * 0.01
         break
       }
       case 'samarbete':
