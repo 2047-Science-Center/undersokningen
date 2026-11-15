@@ -68,18 +68,18 @@ export const FILM: FilmBeat[] = [
   },
   {
     id: 'markera',
-    dur: 11,
+    dur: 14,
     cam: 'faltClose',
     action: 'readlog',
-    vo: 'Nu läser ni loggen. Verkar personen ha varit vid valvet när brottet skedde? Stämmer det — markera som misstänkt. Annars: icke misstänkt.',
+    vo: 'Nu läser ni loggen. Finns personen beskriven där — verkar hen ha varit i valvet när brottet skedde? Finns det något signalement som stämmer: hårfärg, färg på kläderna, ålder? Tycker ni att det stämmer — markera som misstänkt. Annars: icke misstänkt.',
     ui: 'mark',
   },
   {
     id: 'lista',
-    dur: 7,
+    dur: 10,
     cam: 'faltWide',
     action: 'fill',
-    vo: 'Så jobbar ni er igenom avtrycken tills ni har en lista på misstänkta. Men ni kan inte lösa det ensamma — nu behöver ni labbet.',
+    vo: 'När ni har en lista på misstänkta behöver ni ta hjälp av labbet och hårproven. Bara genom att kombinera era misstänkta med hårproven och labbteknikerna kan ni avgöra vem tjuven är.',
   },
   {
     id: 'panlabb',
