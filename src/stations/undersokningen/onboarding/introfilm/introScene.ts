@@ -4,12 +4,13 @@
  * material som följer --color-primary, renderer med alpha så CRT-bakgrunden syns.
  *
  * SKALA = meter, efter riktiga .skp-vagnen (approx tills .skp byts in):
- *   Vagn: 0.90 m hög, 0.90 m lång (Z), 0.46 m bred (X).
- *   Utökad skiva (FÄLT): ~0.25 m utbuktning på −X.
+ *   Vagn: 0.90 m hög. Man står framför en 0.46 m bred långsida (Z), och det är
+ *   0.90 m tvärs över (X) till laget på andra sidan. Utökad skiva (FÄLT): ~0.25 m
+ *   utbuktning på −X.
  * Fristående vagn på fyra ben med hjul + hyllplan. Central KIOSK: lutad panel upp
  * till en hög låda med runt sikthål (porthål) man ser igenom, lutad skärm åt vardera
  * håll. Lagen står på GOLVET på var sin långsida (−X = FÄLT, +X = LABB), 3 gubbar
- * per sida, vända mot varandra tvärs över de 0.46 m. Verktygen lyser vitt från toppen.
+ * per sida, vända mot varandra tvärs över de 0.90 m. Verktygen lyser vitt från toppen.
  *
  * API: render(elapsed, beatId, progress) körs varje frame från IntroFilm.vue.
  */
@@ -18,10 +19,10 @@ import * as THREE from 'three'
 const UP = new THREE.Vector3(0, 1, 0)
 
 // --- riktiga mått (meter) ---
-const DECK_X = 0.46 // bredd (mellan de två sidorna)
-const DECK_Z = 0.9 // längd (varje sidas långsida)
+const DECK_X = 0.9 // tvärs över (90 cm mellan de två långsidorna/lagen)
+const DECK_Z = 0.46 // varje långsidas bredd (46 cm där man står framför)
 const DECK_TOP = 0.9 // höjd
-const SLAB_OUT = 0.25 // utökade skivans utbuktning
+const SLAB_OUT = 0.25 // utökade skivans utbuktning på −X
 
 /** Placera en mesh mellan två punkter (för "armar" mellan axel och verktyg). */
 const _d = new THREE.Vector3()
@@ -37,12 +38,12 @@ function place(mesh: THREE.Object3D, a: THREE.Vector3, b: THREE.Vector3, stretch
  * FÄLT = vänster (−X, utökade skivan), LABB = höger (+X, lilla ytan).
  */
 const FRAMES: Record<string, { pos: THREE.Vector3; tgt: THREE.Vector3 }> = {
-  overview: { pos: new THREE.Vector3(0.1, 2.2, 2.95), tgt: new THREE.Vector3(-0.1, 0.9, 0) },
-  faltWide: { pos: new THREE.Vector3(-1.15, 1.6, 1.75), tgt: new THREE.Vector3(-0.4, 0.95, 0) },
-  faltClose: { pos: new THREE.Vector3(-1.05, 1.2, 1.2), tgt: new THREE.Vector3(-0.42, 0.9, 0) },
-  labbWide: { pos: new THREE.Vector3(1.05, 1.6, 1.75), tgt: new THREE.Vector3(0.35, 0.95, 0) },
-  labbClose: { pos: new THREE.Vector3(1.0, 1.2, 1.2), tgt: new THREE.Vector3(0.28, 0.9, 0) },
-  both: { pos: new THREE.Vector3(-0.1, 2.05, 2.9), tgt: new THREE.Vector3(-0.1, 1.0, 0) },
+  overview: { pos: new THREE.Vector3(1.55, 2.5, 2.75), tgt: new THREE.Vector3(-0.1, 0.8, 0) },
+  faltWide: { pos: new THREE.Vector3(-1.5, 1.6, 1.85), tgt: new THREE.Vector3(-0.55, 0.95, 0) },
+  faltClose: { pos: new THREE.Vector3(-1.35, 1.15, 1.25), tgt: new THREE.Vector3(-0.56, 0.9, 0) },
+  labbWide: { pos: new THREE.Vector3(1.4, 1.6, 1.85), tgt: new THREE.Vector3(0.42, 0.95, 0) },
+  labbClose: { pos: new THREE.Vector3(1.25, 1.15, 1.25), tgt: new THREE.Vector3(0.4, 0.9, 0) },
+  both: { pos: new THREE.Vector3(1.45, 2.3, 2.75), tgt: new THREE.Vector3(-0.05, 0.95, 0) },
 }
 
 export interface IntroScene {
@@ -90,7 +91,7 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   floor.position.y = 0.002
   scene.add(floor)
 
-  // ===================== VAGNEN (0.46 × 0.90 × h0.90) =====================
+  // ===================== VAGNEN (X0.90 × Z0.46 × h0.90) =====================
   const cart = new THREE.Group()
   scene.add(cart)
   const topDeck = new THREE.Mesh(new THREE.BoxGeometry(DECK_X, 0.04, DECK_Z), matCart)
@@ -150,8 +151,9 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   buildMonitor(1)
 
   // ---------- FÄLT: liten utökad ÅTTKANTIG skiva (−X, ~0.25 m ut) ----------
-  const faltCx = -(DECK_X / 2) - SLAB_OUT / 2 // skivans centrum, halvt ut
-  const faltSlab = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.24, 0.03, 8), matCart)
+  const faltR = 0.15
+  const faltCx = -(DECK_X / 2) - SLAB_OUT + faltR // yttre kant ~0.25 m bortom långsidan
+  const faltSlab = new THREE.Mesh(new THREE.CylinderGeometry(faltR, faltR, 0.03, 8), matCart)
   faltSlab.rotation.y = Math.PI / 8
   faltSlab.position.set(faltCx, DECK_TOP - 0.005, 0)
   scene.add(faltSlab)
@@ -160,10 +162,10 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   // avtrycks-prickar på skivan
   const marks: THREE.Mesh[] = []
   const markPts = [
-    [-0.08, 0.1], [-0.02, -0.1], [0.04, 0.05], [-0.1, -0.03], [0.0, 0.15], [-0.12, 0.02],
+    [-0.05, 0.06], [-0.01, -0.06], [0.03, 0.03], [-0.06, -0.02], [0.0, 0.09], [-0.07, 0.01],
   ] as const
   for (const [mx, mz] of markPts) {
-    const m = new THREE.Mesh(new THREE.CircleGeometry(0.022, 16), matMark.clone())
+    const m = new THREE.Mesh(new THREE.CircleGeometry(0.018, 16), matMark.clone())
     m.rotation.x = -Math.PI / 2
     m.position.set(faltSurf.x + mx, faltSurf.y + 0.008, faltSurf.z + mz)
     scene.add(m)
@@ -171,8 +173,8 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   }
 
   // ---------- LABB: liten yta med hårprover (+X) ----------
-  const labbCx = 0.18
-  const labbPlate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.015, 0.4), matDark)
+  const labbCx = 0.3
+  const labbPlate = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.015, 0.36), matDark)
   labbPlate.position.set(labbCx, DECK_TOP + 0.003, 0)
   scene.add(labbPlate)
   const labbSurf = { x: labbCx, y: DECK_TOP + 0.014, z: 0 }
@@ -181,7 +183,7 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
     const h = new THREE.Mesh(new THREE.CylinderGeometry(0.003, 0.003, 0.1, 6), matFig.clone())
     h.rotation.z = Math.PI / 2
     h.rotation.y = (i - 2) * 0.22
-    h.position.set(labbSurf.x + (i % 2 === 0 ? -0.03 : 0.03), labbSurf.y + 0.01, labbSurf.z - 0.14 + i * 0.07)
+    h.position.set(labbSurf.x + (i % 2 === 0 ? -0.03 : 0.03), labbSurf.y + 0.01, labbSurf.z - 0.12 + i * 0.06)
     scene.add(h)
     hairs.push(h)
   }
@@ -271,13 +273,13 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
   }
 
   // FÄLT (−X, vända mot +X) — 3 gubbar på golvet bredvid utökade skivan
-  const uvFig = makeFig(-0.66, 0.26, Math.PI / 2 + 0.1, 'uv')
-  const scanFig = makeFig(-0.66, -0.26, Math.PI / 2 - 0.1, 'scanner')
-  makeFig(-0.72, 0.0, Math.PI / 2, null) // fält-observatör
+  const uvFig = makeFig(-0.72, 0.16, Math.PI / 2 + 0.1, 'uv')
+  const scanFig = makeFig(-0.72, -0.16, Math.PI / 2 - 0.1, 'scanner')
+  makeFig(-0.78, 0.0, Math.PI / 2, null) // fält-observatör
   // LABB (+X, vända mot −X) — 3 gubbar på golvet bredvid lilla ytan
-  const microFig = makeFig(0.48, 0.26, -Math.PI / 2 - 0.1, 'micro')
-  makeFig(0.48, -0.26, -Math.PI / 2 + 0.1, null) // labb-observatör
-  makeFig(0.54, 0.0, -Math.PI / 2, null) // labb-observatör
+  const microFig = makeFig(0.6, 0.16, -Math.PI / 2 - 0.1, 'micro')
+  makeFig(0.6, -0.16, -Math.PI / 2 + 0.1, null) // labb-observatör
+  makeFig(0.66, 0.0, -Math.PI / 2, null) // labb-observatör
 
   const toolFigs = [uvFig, scanFig, microFig]
   function toolActive(f: Fig, on: boolean, pt: THREE.Vector3): void {
@@ -292,7 +294,7 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
 
   // pratbubblor (talk/finale)
   const bubbles: THREE.Mesh[] = []
-  for (const bx of [-0.66, 0.48]) {
+  for (const bx of [-0.72, 0.6]) {
     const b = new THREE.Mesh(new THREE.SphereGeometry(0.11, 14, 10), matBubble)
     b.position.set(bx, 1.92, 0.04)
     b.scale.set(1.3, 0.9, 0.2)
@@ -319,7 +321,7 @@ export function createIntroScene(canvas: HTMLCanvasElement): IntroScene {
 
   function sweepPoint(progress: number): THREE.Vector3 {
     const t = Math.min(1, progress / 0.7)
-    const z = THREE.MathUtils.lerp(0.12, -0.12, t)
+    const z = THREE.MathUtils.lerp(0.09, -0.09, t)
     return _sweep.set(faltSurf.x - 0.04, faltSurf.y, z)
   }
 
