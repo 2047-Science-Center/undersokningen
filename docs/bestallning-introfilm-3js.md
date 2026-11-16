@@ -108,8 +108,49 @@ inramningarna — ingen hård klippning.
 - **Leveransform:** integrerad `introScene.ts` i app:en (som nu) **eller** en fristående autoplay-HTML
   som skärminspelas (samma modell som `bestallning-introfilm-3js.md` för gyro-filmen)? **Default:
   integrerad scen.**
-- **En skärm eller två** på kiosken — .skp visar en lutad skärm; logiskt är det en per operatör
-  (vänd åt var sitt håll). Bekräfta.
+- **Skärmar: TVÅ** (bekräftat av Josef 2026-11-16) — en per operatör, vänd åt var sitt håll (som
+  Förhandlingen). .skp visar bara den ena.
 - **Accentfärg:** tutorial-ton som standard (filmen visas i briefingen), skarp via `setAccent`?
 - **"ni" vs "vi"** i VO: filmen använder genomgående **"ni"**; du dikterade "vi" i markera-beaten.
   Behåll "ni" eller byt?
+
+## Per-beat-svar till 3JS-tråden (2026-11-16)
+Svar på 3JS-trådens frågor. `[BEHÅLL]` = trådens gissning är rätt. `[BESLUT]` = avgjort från
+manuset. `[VÄNTAR JOSEF]` = kräver Josefs bekräftelse (bygg vidare på rekommendationen tills dess).
+**Inget deployas förrän Josef sett svaren.**
+
+1. **Roller** `[BEHÅLL]` — FÄLT: mitt = UV-penna, höger (z+) = skanner, vänster = observatör; LABB:
+   mitt = mikroskop, två observatörer. Observatörerna är inte statiska: de vänder blicken mot det
+   som händer (verktyget i uv/skanna/sortera, skärmen i markera) och lutar sig lätt in — läsande,
+   inte pekande. Ingen extra rekvisita.
+2. **UV (beat 3)** `[BESLUT]` — **ett** avtryck tänds (~50 %) och förblir tänt (matchar VO "ett
+   avtryck"). Pennan lyser vitt i toppen (manus); svepets punktsken får en svag violett/kall UV-ton,
+   det tända avtrycket glöder i accentfärg. Inte flera avtryck i denna beat.
+3. **Skanna (beat 4)** `[BEHÅLL]` — inget detaljinnehåll på 3D-skärmen behövs; app:ens UI-kort
+   "scan" bär personbilden. 3D-skärmen får bara en "aktiv" glöd/scanlinje.
+4. **Markera (beat 5)** `[BEHÅLL]` — gest mot skärmen räcker; ingen synlig knapptryckning (UI-kortet
+   "mark" bär handlingen). Ring runt avtrycket = bra. Lätt huvud-skymning i nederkant OK, men rama
+   hellre 3/4 från framhörn så avtryck + skärmglöd är fria.
+5. **Lista (beat 6)** `[BESLUT]` — processa skivans ~6 avtryck i följd; ~3 ringas "misstänkt",
+   övriga dämpas/utan ring (synlig skillnad). Visa **inte** ett slutgiltigt antal/facit — "uteslutning,
+   inte svaret" (manus). (Josef kan ge exakt antal; annars 6 varav ~3 misstänkta.)
+6. **Panlabb (beat 7)** `[BEHÅLL]` — rörelsen till LABB OK; bågen får gå över stationen men **landa
+   på LABB:s framhörn** (spegelbild av FÄLT-ramningen), inte på bakhuvuden.
+7. **Sortera (beat 8)** `[BESLUT]` — 4 skålar; sortera minst 2 synligt: ett till **Människohår**
+   (betonat, tänds på skärmen) och ett till **Djurhår** (kontrast). Korgar = Människohår / Djurhår /
+   Syntet-fiber (matchar UI-kortet "sort"). Människohåret är poängen (kopplar till samarbetet).
+8. **Samarbete (beat 9)** `[BESLUT]` — lägg till **uteslutningen**: medan de pratar faller de
+   misstänkta på skärmen/indikatorn bort en i taget tills **en** återstår (VO: "tills bara en blir
+   kvar"). Den kvarvarande markören förblir **anonym** — avslöja inte vem. Pratbubblor turas om som
+   föreslaget; talarna gestikulerar mot porthålet.
+9. **Slut (beat 10)** `[BESLUT]` — hela stationen lyser (avtryck pulsar, porthål glöder, golv/vagn i
+   accent) BEHÅLL. **Peka inte ut tjuven** — filmen avslöjar aldrig facit (manus). Den kvarvarande
+   anonyma markören från beat 9 får ligga kvar tänd, men ingen identitet.
+10. **Skärmar** `[BESLUT — bekräftat av Josef 2026-11-16]` — **två** skärmar, en per operatör (vänd åt
+    var sitt håll), som Förhandlingen; FÄLT behöver sin vid markera. (.skp visar bara den ena.)
+11. **Kamera** `[BEHÅLL]` — översikt/samarbete snett från framhörn; närbilder från motsatt sida över
+    kiosken (ansikten, inte bakhuvuden). Not: operatörens egen skärm pekar då bort från kameran — OK,
+    eftersom app:ens UI-kort bär det läsbara innehållet.
+12. **Övrigt** `[BESLUT]` — inget stort att lägga till. Dana Falk (orange väst, blont hår) och den
+    inringade loggraden "02:14 – person i orange väst vid luckan" hör hemma i app:ens UI-kort, inte i
+    3D. Håll 3D:n ren: station, gubbar, verktyg, glöd.
