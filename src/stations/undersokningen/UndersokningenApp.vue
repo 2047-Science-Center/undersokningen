@@ -24,6 +24,9 @@ import FacilitatorControls from './components/FacilitatorControls.vue'
 import Onboarding from './onboarding/Onboarding.vue'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
+import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
+import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
+import VadArDetLek from './lek/VadArDetLek.vue'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -70,6 +73,11 @@ const attractRoleName = computed(() => (attractRole.value ? ROLE_ATTRACT[attract
 const attractMission = computed(() => (attractRole.value ? MISSIONS[attractRole.value].short : undefined))
 
 const onboarded = computed(() => store.onbStage === 'live')
+// --- Lek-läget (lila, efter done): "Vad är det?" — labb skannar, alla gissar; fält-skärmen
+//     visar instruktionen + bilden. XY-VANTUPPGIFTER.md 3C (modifierad). ?lek=1 = förhandsvisning. ---
+const lekPreview = lekPreviewFromUrl()
+const lekRole = computed(() => (store.view === 'lag1' ? 'labb' : store.view === 'lag2' ? 'falt' : 'shared'))
+
 const isShared = computed(() => store.view === 'shared')
 const onboardTeam = computed(() => (store.view === 'lag2' ? 'lag2' : 'lag1'))
 /** Fält-innehåll: investigate → konsol, annars (verdict/solved/failed) → verdikt. */
@@ -212,7 +220,12 @@ onUnmounted(() => {
     </div>
 
     <!-- Rotationen: väntar / lek (overlay; "Testgrupp X — tryck" visas av entrén) -->
-    <RotationScreens station-title="Undersökningen" />
+    <RotationScreens station-title="Undersökningen">
+      <template #lek><VadArDetLek :role="lekRole" :leader="store.leader" :transport="store.transport()" /></template>
+    </RotationScreens>
+    <LekStandalone v-if="lekPreview && store.transport()">
+      <VadArDetLek :role="lekRole" :leader="store.leader" :transport="store.transport()" />
+    </LekStandalone>
   </div>
 </template>
 
