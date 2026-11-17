@@ -22,6 +22,8 @@ export class MqttResultSink implements ResultSink {
   send(payload: ResultPayload): void {
     // TODO(drift): koppla mqtt-klient
     this.publisher?.publish(this.resultTopic, JSON.stringify(payload))
-    this.publisher?.publish(this.doneTopic, JSON.stringify({ grupp: payload.grupp }))
+    // Under rotationen skickar rotationsmodulen done {session_id, round, group} när
+    // resultatet VISATS klart (station-kit/rotation) — inte här.
+    if (payload.round == null) this.publisher?.publish(this.doneTopic, JSON.stringify({ grupp: payload.grupp }))
   }
 }

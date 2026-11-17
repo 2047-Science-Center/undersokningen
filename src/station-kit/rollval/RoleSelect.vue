@@ -11,6 +11,9 @@
  * Allt innehåll kommer via `config` (stationens config.ts). Aktivt KLIPPSET
  * väljs av `startSet` (wiring alternerar per körning); en diskret SET-växel
  * finns för granskning. Emit:ar `pick(roleId)` eller `skip`.
+ *
+ * `clipsOnly` (entrén, station-kit/entre): stanna efter klipp B och emit:a
+ * `clipsDone` — valet görs då av entrén (person för person / RFID).
  */
 import { ref, computed } from 'vue'
 import type { RollvalConfig } from './types'
@@ -22,11 +25,13 @@ const props = withDefaults(
     startSet?: number
     /** Visa den diskreta SET 1/2-växeln (granskning). Av som default. */
     showSetToggle?: boolean
+    /** Bara intro + klipp; valet sköts av entrén (emit clipsDone efter klipp B). */
+    clipsOnly?: boolean
   }>(),
-  { startSet: 0, showSetToggle: false },
+  { startSet: 0, showSetToggle: false, clipsOnly: false },
 )
 
-const emit = defineEmits<{ pick: [roleId: string]; skip: [] }>()
+const emit = defineEmits<{ pick: [roleId: string]; skip: []; clipsDone: [] }>()
 
 type Stage = 'intro' | 'clipA' | 'clipB' | 'decide'
 const stage = ref<Stage>('intro')
@@ -54,7 +59,10 @@ function begin(): void {
 }
 function next(): void {
   if (stage.value === 'clipA') stage.value = 'clipB'
-  else if (stage.value === 'clipB') stage.value = 'decide'
+  else if (stage.value === 'clipB') {
+    if (props.clipsOnly) emit('clipsDone')
+    else stage.value = 'decide'
+  }
 }
 function pick(roleId: string): void {
   emit('pick', roleId)

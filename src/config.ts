@@ -11,6 +11,7 @@
  */
 
 import type { RollvalConfig } from './station-kit/rollval/types'
+import type { EntreConfig } from './station-kit/entre/types'
 
 export type Mode = 'pilot' | 'production'
 export type RoleId = 'labb' | 'falt'
@@ -47,6 +48,19 @@ export const config = {
   mqtt: { url: 'ws://localhost:9001' },
   production: { wsUrl: '', mqttUrl: '' },
 } as const
+
+/**
+ * ROTATION (xy-arkitektur/XY-ROTATION.md, SOM.md 2026-11-17): regi skickar
+ * station<N>/group → "Testgrupp X — tryck för att börja" → tutorial → skarp →
+ * done → lek. Av i piloten (demo/Pages oförändrade); på i drift. Överstyrs
+ * med ?rotation=1|0 / ?mqtt=ws://… i kiosk-URL:en eller VITE_ROTATION /
+ * VITE_MQTT_URL vid bygget. Ingen IP i koden.
+ */
+export const ROTATION = {
+  stationN: STATION_N,
+  enabled: config.mode === 'production',
+  mqttUrl: config.mqtt.url, // dev-default; env/URL går före
+}
 
 export function asset(path: string): string {
   return encodeURI(import.meta.env.BASE_URL + path.replace(/^\/+/, ''))
@@ -377,3 +391,51 @@ export const ROLLVAL: RollvalConfig = {
 }
 
 export const IDLE_RESTART = { minutes: 8, warnSeconds: 20 } as const
+
+/* ------------------------------------------------------------------ *
+ * ENTRÉN (station-kit/entre, gemensam för st1–3): attract med testgrupp +
+ * sidindelning → rollval-klippen → valet (person för person / RFID) →
+ * ombalansering → "gå till sida A/B". SIDA = ROLL, fast här:
+ *   sida A = lag1 = LABB  = Labbtekniker  (rollvalets Metodspecialist)
+ *   sida B = lag2 = FÄLT  = Forensiker    (rollvalets Doktorand)
+ * Röstläge: 'skarm' tills banden finns; ?rost=rfid|skarm i URL:en går före.
+ * ------------------------------------------------------------------ */
+
+export const ENTRE: EntreConfig = {
+  stationTitle: 'Undersökningen',
+  roles: [
+    {
+      letter: 'A',
+      rollvalRoleId: 'metodspecialist',
+      name: 'Metodspecialist',
+      image: asset(ROLE_ATTRACT.labb.image),
+    },
+    {
+      letter: 'B',
+      rollvalRoleId: 'doktorand',
+      name: 'Doktorand',
+      image: asset(ROLE_ATTRACT.falt.image),
+    },
+  ],
+  sides: {
+    A: { id: 'A', label: 'Labbtekniker' },
+    B: { id: 'B', label: 'Forensiker' },
+  },
+  voteMode: 'skarm',
+  /** 3D-översikten från three.js-tråden (xy-entre-3d → public/entre/). Saknas → 2D-vyn. */
+  illustrationUrl: `${import.meta.env.BASE_URL}entre/sidor-3d.html`,
+  clips: ROLLVAL_ENABLED,
+  clipSet: ROLLVAL_START_SET,
+  clipSetCount: ROLLVAL.clipSets.length,
+  pilotRoster: [
+    { band_id: 'PILOT01', name: 'Liam', gender: 'man' },
+    { band_id: 'PILOT02', name: 'Jonna', gender: 'kvinna' },
+    { band_id: 'PILOT03', name: 'Andreas', gender: 'man' },
+    { band_id: 'PILOT04', name: 'Maja', gender: 'kvinna' },
+    { band_id: 'PILOT05', name: 'Omar', gender: 'man' },
+    { band_id: 'PILOT06', name: 'Saga', gender: 'kvinna' },
+  ],
+}
+
+/** Sida (entrén) ↔ valv (appen). */
+export const SIDE_TO_VALV = { A: 'lag1', B: 'lag2' } as const

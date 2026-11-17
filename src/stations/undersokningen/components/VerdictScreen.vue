@@ -10,6 +10,7 @@ import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Placeholder from './Placeholder.vue'
 import Icon from './Icon.vue'
+import { useRotation } from '@/station-kit/rotation/rotation'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -19,6 +20,13 @@ const won = computed(() => store.outcome === 'win')
 const thief = computed(() => personById(THIEF_ID))
 const picked = computed(() => store.verdictPick)
 const pickedPerson = computed(() => (picked.value ? personById(picked.value) : null))
+
+// Rotationen: verdiktet visat → "Vi är klara" (på fält-skärmen också) = done + lek.
+const rotation = useRotation()
+const inRotation = computed(() => rotation.state.phase === 'running')
+function onAgain(): void {
+  if (!rotation.finishSkarp()) store.reset()
+}
 </script>
 
 <template>
@@ -38,7 +46,9 @@ const pickedPerson = computed(() => (picked.value ? personById(picked.value) : n
           <span class="vd__thief-clothing">{{ thief.clothing }} · {{ thief.hair }}</span>
         </div>
       </div>
-      <button v-if="store.leader" class="crt-button crt-button--strong" @click="store.reset()">{{ t('verdict.again') }}</button>
+      <button v-if="store.leader || inRotation" class="crt-button crt-button--strong" @click="onAgain">
+        {{ inRotation ? 'Vi är klara ▸' : t('verdict.again') }}
+      </button>
       <p v-else class="vd__wait">{{ t('common.waiting') }}</p>
     </template>
 

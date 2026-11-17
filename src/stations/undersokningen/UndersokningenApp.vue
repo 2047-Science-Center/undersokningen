@@ -5,12 +5,13 @@
  * tutorial, orange skarpt. Timer syns under fallet; verdikt pekas ut på fält-skärmen.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { config, ROLLVAL, ROLLVAL_ENABLED, ROLLVAL_START_SET, MISSIONS, ROLE_ATTRACT, MUSIC, asset, type RoleId } from '@/config'
+import { config, ROLLVAL, ENTRE, SIDE_TO_VALV, MISSIONS, ROLE_ATTRACT, MUSIC, ROTATION, asset, type RoleId } from '@/config'
 import { useStationMode } from '@/station-kit/mode/useStationMode'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
 import AttractScreen from '@/station-kit/components/AttractScreen.vue'
-import RoleSelect from '@/station-kit/rollval/RoleSelect.vue'
+import Entre from '@/station-kit/entre/Entre.vue'
+import { initEntre } from '@/station-kit/entre/entre'
 import ModeCountdown from '@/station-kit/components/ModeCountdown.vue'
 import MuteButton from '@/station-kit/components/MuteButton.vue'
 import { useI18n } from '@/station-kit/i18n'
@@ -21,6 +22,8 @@ import VerdictScreen from './components/VerdictScreen.vue'
 import PilotPanel from './components/PilotPanel.vue'
 import FacilitatorControls from './components/FacilitatorControls.vue'
 import Onboarding from './onboarding/Onboarding.vue'
+import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
+import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -30,32 +33,32 @@ const isPilot = config.mode === 'pilot'
 const entered = ref(false)
 const showGoLive = ref(false)
 
-/** Rollval-flödet (skippbart första-steg, FÖRE tutorialen). Aktivt klippset
- *  alternerar per körning. */
-const rollvalDone = ref(false)
-const rollvalSet = ref(0)
-const showRollval = computed(() => ROLLVAL_ENABLED && entered.value && !rollvalDone.value)
-function pickRollvalSet(): number {
-  if (ROLLVAL_START_SET !== 'alternate') return ROLLVAL_START_SET
-  const n = ROLLVAL.clipSets.length || 1
-  try {
-    const key = 'xy-rollval-set'
-    const prev = Number(localStorage.getItem(key) ?? '-1')
-    const i = (prev + 1) % n
-    localStorage.setItem(key, String(i))
-    return i
-  } catch {
-    return 0
-  }
-}
-watch(entered, (v) => {
-  if (v) {
-    rollvalDone.value = false
-    rollvalSet.value = pickRollvalSet()
-  }
-})
-function onRollvalDone(): void {
-  rollvalDone.value = true
+// --- Rotationen + entrén (station-kit): entréns attract visar "Testgrupp X — tryck"
+//     + sidindelningen, sedan rollval-klipp → valet → ombalansering → "gå till sida A/B".
+//     Sida A = lag1 = LABB, sida B = lag2 = FÄLT (config ENTRE). ---
+const rotation = initRotation(rotationOptions(ROTATION))
+const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: rotationOptions(ROTATION).mqttUrl })
+const entreDone = computed(() => entre.state.step === 'klar')
+watch(
+  () => [store.view, store.leader] as const,
+  ([v, leader]) => entre.setScreen({ side: v === 'lag1' ? 'A' : v === 'lag2' ? 'B' : null, leader }),
+  { immediate: true },
+)
+/** Entrén klar → lottade roller in i spelet (ledaren dispatchar; synkas). */
+function onEntreDone(): void {
+  const team = (side: 'A' | 'B') =>
+    entre.personer.value
+      .filter((p) => p.side === side)
+      .map((p) => ({
+        band_id: p.band_id,
+        name: p.name,
+        team: SIDE_TO_VALV[side],
+        // DB: chosen_role är NOT NULL — den som inte hann välja (facilitatorns "Lotta nu") loggas som sin tilldelade roll.
+        chosen_role: p.chosen_role ?? p.assigned_role,
+        assigned_role: p.assigned_role,
+        role_presented_as: null,
+      }))
+  store.setRoster({ lag1: team('A'), lag2: team('B') })
 }
 
 /** Attract per roll: varje skärm (lag1=LABB, lag2=FÄLT) visar sin egen bild + uppdrag. */
@@ -73,7 +76,7 @@ const onboardTeam = computed(() => (store.view === 'lag2' ? 'lag2' : 'lag1'))
 const faltVerdict = computed(() => store.phase !== 'investigate' && store.phase !== 'intro')
 
 const stationMode = computed<'tutorial' | 'live'>(() =>
-  entered.value && !onboarded.value && !showRollval.value ? 'tutorial' : 'live',
+  entered.value && !onboarded.value && entreDone.value ? 'tutorial' : 'live',
 )
 watch(
   stationMode,
@@ -108,7 +111,20 @@ watch(entered, (v) => {
 
 watch(onboarded, (v) => {
   if (v && store.phase !== 'investigate') showGoLive.value = true
+  if (v) rotation.markSkarp()
 })
+
+// --- Rotationen: entréns touch = begin(); verdikt-skärmens "klara"-knapp = done + lek
+//     (VerdictScreen); lämnar gruppen 'running' (lek / ny grupp) → stationen återställs. ---
+watch(
+  () => rotation.state.phase,
+  (p, old) => {
+    if (p === 'running') {
+      audio.unlock()
+      enter()
+    } else if (old === 'running') store.reset()
+  },
+)
 function goLiveDone(): void {
   showGoLive.value = false
   if (store.leader && store.phase !== 'investigate') store.startLive()
@@ -119,6 +135,7 @@ watch(
   () => {
     entered.value = false
     showGoLive.value = false
+    entre.reset()
   },
 )
 
@@ -131,6 +148,7 @@ function onContextMenu(e: Event): void {
 }
 onMounted(() => {
   store.init()
+  entre.attachTransport(store.transport())
   window.addEventListener('contextmenu', onContextMenu)
   for (const ev of ACTIVITY) window.addEventListener(ev, onActivity, { passive: true })
 })
@@ -143,24 +161,18 @@ onUnmounted(() => {
 
 <template>
   <div class="app" :data-mode="stationMode">
-    <!-- Attract -->
-    <CrtScreen v-if="!entered">
-      <AttractScreen
-        :mission="attractMission"
-        :image="attractImage"
-        :role="attractRoleName"
-        @start="enter"
-      />
-    </CrtScreen>
-
-    <!-- Rollval: skippbart första-steg före tutorialen -->
-    <CrtScreen v-else-if="showRollval">
-      <RoleSelect
-        :config="ROLLVAL"
-        :start-set="rollvalSet"
-        @pick="onRollvalDone"
-        @skip="onRollvalDone"
-      />
+    <!-- Entrén: attract (testgrupp + sidindelning) → rollval → valet → utfall -->
+    <CrtScreen v-if="!entreDone">
+      <Entre :rollval="ROLLVAL" @start="enter" @done="onEntreDone">
+        <template #attract="{ start }">
+          <AttractScreen
+            :mission="attractMission"
+            :image="attractImage"
+            :role="attractRoleName"
+            @start="start"
+          />
+        </template>
+      </Entre>
     </CrtScreen>
 
     <!-- Tutorial -->
@@ -198,6 +210,9 @@ onUnmounted(() => {
       <p class="app__pause-title">{{ t('facil.paused_title') }}</p>
       <p class="app__pause-sub">{{ t('facil.paused_sub') }}</p>
     </div>
+
+    <!-- Rotationen: väntar / lek (overlay; "Testgrupp X — tryck" visas av entrén) -->
+    <RotationScreens station-title="Undersökningen" />
   </div>
 </template>
 

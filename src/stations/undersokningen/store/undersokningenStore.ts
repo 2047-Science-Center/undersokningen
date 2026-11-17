@@ -10,6 +10,7 @@ import { ref, shallowRef, computed } from 'vue'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import type { TransportMessage } from '@/station-kit/adapters/transport/Transport'
 import type { ResultPayload } from '@/station-kit/adapters/result/ResultSink'
+import { tagResult } from '@/station-kit/rotation/rotation'
 
 import {
   config,
@@ -98,7 +99,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     seam.value?.state.set(stateSignal(s))
     if ((s.phase === 'solved' || s.phase === 'failed') && !resultSent) {
       resultSent = true
-      seam.value?.result.send(buildResultPayload())
+      seam.value?.result.send(tagResult(buildResultPayload()))
     }
     if (s.phase !== 'solved' && s.phase !== 'failed') resultSent = false
 
@@ -357,8 +358,19 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     seam.value = null
   }
 
+  /** Entrén (station-kit/entre) har lottat rollerna → gruppen i spelet (bara ledaren, synkas via snapshot). */
+  function setRoster(members: Record<ValvId, Person[]>): void {
+    if (leader.value) dispatch({ type: 'setMembers', members })
+  }
+  /** Skärm↔skärm-transporten (entrén delar röster/lottning över den). */
+  function transport() {
+    return seam.value?.transport ?? null
+  }
+
   return {
     state,
+    setRoster,
+    transport,
     view,
     leader,
     onbStage,
