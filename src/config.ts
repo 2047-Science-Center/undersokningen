@@ -71,7 +71,10 @@ export function resolveMqttUrl(): string {
     const p = new URLSearchParams(window.location.search).get('mqtt')
     if (p) return p
   }
-  return config.mqtt.url
+  // Riggen: VITE_MQTT_URL=ws://192.168.10.10:9001 i NUC:ens gitignore:ade .env.local
+  // (samma variabel som rotationen läser) → scannern går via riggens ENDA broker.
+  const env = import.meta.env.VITE_MQTT_URL as string | undefined
+  return env || config.mqtt.url
 }
 
 /* ------------------------------------------------------------------ *
