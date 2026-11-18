@@ -10,6 +10,7 @@
 
 import { config, resolveMqttUrl } from '@/config'
 import { createAdapters, type Transport, type ResultSink } from '@/station-kit/adapters'
+import { MqttResultSink } from '@/station-kit/adapters/result/MqttResultSink'
 import { MockScanInput, MqttScanInput, type ScanInput } from './Scan'
 import { MockStateOut, MqttStateOut, type StateOut } from './StateOut'
 import { connectMqtt, type MqttClient } from './mqtt'
@@ -33,7 +34,8 @@ export function createSeam(): Seam {
 
   return {
     transport: base.transport,
-    result: base.result,
+    // Drift: station<N>/result över sömmens MQTT-klient (kitets MqttResultSink saknar egen klient här).
+    result: client && config.mode === 'production' ? new MqttResultSink(config.stationN, client) : base.result,
     scan: client ? new MqttScanInput(config.stationN, client) : new MockScanInput(),
     state: client ? new MqttStateOut(config.stationN, client) : new MockStateOut(),
     mqtt: client,

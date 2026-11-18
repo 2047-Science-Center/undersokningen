@@ -404,19 +404,31 @@ export const IDLE_RESTART = { minutes: 8, warnSeconds: 20 } as const
 export const ENTRE: EntreConfig = {
   stationTitle: 'Undersökningen',
   roles: [
+    // XY-PLATSER (2026-11-18): A = labb (alla samma roll), B = fält med underrollerna skannare
+    // (står till höger), lyspenna (till vänster) och logggranskare — slumpas. Båda sidorna tar fler.
     {
       letter: 'A',
       rollvalRoleId: 'metodspecialist',
       name: 'Metodspecialist',
+      titel: 'Labbtekniker',
       image: asset(ROLE_ATTRACT.labb.image),
+      min: 1,
+      plats: 'A.labb',
     },
     {
       letter: 'B',
       rollvalRoleId: 'doktorand',
       name: 'Doktorand',
       image: asset(ROLE_ATTRACT.falt.image),
+      min: 1,
+      subRoles: [
+        { id: 'skannare', name: 'Skannare', count: 1, plats: 'B.skannare' },
+        { id: 'lyspenna', name: 'Lyspenna', count: 1, plats: 'B.lyspenna' },
+        { id: 'logg', name: 'Logggranskare', plats: 'B.logg' },
+      ],
     },
   ],
+  station3d: 'unders',
   sides: {
     A: { id: 'A', label: 'Labbtekniker' },
     B: { id: 'B', label: 'Forensiker' },
