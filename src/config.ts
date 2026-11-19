@@ -10,6 +10,7 @@
  * bor HÄR. INGA hemligheter i filen.
  */
 
+import { bandlostFran } from '@/station-kit/band/band'
 import type { RollvalConfig } from './station-kit/rollval/types'
 import type { EntreConfig } from './station-kit/entre/types'
 import type { Valv } from './station-kit/ljus/kanon'
@@ -62,6 +63,15 @@ export const ROTATION = {
   enabled: config.mode === 'production',
   mqttUrl: config.mqtt.url, // dev-default; env/URL går före
 }
+
+/**
+ * BANDLÖST LÄGE (station-kit/band, xy-arkitektur/XY-BANDLOST-OCH-ANKOMST.md, SOM.md "bandlöst läge (v49)"):
+ * på = allt banden gör görs på skärmen (rollvalet: en person i taget). Av = RFID-läsarna
+ * (station<N>/rfidnej = roll A, rfidja = roll B). Default PÅ inför v49 (läsarna är inte klara).
+ * Överstyrs med ?bandlost=1|0 i kiosk-URL:en eller VITE_BANDLOST=1|0 vid bygget.
+ * ?rost=rfid|skarm (en enskild skärm) och facilitatormenyn går fortfarande före.
+ */
+export const BANDLOST: boolean = bandlostFran(true, import.meta.env.VITE_BANDLOST as string | undefined)
 
 /**
  * STATIONSLJUS (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD.md §1.2 + §5.3, SOM.md "Stationsljus"):
@@ -418,7 +428,7 @@ export const IDLE_RESTART = { minutes: 8, warnSeconds: 20 } as const
  * ombalansering → "gå till sida A/B". SIDA = ROLL, fast här:
  *   sida A = lag1 = LABB  = Labbtekniker  (rollvalets Metodspecialist)
  *   sida B = lag2 = FÄLT  = Forensiker    (rollvalets Doktorand)
- * Röstläge: 'skarm' tills banden finns; ?rost=rfid|skarm i URL:en går före.
+ * Röstläge: styrs av BANDLOST (ovan); voteMode gäller bara om BANDLOST inte skickas in. ?rost=rfid|skarm går före.
  * ------------------------------------------------------------------ */
 
 export const ENTRE: EntreConfig = {
