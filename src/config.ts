@@ -469,6 +469,8 @@ export const ENTRE: EntreConfig = {
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,
+  /** DB:ns set_id per klippset-index (SOM.md "Klippset per grupp"): set 0 = Karin (kvinna) doktorand/B + Dragan metodspecialist → kvinnlig B = DB set 2 (st3 B); set 1 = Frederico doktorand + Essy (kvinna) metodspecialist/A → DB set 1 (st3 A). OBS omvänt mot indexordningen. */
+  clipSetIds: [2, 1],
   pilotRoster: [
     { band_id: 'PILOT01', name: 'Liam', gender: 'man' },
     { band_id: 'PILOT02', name: 'Jonna', gender: 'kvinna' },
