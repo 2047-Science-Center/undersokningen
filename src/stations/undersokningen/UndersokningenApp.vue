@@ -28,6 +28,7 @@ import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import VadArDetLek from './lek/VadArDetLek.vue'
 import { initLjus, ljusOptions, lageFranRotation, LjusRemsa, type Lage } from '@/station-kit/ljus'
+import { initFilm, filmOptions, FilmOverlay } from '@/station-kit/film'
 import { spela, appLage, varningsNiva, BADA } from './ljus'
 
 const store = useUndersokningenStore()
@@ -59,6 +60,9 @@ const ljus = initLjus(
     spela,
   }),
 )
+// --- Regis filmer (station-kit/film, SOM.md "Filmer i riggen"): trailern helskärm i båda
+//     fönstren medan regi står i trailerfasen, sedan tillbaka till stationen. ---
+initFilm(filmOptions({ enabled: config.mode === 'production', mqttUrl: rotationOptions(ROTATION).mqttUrl }))
 watch(
   () => [store.view, store.leader] as const,
   ([v, leader]) => entre.setScreen({ side: v === 'lag1' ? 'A' : v === 'lag2' ? 'B' : null, leader }),
@@ -273,6 +277,8 @@ onUnmounted(() => {
       <VadArDetLek :role="lekRole" :leader="store.leader" :transport="store.transport()" />
     </LekStandalone>
     <LjusRemsa />
+    <!-- Regis filmer (trailern) över allt, bara i filmens fas -->
+    <FilmOverlay />
   </div>
 </template>
 
