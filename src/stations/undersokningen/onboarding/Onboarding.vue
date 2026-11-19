@@ -1,18 +1,15 @@
 <script setup lang="ts">
 /**
- * Tutorial — "ett löst fall" (referensfall 2-911). Läges-legend → genomgång i
- * text-beats (avtryck → logg → hår → slutsats) som visar att alla tre bitarna
- * behövs → sync-barriär → go-live. Röst läggs på senare.
+ * Tutorial: VALdi-introt (inläst, textat, rullar själv: läges-legenden → 3D-filmen över
+ * fallet) → rollgenomgång per sida (klickas igenom, utan röst) → sync-barriär → go-live.
  */
 import { ref, computed, watch } from 'vue'
-import { REF_CASE, type ValvId } from '@/config'
+import { type ValvId } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
-import { audio } from '@/station-kit/audio/AudioEngine'
-import ModeLegend from '@/station-kit/components/ModeLegend.vue'
 import { OTHER } from '../engine/gameEngine'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import BarrierWait from './BarrierWait.vue'
-import IntroFilm from './introfilm/IntroFilm.vue'
+import IntroVo from './introvo/IntroVo.vue'
 import LabbRoleTutorial from './LabbRoleTutorial.vue'
 import FaltRoleTutorial from './FaltRoleTutorial.vue'
 
@@ -26,15 +23,11 @@ const leader = computed(() => props.shared || me.value === 'lag1')
 /** FÄLT: referensfall → gate. LABB: referensfall → rollgenomgång → gate. */
 const isFalt = computed(() => props.team === 'lag2')
 
-const phase = ref<'legend' | 'beats' | 'role' | 'gate'>('legend')
+const phase = ref<'intro' | 'role' | 'gate'>('intro')
 const iAmReady = ref(false)
 
 const bothReady = computed(() => store.onbReady[me.value] && (props.shared || store.onbReady[other.value]))
 
-function next(): void {
-  audio.play('blip')
-  if (phase.value === 'legend') phase.value = 'beats'
-}
 function markReady(): void {
   iAmReady.value = true
   store.onbMarkReady(me.value)
@@ -47,16 +40,9 @@ watch([bothReady], () => {
 
 <template>
   <div class="tut">
-    <!-- Läges-legend -->
-    <template v-if="phase === 'legend'">
-      <ModeLegend />
-      <p class="tut__intro">{{ REF_CASE.intro }}</p>
-      <button class="crt-button crt-button--strong" @click="next">{{ t('onboarding.next') }} ▸</button>
-    </template>
-
-    <!-- Introfilm (3GS): gemensam genomspelning av hela fallet, båda sidor identiskt.
-         Ersätter det gamla referensfallet (FaltRefTutorial finns kvar oanvänt). -->
-    <IntroFilm v-else-if="phase === 'beats'" @done="phase = 'role'" />
+    <!-- VALdi-introt: läges-legenden + 3D-filmen, inläst och textat, i takt på båda skärmarna.
+         Ersätter legend-rutan och filmens textrutor (FaltRefTutorial finns kvar oanvänt). -->
+    <IntroVo v-if="phase === 'intro'" class="tut__vo" @done="phase = 'role'" />
 
     <!-- Rollgenomgång (egna verktygen) i samma vy som spelet, efter referensfallet -->
     <template v-else-if="phase === 'role'">
@@ -77,7 +63,7 @@ watch([bothReady], () => {
 
 <style scoped>
 .tut { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(1rem, 2.5vh, 1.6rem); height: 100%; text-align: center; padding: clamp(1rem, 3vh, 2rem); }
-.tut__intro { margin: 0; font-family: var(--font-retro); font-size: clamp(1.9rem, 5vw, 3.4rem); line-height: 1.25; letter-spacing: 0.03em; color: var(--color-ink-strong); text-shadow: var(--glow-soft); max-width: 24ch; }
+.tut__vo { flex: 1 1 auto; align-self: stretch; margin: calc(-1 * clamp(1rem, 3vh, 2rem)); }
 .tut__case { margin: 0; font-family: var(--font-retro); font-size: clamp(1.1rem, 2vw, 1.4rem); letter-spacing: 0.08em; color: var(--color-primary); }
 /* Rutan fyller nästan hela skärmen så texten blir riktigt läsbar. */
 .tut__beat { width: min(94vw, 72rem); flex: 1 1 auto; max-height: 76vh; padding: clamp(1.4rem, 4vh, 3rem) clamp(1.4rem, 4vw, 3rem); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: clamp(1rem, 2.6vh, 1.8rem); background: var(--color-background-2); }

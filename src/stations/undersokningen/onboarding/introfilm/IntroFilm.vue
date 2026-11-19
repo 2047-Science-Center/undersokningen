@@ -1,40 +1,46 @@
 <script setup lang="ts">
 /**
- * INTROFILM — onboarding-filmen (fas 2, ersätter referensfallet). 3GS/Three.js-
- * scenen renderas i canvas; VO-captionen + trogna UI-kort läggs ovanpå. Spelas
- * identiskt på båda skärmarna. Berättarröst spelas in senare — tills dess visas
- * VO:n som text. Hoppa-över finns alltid.
+ * INTROFILM — 3GS/Three.js-scenen över stationen, med trogna UI-kort ovanpå. Spelas
+ * identiskt på båda skärmarna. Klockan ägs av VALdi-introt (IntroVo.vue): `tid` = sekunder
+ * sedan filmens start, så bilden följer rösten. Undertexten ritas av IntroVo (station-kit).
  */
-import { ref, onMounted, onUnmounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { createIntroScene, type IntroScene } from './introScene'
 import FilmScreen from './FilmScreen.vue'
 import { FILM, FILM_TOTAL, beatAt, type FilmBeat } from './introFilm'
 import { audio } from '@/station-kit/audio/AudioEngine'
 
-const emit = defineEmits<{ done: [] }>()
+const props = defineProps<{
+  /** Sekunder sedan filmens start (introts delade klocka). */
+  tid: number
+  /** Spela beat-blippar (bara fönstret som äger stationens högtalare). */
+  sfx?: boolean
+}>()
 
 const canvas = ref<HTMLCanvasElement | null>(null)
 const beat = ref<FilmBeat>(FILM[0])
-const beatIndex = ref(0)
-const done = ref(false)
+const progress = ref(0)
 let scene: IntroScene | null = null
-let raf = 0
 let ro: ResizeObserver | null = null
 let mo: MutationObserver | null = null
-let startAt = 0
 let lastBeatId = ''
 
 const ui = computed(() => beat.value.ui ?? null)
-const progress = ref(0)
 
 function accent(): string {
   return getComputedStyle(canvas.value!).getPropertyValue('--color-primary').trim() || '#ffa040'
 }
 
-function finish(): void {
-  if (done.value) return
-  done.value = true
-  emit('done')
+function rita(t: number): void {
+  const at = beatAt(Math.min(Math.max(0, t), FILM_TOTAL))
+  beat.value = at.beat
+  progress.value = at.progress
+  if (at.beat.id !== lastBeatId) {
+    const forsta = lastBeatId === ''
+    lastBeatId = at.beat.id
+    if (props.sfx && !forsta) audio.play(at.beat.id === 'skanna' ? 'popup' : 'blip')
+  }
+  scene?.render(t, at.beat.id, at.progress)
 }
 
 onMounted(() => {
@@ -46,32 +52,10 @@ onMounted(() => {
   ro.observe(el)
   mo = new MutationObserver(() => scene?.setAccent(accent()))
   mo.observe(document.documentElement, { attributes: true, subtree: true, attributeFilter: ['data-mode'] })
-
-  startAt = performance.now()
-  const tick = () => {
-    const elapsed = (performance.now() - startAt) / 1000
-    if (elapsed >= FILM_TOTAL) {
-      scene?.render(elapsed, FILM[FILM.length - 1].id, 1)
-      finish()
-      return
-    }
-    const at = beatAt(elapsed)
-    beat.value = at.beat
-    beatIndex.value = at.index
-    progress.value = at.progress
-    // bipp när skanna-beaten börjar
-    if (at.beat.id !== lastBeatId) {
-      lastBeatId = at.beat.id
-      if (at.beat.id === 'skanna') audio.play('popup')
-      else if (at.beat.id !== 'open') audio.play('blip')
-    }
-    scene?.render(elapsed, at.beat.id, at.progress)
-    raf = requestAnimationFrame(tick)
-  }
-  tick()
+  rita(props.tid)
 })
+watch(() => props.tid, rita)
 onUnmounted(() => {
-  cancelAnimationFrame(raf)
   ro?.disconnect()
   mo?.disconnect()
   scene?.dispose()
@@ -88,16 +72,6 @@ onUnmounted(() => {
         <FilmScreen :mode="ui" :progress="progress" />
       </div>
     </Transition>
-
-    <!-- VO-caption -->
-    <div class="film__vo">
-      <p class="film__votext">{{ beat.vo }}</p>
-      <div class="film__dots">
-        <span v-for="(b, i) in FILM" :key="b.id" class="film__dot" :class="{ 'film__dot--on': i <= beatIndex }" />
-      </div>
-    </div>
-
-    <button class="film__skip crt-button" @click="finish">Hoppa över ▸</button>
   </div>
 </template>
 
@@ -105,17 +79,8 @@ onUnmounted(() => {
 .film { position: relative; width: 100%; height: 100%; min-height: 0; overflow: hidden; }
 .film__canvas { display: block; width: 100%; height: 100%; }
 
-/* Spelarnas skärm (kopia) ovanför VO-texten */
+/* Spelarnas skärm (kopia) ovanför undertexten */
 .film__screen { position: absolute; top: 2%; left: 3%; right: 3%; bottom: 50%; } /* övre halvan; 3D-gubben syns under (introScene flyttar ner bilden) */
-
-/* VO-caption */
-.film__vo { position: absolute; left: 0; right: 0; bottom: 0; padding: 1.2rem clamp(1rem, 5vw, 4rem) 1.6rem; display: flex; flex-direction: column; align-items: center; gap: 0.7rem; background: linear-gradient(to top, rgba(3, 8, 6, 0.9), rgba(3, 8, 6, 0)); }
-.film__votext { margin: 0; max-width: 46ch; text-align: center; font-family: var(--font-retro); font-size: clamp(1.1rem, 2.4vw, 1.7rem); line-height: 1.4; color: var(--color-ink-strong); text-shadow: var(--glow-soft); }
-.film__dots { display: flex; gap: 0.4rem; }
-.film__dot { width: 0.5rem; height: 0.5rem; border-radius: 50%; border: 1px solid var(--color-primary-dim); }
-.film__dot--on { background: var(--color-primary); border-color: var(--color-primary); box-shadow: 0 0 6px var(--color-primary); }
-
-.film__skip { position: absolute; top: 1rem; right: 1rem; font-size: 0.9rem; padding: 0.4em 1em; opacity: 0.8; }
 
 .screen-enter-active, .screen-leave-active { transition: opacity 0.5s var(--ease-out); }
 .screen-enter-from, .screen-leave-to { opacity: 0; }

@@ -60,6 +60,9 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
 
   const onbStage = ref<OnbStage>('tutorial')
   const onbReady = ref<Record<ValvId, boolean>>({ lag1: false, lag2: false })
+  /** VALdi-introts delade klocka: epoch-ms där introts tid 0 ligger (null = ej startat). Ledaren
+   *  startar; ett tryck (hoppa kapitel) flyttar den. Båda skärmarna räknar t = (nu − introStartAt). */
+  const introStartAt = ref<number | null>(null)
 
   const paused = ref(false)
   const sessionActive = ref(false)
@@ -122,6 +125,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
         broadcast()
         seam.value?.transport.send({ kind: 'onbStage', payload: { stage: onbStage.value } })
         if (timerEndsAt.value) seam.value?.transport.send({ kind: 'timer', payload: timerEndsAt.value })
+        if (introStartAt.value) seam.value?.transport.send({ kind: 'introStartAt', payload: { at: introStartAt.value } })
         break
       }
       case 'onbStage': {
@@ -139,6 +143,9 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
       }
       case 'timer':
         timerEndsAt.value = msg.payload as number
+        break
+      case 'introStartAt':
+        introStartAt.value = (msg.payload as { at: number }).at
         break
       case 'pause':
         paused.value = (msg.payload as { paused: boolean }).paused
@@ -162,6 +169,11 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     onbStage.value = stage
     onbReady.value = { lag1: false, lag2: false }
     seam.value?.transport.send({ kind: 'onbStage', payload: { stage } })
+  }
+  /** Sätt introts klocka (start eller hopp) och synka den till andra skärmen. */
+  function introStart(at: number): void {
+    introStartAt.value = at
+    seam.value?.transport.send({ kind: 'introStartAt', payload: { at } })
   }
   function onbMarkReady(vault: ValvId): void {
     if (onbReady.value[vault]) return
@@ -256,6 +268,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     dispatch({ type: 'reset', members: defaultRoster() })
     onbStage.value = 'tutorial'
     onbReady.value = { lag1: false, lag2: false }
+    introStartAt.value = null
     paused.value = false
     resultSent = false
     timerEndsAt.value = null
@@ -379,6 +392,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     leader,
     onbStage,
     onbReady,
+    introStartAt,
     paused,
     sessionActive,
     now,
@@ -402,6 +416,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     setView,
     onbGoto,
     onbMarkReady,
+    introStart,
     scanSpot,
     closePopup,
     markSuspect,
