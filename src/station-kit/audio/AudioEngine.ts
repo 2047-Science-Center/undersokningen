@@ -61,6 +61,10 @@ class AudioEngine {
   /** Loopande bakgrundsmusik (eget HTMLAudio-lager, egen målvolym). */
   private musicEl: HTMLAudioElement | null = null
   private musicTarget = 0
+  /** Berättarröst/VO (t.ex. VALdi-intron): eget HTMLAudio-lager, full nivå (filen är normaliserad). */
+  private voiceEl: HTMLAudioElement | null = null
+  private voiceUrl = ''
+  private voicePending = false
 
   get muted(): boolean {
     return this._muted
@@ -78,6 +82,48 @@ class AudioEngine {
     if (this.musicEl) {
       this.musicEl.volume = muted ? 0 : this.musicTarget
     }
+    if (this.voiceEl) this.voiceEl.muted = muted
+  }
+
+  /* ---------------- berättarröst (VO) ---------------- */
+
+  /** Spela/håll VO-spåret `url` på tiden `at` (s) i spåret. Anropas varje bildruta av den som
+   *  äger klockan: första anropet startar, sedan spolas spåret bara om det glidit > `tolerans` s.
+   *  Ljud är icke-kritiskt — blockerad uppspelning tystar bara rösten, klockan går ändå. */
+  syncVoice(url: string, at: number, tolerans = 0.3): void {
+    try {
+      if (!this.voiceEl || this.voiceUrl !== url) {
+        this.stopVoice()
+        this.voiceUrl = url
+        this.voiceEl = new Audio(url)
+        this.voiceEl.preload = 'auto'
+        this.voiceEl.muted = this._muted
+      }
+      const el = this.voiceEl
+      const slut = Number.isFinite(el.duration) ? el.duration : Infinity
+      if (at < 0 || at >= slut) {
+        if (!el.paused) el.pause()
+        return
+      }
+      if (el.readyState >= 1 && Math.abs(el.currentTime - at) > tolerans) el.currentTime = at
+      if (el.paused && !this.voicePending) {
+        this.voicePending = true
+        void el
+          .play()
+          .catch(() => {})
+          .finally(() => (this.voicePending = false))
+      }
+    } catch {
+      // Rösten är icke-kritisk.
+    }
+  }
+
+  stopVoice(): void {
+    if (!this.voiceEl) return
+    this.voiceEl.pause()
+    this.voiceEl.removeAttribute('src')
+    this.voiceEl = null
+    this.voiceUrl = ''
   }
 
   /* ---------------- bakgrundsmusik ---------------- */
