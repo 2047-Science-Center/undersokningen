@@ -375,7 +375,7 @@ export const ROLE_FLOW_ENABLED = false
  * ------------------------------------------------------------------ */
 
 /** Sätt false för att hoppa över hela rollvalet (appen kör utan det). */
-export const ROLLVAL_ENABLED = false
+export const ROLLVAL_ENABLED = true // 2026-11-19: rollsekvensen (bryggor + kort + klipp) före valet
 
 /** Aktivt klippset. Testet kör ETT fast set (set 2 = Frederico + Essy); det
  *  andra setet finns kvar i config. 'alternate' = växla per körning. */
@@ -468,6 +468,9 @@ export const ENTRE: EntreConfig = {
   illustrationUrl: `${import.meta.env.BASE_URL}entre/sidor-3d.html`,
   /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över. */
   introClip: `${import.meta.env.BASE_URL}media/stationsintro/undersokningen.mp4`,
+  /** Rollsekvensen efter introt (inga klick): brygga → kort A → klipp A → brygga → kort B → klipp B → valet.
+   *  Rollnamn/valvfärg enligt station-kit/stationsintro/README.md (Josef 2026-11-19). */
+  rollkort: { A: 'LABBTEKNIKER', B: 'FORENSIKER', valvfarg: '#4aa3ff', sprak: config.lang === 'no' ? 'no' : 'sv' },
   clips: ROLLVAL_ENABLED,
   clipSet: ROLLVAL_START_SET,
   clipSetCount: ROLLVAL.clipSets.length,
