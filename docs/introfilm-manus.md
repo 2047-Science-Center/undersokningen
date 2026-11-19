@@ -4,9 +4,10 @@ Manus för onboarding-filmen som **ersätter referensfallet** (fas 2 i introt). 
 identiskt på båda skärmarna. Berättarröst (VO) genomgående. 3GS = Three.js-animation
 av stationen ovanifrån, med inzoomningar på det riktiga UI:t.
 
-> Detta dokument är sanning för texten. Timing + visuella cues bor i
-> `src/stations/undersokningen/onboarding/introfilm/introFilm.ts` (beat-tidslinjen som
-> driver filmen). Ändra VO här, spegla i den filen.
+> **Ersatt för texten (2026-11-19):** VALdi läser nu introt. Repliker och undertexter bor i
+> `src/stations/undersokningen/onboarding/introvo/vo.json` (läsversion [`intro-vo-manus.md`](intro-vo-manus.md)).
+> Beat-tiderna i `introfilm/introFilm.ts` härleds ur rösten. VO-tabellen nedan är det
+> ursprungliga utkastet och gäller inte längre som text. Visuella noter gäller fortfarande.
 
 ## Struktur
 

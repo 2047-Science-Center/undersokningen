@@ -1,0 +1,225 @@
+{
+ "_info": "GENERERAD av tools/intro-vo/bygg-vo.py ur vo.json + raw/-inspelningen. Ändra repliker i vo.json, spela in (gen-vo.py), bygg om. Format = XY-TEXTLAGER §2 (overlay.json) + `slut`. no = UTKAST.",
+ "klipp": "undersokningen-intro-vo",
+ "ljud": "Ljud/intro-vo.mp3",
+ "duration_s": 110.69,
+ "sprak": [
+  "sv",
+  "no"
+ ],
+ "undertext": [
+  {
+   "id": "o1",
+   "kapitel": "oppning",
+   "t": 0.4,
+   "slut": 4.13,
+   "sv": "Välkomna till Forskningslaget. Jag är VALdi.",
+   "no": "Velkommen til Forskningslaget. Jeg er VALdi."
+  },
+  {
+   "id": "o2",
+   "kapitel": "oppning",
+   "t": 4.5,
+   "slut": 8.42,
+   "sv": "När skärmen är blå, då övar vi.",
+   "no": "Når skjermen er blå, da øver vi."
+  },
+  {
+   "id": "o3",
+   "kapitel": "oppning",
+   "t": 8.59,
+   "slut": 12.6,
+   "sv": "När den slår om till orange gäller det på riktigt.",
+   "no": "Når den skifter til oransje, gjelder det på ordentlig."
+  },
+  {
+   "id": "f1",
+   "kapitel": "fall",
+   "beat": "open",
+   "t": 13.37,
+   "slut": 19.06,
+   "sv": "I natt bröt sig någon in i valvet och stal värdefull information.",
+   "no": "I natt brøt noen seg inn i hvelvet og stjal verdifull informasjon."
+  },
+  {
+   "id": "f2.1",
+   "kapitel": "fall",
+   "beat": "open",
+   "t": 19.33,
+   "slut": 22.36,
+   "sv": "Ni är forensiker och labbtekniker.",
+   "no": "Dere er kriminalteknikere og laboratorieteknikere."
+  },
+  {
+   "id": "f2.2",
+   "kapitel": "fall",
+   "beat": "open",
+   "t": 22.38,
+   "slut": 26.03,
+   "sv": "Tillsammans ska ni peka ut tjuven.",
+   "no": "Sammen skal dere peke ut tyven."
+  },
+  {
+   "id": "f3",
+   "kapitel": "fall",
+   "beat": "forensik",
+   "t": 26.5,
+   "slut": 33.95,
+   "sv": "Forensikerna börjar vid brottsplatsen. Här finns avtryck från alla som varit där – tjuven också.",
+   "no": "Kriminalteknikerne starter på åstedet. Her finnes avtrykk fra alle som har vært der – tyven også."
+  },
+  {
+   "id": "f4.1",
+   "kapitel": "fall",
+   "beat": "uv",
+   "t": 34.32,
+   "slut": 38.63,
+   "sv": "Lys över ytan med UV-pennan.",
+   "no": "Lys over flaten med UV-pennen."
+  },
+  {
+   "id": "f4.2",
+   "kapitel": "fall",
+   "beat": "uv",
+   "t": 38.65,
+   "slut": 42.88,
+   "sv": "Där något tänds, där finns ett avtryck.",
+   "no": "Der noe lyser opp, der finnes et avtrykk."
+  },
+  {
+   "id": "f5",
+   "kapitel": "fall",
+   "beat": "skanna",
+   "t": 43.25,
+   "slut": 49.17,
+   "sv": "För skannern över avtrycket, så tar den fram personen från övervakningskamerorna.",
+   "no": "Før skanneren over avtrykket, så henter den fram personen fra overvåkingskameraene."
+  },
+  {
+   "id": "f6.1",
+   "kapitel": "fall",
+   "beat": "markera",
+   "t": 49.54,
+   "slut": 51.02,
+   "sv": "Läs loggen.",
+   "no": "Les loggen."
+  },
+  {
+   "id": "f6.2",
+   "kapitel": "fall",
+   "beat": "markera",
+   "t": 51.04,
+   "slut": 53.97,
+   "sv": "Var personen i valvet när det hände?",
+   "no": "Var personen i hvelvet da det skjedde?"
+  },
+  {
+   "id": "f6.3",
+   "kapitel": "fall",
+   "beat": "markera",
+   "t": 53.99,
+   "slut": 57.45,
+   "sv": "Stämmer kläderna, håret, åldern?",
+   "no": "Stemmer klærne, håret, alderen?"
+  },
+  {
+   "id": "f7",
+   "kapitel": "fall",
+   "beat": "markera",
+   "t": 57.72,
+   "slut": 64.61,
+   "sv": "Stämmer det: markera som misstänkt. Annars: inte misstänkt.",
+   "no": "Stemmer det: marker som mistenkt. Ellers: ikke mistenkt."
+  },
+  {
+   "id": "f8.1",
+   "kapitel": "fall",
+   "beat": "lista",
+   "t": 65.08,
+   "slut": 67.58,
+   "sv": "Nu har ni en lista med misstänkta.",
+   "no": "Nå har dere en liste med mistenkte."
+  },
+  {
+   "id": "f8.2",
+   "kapitel": "fall",
+   "beat": "lista",
+   "t": 67.6,
+   "slut": 70.3,
+   "sv": "Men den räcker inte hela vägen.",
+   "no": "Men den holder ikke hele veien."
+  },
+  {
+   "id": "f9.1",
+   "kapitel": "fall",
+   "beat": "panlabb",
+   "t": 70.67,
+   "slut": 75.95,
+   "sv": "På andra sidan sitter labbteknikerna, med hårprover från brottsplatsen.",
+   "no": "På andre siden sitter laboratorieteknikerne, med hårprøver fra åstedet."
+  },
+  {
+   "id": "f9.2",
+   "kapitel": "fall",
+   "beat": "panlabb",
+   "t": 75.97,
+   "slut": 79.51,
+   "sv": "Tjuvens hår finns bland dem.",
+   "no": "Tyvens hår er blant dem."
+  },
+  {
+   "id": "f10",
+   "kapitel": "fall",
+   "beat": "sortera",
+   "t": 79.88,
+   "slut": 90.58,
+   "sv": "Skanna varje prov i mikroskopet och sortera det: människohår, djurhår, eller fibrer som bara liknar hår.",
+   "no": "Skann hver prøve i mikroskopet og sorter den: menneskehår, dyrehår, eller fibre som bare ligner hår."
+  },
+  {
+   "id": "f11.1",
+   "kapitel": "fall",
+   "beat": "samarbete",
+   "t": 91.05,
+   "slut": 95.19,
+   "sv": "Och nu det viktiga: prata med varandra.",
+   "no": "Og nå det viktige: snakk med hverandre."
+  },
+  {
+   "id": "f11.2",
+   "kapitel": "fall",
+   "beat": "samarbete",
+   "t": 95.21,
+   "slut": 97.67,
+   "sv": "Labbet vet vad håret är.",
+   "no": "Laben vet hva håret er."
+  },
+  {
+   "id": "f11.3",
+   "kapitel": "fall",
+   "beat": "samarbete",
+   "t": 97.69,
+   "slut": 100.68,
+   "sv": "Fältet vet vilka som var där.",
+   "no": "Feltet vet hvem som var der."
+  },
+  {
+   "id": "f12",
+   "kapitel": "fall",
+   "beat": "samarbete",
+   "t": 100.85,
+   "slut": 107.19,
+   "sv": "Matcha håret mot de misstänkta och stryk dem som inte passar, tills bara en är kvar.",
+   "no": "Match håret mot de mistenkte og stryk dem som ikke passer, til bare én er igjen."
+  },
+  {
+   "id": "f13",
+   "kapitel": "fall",
+   "beat": "slut",
+   "t": 107.56,
+   "slut": 109.62,
+   "sv": "Det är så ni tar tjuven.",
+   "no": "Det er slik dere tar tyven."
+  }
+ ]
+}
