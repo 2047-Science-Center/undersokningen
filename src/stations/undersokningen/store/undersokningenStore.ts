@@ -107,17 +107,24 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   function plainState(): GameState {
     return JSON.parse(JSON.stringify(state.value)) as GameState
   }
+  /** Snapshot till andra skärmen. `ledare` = facit vid krock (se gameEngine `sync`). */
   function broadcast(): void {
-    seam.value?.transport.send({ kind: 'snapshot', payload: plainState() })
+    seam.value?.transport.send({ kind: 'snapshot', payload: { state: plainState(), ledare: leader.value } })
   }
 
   function onMessage(msg: TransportMessage): void {
     switch (msg.kind) {
       case 'snapshot': {
-        const next = reduce(state.value, { type: 'sync', state: msg.payload as GameState })
+        const p = msg.payload as { state: GameState; ledare: boolean }
+        if (!p?.state) break
+        const next = reduce(state.value, { type: 'sync', state: p.state, fromLeader: p.ledare })
         if (next !== state.value) {
           state.value = next
           applyEffects() // spegling: uppdatera state (ljud/ljus väljer själva fönster)
+        } else if (leader.value && !p.ledare && JSON.stringify(p.state) !== JSON.stringify(state.value)) {
+          // Följaren har ett annat tillstånd än ledaren (krock eller missad nollställning):
+          // skicka ledarens så att följaren rättar sig, i stället för att skärmarna glider isär.
+          broadcast()
         }
         break
       }
@@ -220,7 +227,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /* ---------------- verdikt / omgång ---------------- */
 
   function startLive(): void {
-    dispatch({ type: 'start', thiefId: THIEF_ID })
+    dispatch({ type: 'start', thiefId: THIEF_ID, runda: Date.now() })
     const ends = Date.now() + config.timerSeconds * 1000
     timerEndsAt.value = ends
     seam.value?.transport.send({ kind: 'timer', payload: ends })
@@ -228,6 +235,11 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   }
   function openVerdict(): void {
     dispatch({ type: 'openVerdict' })
+    notifyActivity()
+  }
+  /** Tillbaka till utredningen från verdiktet (bara medan tiden räcker — UI:t avgör). */
+  function closeVerdict(): void {
+    dispatch({ type: 'closeVerdict' })
     notifyActivity()
   }
   function selectThief(personId: string): void {
@@ -353,8 +365,12 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     // Bara FÄLT-fönstret prenumererar på scan-söm (annars dubbelhantering).
     if (view.value === 'lag2' || view.value === 'shared') seam.value.scan.subscribe(handleScanEvent)
     seam.value.transport.send({ kind: 'hello', payload: null })
+    let hjartslag = 0
     timer = setInterval(() => {
       now.value = Date.now()
+      // Hjärtslag: ledaren skickar sitt tillstånd varannan sekund, så en följare som missat
+      // ett meddelande (reläet, omladdning) hittar tillbaka utan att någon behöver nollställa.
+      if (leader.value && ++hjartslag % 4 === 0) broadcast()
       // Timer slut → tvinga fram verdikt (bara leader driver).
       if (leader.value && state.value.phase === 'investigate' && timerEndsAt.value && now.value >= timerEndsAt.value) {
         dispatch({ type: 'openVerdict' })
@@ -422,6 +438,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     markSuspect,
     startLive,
     openVerdict,
+    closeVerdict,
     selectThief,
     confirmThief,
     reset,

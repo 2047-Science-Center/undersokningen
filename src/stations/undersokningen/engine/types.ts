@@ -23,6 +23,8 @@ export interface Person {
 
 export interface GameState {
   phase: Phase
+  /** Rundans id (sätts av ledaren vid start). Skiljer en ny runda från en gammal vid synk. */
+  runda: number
   /** Spots som scannats (avtryck). */
   revealedSpotIds: string[]
   /** Personer man scannat fram (för verdikt-galleriet), i upptäcktsordning. */

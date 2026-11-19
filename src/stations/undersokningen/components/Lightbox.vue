@@ -3,6 +3,7 @@
  * Helskärms-lightbox för sparade bilder (hårfångst på labb, misstänkt-foton på
  * fält). Modal → center-origin (Emil: modaler stannar centrerade). Skala in
  * 0.92→1 + opacity, exit snabbare än enter. Esc/klick utanför stänger.
+ * Slot `actions`: stora knappar under bilden (labbet: tillbaka / ta bort bilden).
  */
 import { watch, onBeforeUnmount } from 'vue'
 import { useI18n } from '@/station-kit/i18n'
@@ -31,6 +32,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
       <button class="lb__x" :aria-label="t('common.close')" @click="emit('close')"><Icon name="close" :size="30" /></button>
       <img class="lb__img" :src="src" :alt="label || ''" />
       <span v-if="label" class="lb__label">{{ label }}</span>
+      <div v-if="$slots.actions" class="lb__actions"><slot name="actions" /></div>
     </div>
   </Transition>
 </template>
@@ -41,6 +43,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;
   background: rgba(2, 6, 4, 0.94); padding: 3vmin;
 }
+.lb__actions { display: flex; gap: clamp(0.8rem, 3vw, 2rem); flex-wrap: wrap; justify-content: center; }
 .lb__img {
   max-width: 94vw; max-height: 82vh; object-fit: contain;
   border: 1px solid var(--color-primary-dim); box-shadow: var(--glow-strong);

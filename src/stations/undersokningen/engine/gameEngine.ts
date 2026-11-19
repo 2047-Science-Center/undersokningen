@@ -3,7 +3,12 @@
  * config/store och skickas in i `scanSpot`, så motorn förblir ren och testbar.
  *
  * Under investigate undersöker man bara. Gissningen i slutet: `selectThief`
- * (markera) → `confirmThief` (ett enda utpekande) → solved/failed.
+ * (markera) → `confirmThief` (ett enda utpekande) → solved/failed. `closeVerdict`
+ * = tillbaka till utredningen (så länge tiden räcker, avgörs i UI:t).
+ *
+ * Synk mellan skärmarna (`sync`): ledaren är facit. En annan runda (`runda`) tas bara in
+ * från ledaren, och då alltid, även om den lokala versionen är högre. Inom samma runda
+ * vinner högst version, och vid lika version vinner ledaren.
  */
 
 import type { GameState, Person, StateSignal, ValvId } from './types'
@@ -20,6 +25,7 @@ function emptyMembers(): Record<ValvId, Person[]> {
 export function initialState(members: Record<ValvId, Person[]> = emptyMembers()): GameState {
   return {
     phase: 'intro',
+    runda: 0,
     revealedSpotIds: [],
     revealedPersonIds: [],
     scanCounts: {},
@@ -39,15 +45,16 @@ function clone(state: GameState): GameState {
 
 export type Action =
   | { type: 'setMembers'; members: Record<ValvId, Person[]> }
-  | { type: 'start'; thiefId: string }
+  | { type: 'start'; thiefId: string; runda?: number }
   | { type: 'scanSpot'; spotId: string; person: string } // person = personId | 'smudge'
   | { type: 'markSuspect'; personId: string; suspect: boolean }
   | { type: 'closePopup' }
   | { type: 'openVerdict' }
+  | { type: 'closeVerdict' }
   | { type: 'selectThief'; personId: string }
   | { type: 'confirmThief' }
   | { type: 'reset'; members?: Record<ValvId, Person[]> }
-  | { type: 'sync'; state: GameState }
+  | { type: 'sync'; state: GameState; fromLeader?: boolean }
 
 export function reduce(state: GameState, action: Action): GameState {
   switch (action.type) {
@@ -61,6 +68,7 @@ export function reduce(state: GameState, action: Action): GameState {
     case 'start': {
       const next = clone(state)
       next.phase = 'investigate'
+      next.runda = action.runda ?? state.runda + 1
       next.revealedSpotIds = []
       next.revealedPersonIds = []
       next.scanCounts = {}
@@ -118,6 +126,15 @@ export function reduce(state: GameState, action: Action): GameState {
       return next
     }
 
+    case 'closeVerdict': {
+      if (state.phase !== 'verdict') return state
+      const next = clone(state)
+      next.phase = 'investigate'
+      next.verdictPick = null
+      next.version += 1
+      return next
+    }
+
     case 'selectThief': {
       if (state.phase !== 'verdict') return state
       const next = clone(state)
@@ -144,12 +161,20 @@ export function reduce(state: GameState, action: Action): GameState {
       return initialState(action.members ?? emptyMembers())
 
     case 'sync':
-      if (action.state.version >= state.version) return action.state
-      return state
+      return adoptRemote(state, action.state, !!action.fromLeader) ? action.state : state
 
     default:
       return state
   }
+}
+
+/** Ska den andra skärmens snapshot ersätta vårt tillstånd? (se `sync` ovan) */
+export function adoptRemote(local: GameState, remote: GameState, fromLeader: boolean): boolean {
+  // Bara ledaren startar rundor → en annan runda tas bara in från ledaren. (En följare som
+  // missat en nollställning får annars ledaren att hoppa tillbaka till en gammal, avslutad runda.)
+  if ((remote.runda ?? 0) !== (local.runda ?? 0)) return fromLeader
+  if (remote.version !== local.version) return remote.version > local.version
+  return fromLeader && JSON.stringify(remote) !== JSON.stringify(local)
 }
 
 /* ---------------- rena härledare ---------------- */

@@ -8,9 +8,12 @@
  * (XY-FEEDBACK-LJUS-LJUD §6): "vidare" tidigast efter 8 s, auto-vidare efter 45 s = samma som
  * knappen (bara ledaren auto-avslutar, så done/reset inte skickas två gånger). Utfallets ljus +
  * ljud tänds i storen (ledaren, en gång).
+ *
+ * Får aldrig bli en återvändsgränd: galleriet är aldrig tomt (inget skannat → alla som var i
+ * valvet), och medan tiden räcker kan man gå tillbaka till utredningen.
  */
 import { computed, watch } from 'vue'
-import { personById, THIEF_ID } from '@/config'
+import { personById, PERSONS, THIEF_ID } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Placeholder from './Placeholder.vue'
@@ -26,6 +29,11 @@ const won = computed(() => store.outcome === 'win')
 const thief = computed(() => personById(THIEF_ID))
 const picked = computed(() => store.verdictPick)
 const pickedPerson = computed(() => (picked.value ? personById(picked.value) : null))
+/** Inget skannat (t.ex. "GISSA TJUVEN" direkt) → alla personer, annars blir det inget att välja. */
+const ingenSkannad = computed(() => store.revealedPersons.length === 0)
+const galleri = computed(() => (ingenSkannad.value ? PERSONS.map((p) => ({ ...p, count: 0 })) : store.revealedPersons))
+/** Tillbaka till utredningen så länge tiden inte har gått ut. */
+const kanGaTillbaka = computed(() => store.secondsLeft > 0)
 
 // Rotationen: verdiktet visat → "Vi är klara" (på fält-skärmen också) = done + lek.
 const rotation = useRotation()
@@ -65,10 +73,10 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
     <!-- Val -->
     <template v-else>
       <h1 class="vd__title">{{ t('verdict.title') }}</h1>
-      <p class="vd__sub">{{ t('verdict.hint') }}</p>
+      <p class="vd__sub">{{ ingenSkannad ? t('verdict.none_scanned') : t('verdict.hint') }}</p>
       <div class="vd__grid">
         <button
-          v-for="(p, i) in store.revealedPersons" :key="p.id"
+          v-for="(p, i) in galleri" :key="p.id"
           class="vd__card amber-frame" :class="{ 'vd__card--sel': picked === p.id }"
           :style="{ animationDelay: i * 55 + 'ms' }"
           @click="store.selectThief(p.id)"
@@ -76,12 +84,15 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
           <Placeholder class="vd__card-photo" :path="p.image" :label="p.name" />
           <span class="vd__card-name ink-strong">{{ p.name }}</span>
           <span class="vd__card-clothing">{{ p.clothing }}</span>
-          <span class="vd__card-prints mono"><Icon name="finger" :size="13" /> {{ t('falt.prints_count', { n: p.count }) }}</span>
+          <span v-if="!ingenSkannad" class="vd__card-prints mono"><Icon name="finger" :size="13" /> {{ t('falt.prints_count', { n: p.count }) }}</span>
         </button>
       </div>
-      <button class="crt-button crt-button--strong vd__confirm" :disabled="!pickedPerson" @click="store.confirmThief()">
-        {{ pickedPerson ? t('verdict.confirm', { name: pickedPerson.name }) : t('verdict.pick_first') }}
-      </button>
+      <div class="vd__actions">
+        <button v-if="kanGaTillbaka" class="crt-button vd__back" @click="store.closeVerdict()">{{ t('verdict.back') }}</button>
+        <button class="crt-button crt-button--strong vd__confirm" :disabled="!pickedPerson" @click="store.confirmThief()">
+          {{ pickedPerson ? t('verdict.confirm', { name: pickedPerson.name }) : t('verdict.pick_first') }}
+        </button>
+      </div>
     </template>
   </div>
 </template>
@@ -107,7 +118,9 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
 .vd__card-name { font-family: var(--font-mono); font-weight: 600; font-size: 0.95rem; }
 .vd__card-clothing { font-family: var(--font-mono); font-size: 0.8rem; color: var(--color-ink-muted); }
 .vd__card-prints { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; color: var(--color-primary); }
-.vd__confirm { font-size: 1.3rem; margin-top: 0.4rem; }
+.vd__actions { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 0.4rem; }
+.vd__confirm { font-size: 1.3rem; }
+.vd__back { font-size: 1.1rem; }
 .vd__thief { display: flex; gap: 1rem; align-items: center; margin: 0.5rem 0; padding: 0.6rem; background: var(--color-background-2); }
 .vd__thief-photo { width: 12rem; }
 .vd__thief div { display: flex; flex-direction: column; gap: 0.2rem; text-align: left; }
