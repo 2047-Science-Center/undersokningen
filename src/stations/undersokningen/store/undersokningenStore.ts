@@ -11,6 +11,7 @@ import { audio } from '@/station-kit/audio/AudioEngine'
 import type { TransportMessage } from '@/station-kit/adapters/transport/Transport'
 import type { ResultPayload } from '@/station-kit/adapters/result/ResultSink'
 import { tagResult } from '@/station-kit/rotation/rotation'
+import { useLjus } from '@/station-kit/ljus'
 
 import {
   config,
@@ -29,6 +30,7 @@ import type { GameState, Person } from '../engine/types'
 import { personResults, roundScore } from '../engine/scoring'
 import { createSeam, type Seam } from '../seam/createSeam'
 import type { ScanEvent } from '../seam/Scan'
+import { BADA, klassaScan, scanFeedback, utfallVid } from '../ljus'
 
 export type ViewSide = ValvId | 'shared'
 export type OnbStage = 'tutorial' | 'live'
@@ -49,6 +51,8 @@ function defaultRoster(): Record<ValvId, Person[]> {
 
 export const useUndersokningenStore = defineStore('undersokningen', () => {
   const state = ref<GameState>(initialState(defaultRoster()))
+  /** Stationsljuset (station-kit/ljus) — no-op tills appen kört initLjus. */
+  const ljus = useLjus()
   const seam = shallowRef<Seam | null>(null)
 
   const view = ref<ViewSide>(viewFromHash())
@@ -66,8 +70,6 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   const timerEndsAt = ref<number | null>(null)
 
   let prevPhase: GameState['phase'] | null = null
-  let prevRevealedSpots = 0
-  let prevActiveSpot: string | null = null
   let resultSent = false
   let timer: ReturnType<typeof setInterval> | null = null
 
@@ -81,20 +83,13 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     broadcast()
   }
 
-  function applyEffects(fromRemote = false): void {
+  function applyEffects(): void {
     const s = state.value
-    // Ljud spelas BARA på fönstret där handlingen faktiskt skedde (lokal dispatch).
-    // En mottagen snapshot (spegling från andra skärmen) uppdaterar state men
-    // spelar inget ljud — annars dubbelspelas varje scan/vinst osynkat från båda.
-    // Ny scan → ljud beroende på träff/smudge.
-    if (s.revealedSpotIds.length !== prevRevealedSpots || s.activeSpotId !== prevActiveSpot) {
-      if (s.activeSpotId && !fromRemote) {
-        const spot = SPOTS.find((sp) => sp.id === s.activeSpotId)
-        if (spot) audio.play(spot.person === 'smudge' ? 'deny' : 'popup')
-      }
-    }
-    if (!fromRemote && prevPhase !== 'solved' && s.phase === 'solved') audio.play('win')
-    if (!fromRemote && prevPhase !== 'failed' && s.phase === 'failed') audio.play('deny')
+    // Skanningens ljud + ljus sker i scanSpot (fältfönstret, där skanningen händer).
+    // Utfallet (vinst/förlust) ses av BÅDA fönstren via snapshot → bara ledaren (= ljusets
+    // skrivare, äger den retained basen) tänder det + spelar ljudet — exakt en gång.
+    const u = utfallVid(prevPhase, s.phase)
+    if (u && leader.value) ljus.utfall(u, BADA)
 
     seam.value?.state.set(stateSignal(s))
     if ((s.phase === 'solved' || s.phase === 'failed') && !resultSent) {
@@ -104,8 +99,6 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     if (s.phase !== 'solved' && s.phase !== 'failed') resultSent = false
 
     prevPhase = s.phase
-    prevRevealedSpots = s.revealedSpotIds.length
-    prevActiveSpot = s.activeSpotId
   }
 
   function plainState(): GameState {
@@ -121,7 +114,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
         const next = reduce(state.value, { type: 'sync', state: msg.payload as GameState })
         if (next !== state.value) {
           state.value = next
-          applyEffects(true) // spegling: uppdatera state men spela inget ljud
+          applyEffects() // spegling: uppdatera state (ljud/ljus väljer själva fönster)
         }
         break
       }
@@ -181,6 +174,8 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   function scanSpot(spotId: string): void {
     const spot = SPOTS.find((s) => s.id === spotId)
     if (!spot) return
+    const u = klassaScan(state.value, spot)
+    if (u) scanFeedback(ljus, u)
     dispatch({ type: 'scanSpot', spotId: spot.id, person: spot.person })
     notifyActivity()
   }
@@ -189,6 +184,11 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
       // RFID-sensor: UID → spot (Spot.tag). Fallback: taggen = spot-id (mock/test).
       const spot = SPOTS.find((s) => s.tag && s.tag === ev.tag) ?? SPOTS.find((s) => s.id === ev.tag)
       if (spot) scanSpot(spot.id)
+      else {
+        // Okänd UID: ignorerades tyst förut → visa att läsaren lever men taggen är okänd.
+        const u = klassaScan(state.value, undefined)
+        if (u) scanFeedback(ljus, u)
+      }
     } else if (ev.kind === 'home') dispatch({ type: 'closePopup' })
   }
   function closePopup(): void {
@@ -198,7 +198,10 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /** FÄLT markerar en person som misstänkt (→ topppanelen) eller tar bort. */
   function markSuspect(personId: string, suspect: boolean): void {
     dispatch({ type: 'markSuspect', personId, suspect })
-    if (suspect) audio.play('stamp')
+    if (suspect) {
+      audio.play('stamp') // stationsljudet behålls → gesten tyst
+      ljus.gest('kvitto', BADA, { tyst: true })
+    }
     notifyActivity()
   }
 
@@ -209,7 +212,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     const ends = Date.now() + config.timerSeconds * 1000
     timerEndsAt.value = ends
     seam.value?.transport.send({ kind: 'timer', payload: ends })
-    audio.play('live')
+    // Inget eget 'live'-ljud här: ModeCountdown spelar redan svepet (spelades två gånger).
   }
   function openVerdict(): void {
     dispatch({ type: 'openVerdict' })
@@ -342,6 +345,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
       // Timer slut → tvinga fram verdikt (bara leader driver).
       if (leader.value && state.value.phase === 'investigate' && timerEndsAt.value && now.value >= timerEndsAt.value) {
         dispatch({ type: 'openVerdict' })
+        ljus.gest('stanger', BADA) // tiden ute → utredningen stängs
       }
       if (leader.value && sessionActive.value && IDLE_MS > 0 && now.value - lastActivityAt.value >= IDLE_MS) {
         doReset(true)

@@ -11,6 +11,8 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { config } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { audio } from '@/station-kit/audio/AudioEngine'
+import { useLjus } from '@/station-kit/ljus'
+import { LABB } from '../ljus'
 import Icon from './Icon.vue'
 
 const { t } = useI18n()
@@ -83,6 +85,8 @@ function captureFrame(): string | null {
 function toggleFreeze(): void {
   frozen.value = !frozen.value
   audio.play(frozen.value ? 'stamp' : 'blip')
+  // Frysning = kvitto på labbsegmentet (stationsljudet 'stamp' behålls → gesten tyst).
+  if (frozen.value) useLjus().gest('kvitto', [LABB], { tyst: true })
   if (!video.value) return
   if (frozen.value) {
     video.value.pause()

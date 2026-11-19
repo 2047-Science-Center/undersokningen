@@ -3,14 +3,20 @@
  * Verdikt (på FÄLT-skärmen): nu — och bara nu — gissar man. Markera en person
  * ur galleriet → BEKRÄFTA → ett enda utpekande. Rätt → FALLET LÖST, annars
  * SPÅRET KALLNADE. Ingen poäng under utredningen; detta är hela gissningen.
+ *
+ * Utfallet visas på BÅDA skärmarna (labbsidan visar bara utfallsdelen). Resultatrutans tider
+ * (XY-FEEDBACK-LJUS-LJUD §6): "vidare" tidigast efter 8 s, auto-vidare efter 45 s = samma som
+ * knappen (bara ledaren auto-avslutar, så done/reset inte skickas två gånger). Utfallets ljus +
+ * ljud tänds i storen (ledaren, en gång).
  */
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import { personById, THIEF_ID } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Placeholder from './Placeholder.vue'
 import Icon from './Icon.vue'
 import { useRotation } from '@/station-kit/rotation/rotation'
+import { useResultatTid } from '@/station-kit/ljus'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -27,6 +33,10 @@ const inRotation = computed(() => rotation.state.phase === 'running')
 function onAgain(): void {
   if (!rotation.finishSkarp()) store.reset()
 }
+
+const rt = useResultatTid({ onAuto: () => store.leader && onAgain() })
+const kanGaVidare = rt.kanGaVidare
+watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
 </script>
 
 <template>
@@ -46,7 +56,7 @@ function onAgain(): void {
           <span class="vd__thief-clothing">{{ thief.clothing }} · {{ thief.hair }}</span>
         </div>
       </div>
-      <button v-if="store.leader || inRotation" class="crt-button crt-button--strong" @click="onAgain">
+      <button v-if="store.leader || inRotation" class="crt-button crt-button--strong" :disabled="!kanGaVidare" @click="onAgain">
         {{ inRotation ? 'Vi är klara ▸' : t('verdict.again') }}
       </button>
       <p v-else class="vd__wait">{{ t('common.waiting') }}</p>

@@ -12,6 +12,7 @@
 
 import type { RollvalConfig } from './station-kit/rollval/types'
 import type { EntreConfig } from './station-kit/entre/types'
+import type { Valv } from './station-kit/ljus/kanon'
 
 export type Mode = 'pilot' | 'production'
 export type RoleId = 'labb' | 'falt'
@@ -60,6 +61,22 @@ export const ROTATION = {
   stationN: STATION_N,
   enabled: config.mode === 'production',
   mqttUrl: config.mqtt.url, // dev-default; env/URL går före
+}
+
+/**
+ * STATIONSLJUS (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD.md §1.2 + §5.3, SOM.md "Stationsljus"):
+ * bas retained på station3/underglow, gester på station3/feedback. Samma broker som rotationen.
+ *   A = LABB (lag1, vänster, mikroskopet)   B = FÄLT (lag2, höger: skannare/lyspenna/logg)
+ * Pixelintervallen här = BÄNK (Josefs 60 px-slinga). Riktiga intervall = Eriks mätning på
+ * stationen — byt bara siffrorna här, aldrig i firmware. Delplatser (B.skannare …) läggs till
+ * som egna segment när de är uppmätta. ?ljus=1|0|visa / VITE_LJUS överstyr på/av.
+ */
+export const LJUS: { valv: Valv; segment: Record<string, [number, number]> } = {
+  valv: 'forskning',
+  segment: {
+    A: [0, 29],
+    B: [30, 59],
+  },
 }
 
 export function asset(path: string): string {

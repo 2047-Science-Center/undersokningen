@@ -5,7 +5,7 @@
  * tutorial, orange skarpt. Timer syns under fallet; verdikt pekas ut på fält-skärmen.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { config, ROLLVAL, ENTRE, SIDE_TO_VALV, MISSIONS, ROLE_ATTRACT, MUSIC, ROTATION, asset, type RoleId } from '@/config'
+import { config, ROLLVAL, ENTRE, SIDE_TO_VALV, MISSIONS, ROLE_ATTRACT, MUSIC, ROTATION, LJUS, asset, type RoleId } from '@/config'
 import { useStationMode } from '@/station-kit/mode/useStationMode'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
@@ -27,6 +27,8 @@ import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import VadArDetLek from './lek/VadArDetLek.vue'
+import { initLjus, ljusOptions, lageFranRotation, LjusRemsa, type Lage } from '@/station-kit/ljus'
+import { spela, appLage, varningsNiva, BADA } from './ljus'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -42,6 +44,21 @@ const showGoLive = ref(false)
 const rotation = initRotation(rotationOptions(ROTATION))
 const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: rotationOptions(ROTATION).mqttUrl })
 const entreDone = computed(() => entre.state.step === 'klar')
+
+// --- Stationsljuset (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §5.3): samma broker som rotationen.
+//     Ledarfönstret (labb/delad) är ENDA skrivaren av basen; fältfönstret skickar bara gester
+//     för det som sker hos det (skanningar, misstänkta). ?ljus=visa = förhandsremsa. ---
+const ljus = initLjus(
+  ljusOptions({
+    stationN: ROTATION.stationN,
+    enabled: config.mode === 'production',
+    mqttUrl: rotationOptions(ROTATION).mqttUrl,
+    valv: LJUS.valv,
+    segment: LJUS.segment,
+    skrivare: store.leader,
+    spela,
+  }),
+)
 watch(
   () => [store.view, store.leader] as const,
   ([v, leader]) => entre.setScreen({ side: v === 'lag1' ? 'A' : v === 'lag2' ? 'B' : null, leader }),
@@ -103,6 +120,32 @@ const mmss = computed(() => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 })
 const showTimer = computed(() => onboarded.value && store.phase === 'investigate')
+/** Labbsidan visar också utfallet (VerdictScreen), annars föll den tillbaka till konsolen. */
+const labbResultat = computed(() => store.phase === 'solved' || store.phase === 'failed')
+
+// --- Ljusets läge: rotationen styr när den är på (ankomst/tutorial/skarp/lek); annars appens
+//     egna faser (attract = vila, tutorial, skarpt). Utfallet (vinst/förlust) håller sin bas
+//     tills läget byts. Övergång till lek → 'klar'-gesten (bara skrivaren, en gång). ---
+const ljusLage = computed<Lage | null>(() =>
+  rotation.state.phase !== 'off'
+    ? lageFranRotation(rotation.state.phase, rotation.state.mode)
+    : appLage({ entered: entered.value, entreDone: entreDone.value, onboarded: onboarded.value }),
+)
+watch(
+  ljusLage,
+  (l, old) => {
+    if (l === 'lek' && old !== 'lek' && store.leader) ljus.gest('klar', BADA)
+    else ljus.lage(l, BADA)
+  },
+  { immediate: true },
+)
+// Tidsvarning (synkad timer → bara skrivaren): ≤15 s andning + tick, ≤5 s blink + sista-tick.
+const varning = computed(() => varningsNiva(store.secondsLeft, showTimer.value && !!store.timerEndsAt))
+watch(varning, (n, old) => {
+  if (!store.leader) return
+  ljus.varning(n, BADA)
+  if (n > (old ?? 0)) ljus.ljud(n === 2 ? 'sista' : 'varning')
+})
 
 function enter(): void {
   entered.value = true
@@ -201,7 +244,10 @@ onUnmounted(() => {
           <FaltConsole v-else />
         </CrtScreen>
       </div>
-      <CrtScreen v-else-if="store.view === 'lag1'"><LabbConsole /></CrtScreen>
+      <CrtScreen v-else-if="store.view === 'lag1'">
+        <VerdictScreen v-if="labbResultat" />
+        <LabbConsole v-else />
+      </CrtScreen>
       <CrtScreen v-else>
         <VerdictScreen v-if="faltVerdict" />
         <FaltConsole v-else />
@@ -226,6 +272,7 @@ onUnmounted(() => {
     <LekStandalone v-if="lekPreview && store.transport()">
       <VadArDetLek :role="lekRole" :leader="store.leader" :transport="store.transport()" />
     </LekStandalone>
+    <LjusRemsa />
   </div>
 </template>
 

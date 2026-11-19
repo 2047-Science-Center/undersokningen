@@ -10,6 +10,8 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { HAIR_CLASSES, type HairClassId } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { audio } from '@/station-kit/audio/AudioEngine'
+import { useLjus } from '@/station-kit/ljus'
+import { LABB } from '../ljus'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Microscope from './Microscope.vue'
 import Icon from './Icon.vue'
@@ -60,6 +62,8 @@ function onUp(e: PointerEvent): void {
     placed.value.push({ id: pending.value.id, src: pending.value.src, category: cat })
     pending.value = null
     audio.play('confirm')
+    // Bara kvitto: appen vet inte om provet hamnade rätt (ingen facit-kontroll, F9) → inte rätt/fel.
+    useLjus().gest('kvitto', [LABB], { tyst: true })
     scopeRef.value?.release() // tillbaka till live för nästa prov
     store.notifyActivity()
   }
