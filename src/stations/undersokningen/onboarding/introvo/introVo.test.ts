@@ -15,6 +15,9 @@ describe('VALdi-introt', () => {
       expect(r.slut!).toBeGreaterThan(r.t)
       if (i > 0) expect(r.t).toBeGreaterThanOrEqual(INTRO_RADER[i - 1].slut!)
       expect(r.no).toBeTruthy()
+      // max 2 rader i undertextplattan (56ch)
+      expect(r.sv.length).toBeLessThanOrEqual(110)
+      expect(String(r.no).length).toBeLessThanOrEqual(110)
     })
   })
   it('kapitlen: öppning → fallet → klar, ett tryck hoppar framåt', () => {
