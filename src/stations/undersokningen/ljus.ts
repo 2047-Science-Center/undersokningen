@@ -17,31 +17,67 @@ export const FALT = 'B'
 export const BADA = [LABB, FALT]
 
 /**
- * Kanon → appens Sfx. Undersökningen har inga sfx-filer (P8) — allt är syntes.
- * TODO P1–P6 i XY-FEEDBACK-LJUS-LJUD §8: inom/over/forlust/klar/sista/stanger saknas som
- * egna ljud → närmaste befintliga Sfx som fallback tills de är producerade.
+ * Kanon-ljud med egen fil i public/Sound/sfx/ — P1–P6 i XY-FEEDBACK-LJUS-LJUD §8 plus
+ * `resultat` (d10-klar-resultat) och `neutral` (l9-stinger-neutral). Källa:
+ * xy-simulator/media/ljud/xy-ljud/sfx/feedback/ (README där: prompt, längd, LUFS).
+ * Motorns egna sampel (P8: sfx-confirm, sfx-deny, sfx-tick …) ligger i samma mapp.
  */
+export const LJUD_FIL: Partial<Record<LjudNamn, string>> = {
+  inom: 'sfx-inom.mp3',
+  over: 'sfx-over.mp3',
+  forlust: 'sfx-forlust.mp3',
+  klar: 'sfx-klar-lek.mp3',
+  sista: 'sfx-sista.mp3',
+  stanger: 'sfx-stanger.mp3',
+  resultat: 'sfx-resultat.mp3',
+  neutral: 'sfx-neutral.mp3',
+}
+
+/** Kanon → appens Sfx (för ljud med LJUD_FIL: reserv om filen inte kan spelas). */
 export const KANON_SFX: Record<LjudNamn, Sfx> = {
   kvitto: 'blip',
   'kvitto-fel': 'nobuy',
   ratt: 'confirm',
   fel: 'deny',
-  inom: 'confirm', // TODO P1 (XY-FEEDBACK-LJUS-LJUD §8)
-  over: 'deny', // TODO P2
+  inom: 'confirm',
+  over: 'deny',
   varning: 'tick',
-  sista: 'tickfinal', // TODO P5
+  sista: 'tickfinal',
   start: 'live',
   vinst: 'win',
-  forlust: 'deny', // TODO P3 (appen spelade redan 'deny' vid failed)
+  forlust: 'deny',
   neutral: 'nobuy',
-  klar: 'confirm', // TODO P4
+  klar: 'confirm',
   resultat: 'render',
   oppnar: 'hatch',
-  stanger: 'lockin', // TODO P6
+  stanger: 'lockin',
+}
+
+const filer = new Map<string, HTMLAudioElement>()
+
+/** Spela en fil ur public/Sound/sfx/ på motorns volym; nekas/saknas den → reserv-Sfx. */
+function spelaFil(fil: string, reserv: Sfx): void {
+  if (audio.muted) return
+  try {
+    let el = filer.get(fil)
+    if (!el) {
+      el = new Audio(import.meta.env.BASE_URL + 'Sound/sfx/' + fil)
+      el.preload = 'auto'
+      filer.set(fil, el)
+    }
+    const kopia = el.cloneNode() as HTMLAudioElement
+    kopia.volume = audio.volume
+    const p = kopia.play()
+    if (p) p.catch(() => audio.play(reserv))
+  } catch {
+    audio.play(reserv)
+  }
 }
 
 export function spela(namn: LjudNamn): void {
-  audio.play(KANON_SFX[namn])
+  const fil = LJUD_FIL[namn]
+  if (fil) spelaFil(fil, KANON_SFX[namn])
+  else audio.play(KANON_SFX[namn])
 }
 
 /* ---------------- skanningar (fältfönstret) ---------------- */
