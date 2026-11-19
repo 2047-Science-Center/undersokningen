@@ -371,7 +371,7 @@ export const ROLE_FLOW_ENABLED = false
  *
  * Klippen bor i undersokningen/assets/ (riktiga klipp, lagda av Josef) och
  * löses via Vite-glob nedan — matcha EXAKTA filnamn (å/ä/ö + mellanslag).
- * Rollerna Doktorand/Metodspecialist speglar stationens FÄLT/LABB.
+ * Rollerna (id metodspecialist/doktorand, visas som Labbtekniker/Forensiker) speglar stationens LABB/FÄLT.
  * ------------------------------------------------------------------ */
 
 /** Sätt false för att hoppa över hela rollvalet (appen kör utan det). */
@@ -400,18 +400,20 @@ export const ROLLVAL: RollvalConfig = {
   stationTitle: 'Undersökningen',
   intro: 'Två sätt att lösa ett fall ingen annan knäckt. Titta på hur en dag ser ut — välj sedan vilken du vill kliva in i.',
   question: 'Vilken av dem känns som du?',
+  // Ordning = roll A, roll B (som ENTRE.roles). Id:na (klippens/datans nycklar) är oförändrade; visningsnamnen
+  // är stationens: metodspecialist = Labbtekniker (sida A, LABB), doktorand = Forensiker (sida B, FÄLT). 2026-11-19.
   roles: [
     {
-      id: 'doktorand',
-      name: 'Doktorand',
-      tagline: 'Den som ställer frågorna och följer spåren.',
-      description: 'Nyfiken, tålmodig och vägrar nöja sig med första svaret. Det är den som ser mönstret ingen annan la märke till som för en utredning framåt.',
-    },
-    {
       id: 'metodspecialist',
-      name: 'Metodspecialist',
+      name: 'Labbtekniker',
       tagline: 'Den som vet exakt hur ett bevis ska läsas.',
       description: 'Behärskar instrumenten och arbetar med en noggrannhet som skiljer en gissning från ett svar. Utan metod är ett spår bara en känsla.',
+    },
+    {
+      id: 'doktorand',
+      name: 'Forensiker',
+      tagline: 'Den som ställer frågorna och följer spåren.',
+      description: 'Nyfiken, tålmodig och vägrar nöja sig med första svaret. Det är den som ser mönstret ingen annan la märke till som för en utredning framåt.',
     },
   ],
   clipSets: [
@@ -426,8 +428,8 @@ export const IDLE_RESTART = { minutes: 8, warnSeconds: 20 } as const
  * ENTRÉN (station-kit/entre, gemensam för st1–3): attract med testgrupp +
  * sidindelning → rollval-klippen → valet (person för person / RFID) →
  * ombalansering → "gå till sida A/B". SIDA = ROLL, fast här:
- *   sida A = lag1 = LABB  = Labbtekniker  (rollvalets Metodspecialist)
- *   sida B = lag2 = FÄLT  = Forensiker    (rollvalets Doktorand)
+ *   sida A = lag1 = LABB  = Labbtekniker  (roll-id metodspecialist — klippen heter "… metodspecialist.mp4")
+ *   sida B = lag2 = FÄLT  = Forensiker    (roll-id doktorand — klippen heter "… doktorand.mp4")
  * Röstläge: styrs av BANDLOST (ovan); voteMode gäller bara om BANDLOST inte skickas in. ?rost=rfid|skarm går före.
  * ------------------------------------------------------------------ */
 
@@ -439,7 +441,7 @@ export const ENTRE: EntreConfig = {
     {
       letter: 'A',
       rollvalRoleId: 'metodspecialist',
-      name: 'Metodspecialist',
+      name: 'Labbtekniker',
       titel: 'Labbtekniker',
       image: asset(ROLE_ATTRACT.labb.image),
       min: 1,
@@ -448,7 +450,7 @@ export const ENTRE: EntreConfig = {
     {
       letter: 'B',
       rollvalRoleId: 'doktorand',
-      name: 'Doktorand',
+      name: 'Forensiker',
       image: asset(ROLE_ATTRACT.falt.image),
       min: 1,
       subRoles: [
