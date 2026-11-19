@@ -2,7 +2,8 @@
 /**
  * LABBKONSOL (roll A). Mikroskopet överst; operatören FRYSER ett hårstrå →
  * stillbild → DRAR den till en av tre hårkategori-containrar. Placerade bilder
- * kan öppnas i helskärm. Coach-marks introducerar uppdraget vid live-start.
+ * kan öppnas i helskärm: TILLBAKA (ingen ändring) eller TA BORT BILDEN (ångra en
+ * sortering och skanna/sortera om). Coach-marks introducerar uppdraget vid live-start.
  *
  * Bilderna är LOKALA för labb-fönstret (skickas aldrig över reläet — tungt).
  */
@@ -27,7 +28,10 @@ interface Placed { id: string; src: string; category: HairClassId }
 let seq = 0
 const pending = ref<{ id: string; src: string } | null>(null)
 const placed = ref<Placed[]>([])
-const lightboxSrc = ref<string | null>(null)
+/** Placerad bild som visas i helskärm (null = stängd). */
+const visad = ref<Placed | null>(null)
+/** Etikett i helskärm: vilken korg bilden ligger i. */
+const visadKategori = computed(() => HAIR_CLASSES.find((c) => c.id === visad.value?.category)?.label ?? '')
 const scopeRef = ref<InstanceType<typeof Microscope> | null>(null)
 
 function onCapture(src: string): void {
@@ -41,6 +45,18 @@ function onGrab(e: PointerEvent): void {
 }
 function placedIn(cat: HairClassId): Placed[] {
   return placed.value.filter((p) => p.category === cat)
+}
+function stangBild(): void {
+  visad.value = null
+  store.notifyActivity()
+}
+/** Ångra en sortering: bilden tas bort ur sin korg. */
+function taBortBild(): void {
+  const id = visad.value?.id
+  if (id) placed.value = placed.value.filter((p) => p.id !== id)
+  visad.value = null
+  audio.play('nobuy') // mjuk sjunkande kvint, inte fel-surret
+  store.notifyActivity()
 }
 
 /* ---- pointer-drag (touch-vänligt, ingen HTML5 DnD) ---- */
@@ -109,6 +125,7 @@ watch(
     coachActive.value = false
     pending.value = null
     placed.value = []
+    visad.value = null
   },
 )
 </script>
@@ -142,7 +159,7 @@ watch(
         <div class="lab__class-grid">
           <button
             v-for="p in placedIn(c.id)" :key="p.id" class="lab__thumb" :title="t('lab.tap_fullscreen')"
-            @click="lightboxSrc = p.src"
+            @click="visad = p"
           >
             <img :src="p.src" alt="" />
           </button>
@@ -164,7 +181,14 @@ watch(
     </div>
 
     <CoachMarks :steps="coachSteps" :active="coachActive" @done="coachActive = false" />
-    <Lightbox :src="lightboxSrc" :label="t('lab.title')" @close="lightboxSrc = null" />
+    <Lightbox :src="visad?.src ?? null" :label="visadKategori" @close="stangBild">
+      <template #actions>
+        <button class="crt-button lab__lb-btn" @click="stangBild">{{ t('lab.photo_back') }}</button>
+        <button class="crt-button lab__lb-btn lab__lb-btn--del" @click="taBortBild">
+          <Icon name="close" :size="26" /> {{ t('lab.photo_delete') }}
+        </button>
+      </template>
+    </Lightbox>
   </div>
 </template>
 
@@ -186,9 +210,9 @@ watch(
 .lab__class-head { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; text-align: center; }
 .lab__class-label { font-family: var(--font-retro); font-size: 1.15rem; letter-spacing: 0.04em; }
 .lab__class-text { font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-ink-muted); }
-.lab__class-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 4.5rem; align-content: flex-start; justify-content: center; }
+.lab__class-grid { display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 4.5rem; max-height: 7.6rem; overflow-y: auto; align-content: flex-start; justify-content: center; }
 .lab__thumb {
-  width: 3.1rem; height: 2.4rem; padding: 0; border: 1px solid var(--color-primary-dim); border-radius: 5px;
+  width: 4.6rem; height: 3.5rem; padding: 0; border: 1px solid var(--color-primary-dim); border-radius: 5px;
   overflow: hidden; cursor: pointer; background: #000; transition: transform 0.14s var(--ease-out);
   opacity: 0; transform: scale(0.9); animation: thumb-in 220ms var(--ease-out) forwards;
 }
@@ -211,6 +235,9 @@ watch(
 }
 .lab__verdict-big { margin: 0; font-size: clamp(1.6rem, 4vw, 2.6rem); letter-spacing: 0.05em; text-shadow: var(--glow-strong); }
 .lab__verdict-sub { margin: 0; font-family: var(--font-mono); color: var(--color-ink-muted); max-width: 34ch; }
+
+.lab__lb-btn { display: inline-flex; align-items: center; gap: 0.5rem; font-size: clamp(1.2rem, 2.6vw, 1.8rem); padding: 0.8em 1.6em; min-width: 12rem; justify-content: center; }
+.lab__lb-btn--del { color: var(--color-danger); border-color: var(--color-danger); }
 
 @media (prefers-reduced-motion: reduce) {
   .lab__thumb { animation: none; opacity: 1; transform: none; }

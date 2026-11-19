@@ -59,6 +59,8 @@ export const sv: Record<string, string> = {
   'lab.help_other': 'När håren är sorterade — hjälp fältet att peka ut tjuven med det ni vet.',
   'lab.empty_class': 'släpp bilder här',
   'lab.tap_fullscreen': 'Klicka för helskärm',
+  'lab.photo_back': '◂ TILLBAKA',
+  'lab.photo_delete': 'TA BORT BILDEN',
 
   // --- Fallbrief (intro) ---
   'brief.title': 'STÖLD I VALVET',
@@ -69,6 +71,8 @@ export const sv: Record<string, string> = {
   'verdict.hint': 'Nu gissar ni — markera en person och bekräfta. Ett enda utpekande.',
   'verdict.confirm': 'PEKA UT {name} ▸',
   'verdict.pick_first': 'Markera en person först',
+  'verdict.back': '◂ UNDERSÖK MER',
+  'verdict.none_scanned': 'Ni hann inte skanna någon. Välj bland alla som var i valvet.',
   'verdict.win_title': 'FALLET LÖST',
   'verdict.lost_title': 'SPÅRET KALLNADE',
   'verdict.win_sub': 'Rätt person. Tjuven är gripen.',

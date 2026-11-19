@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { initialState, reduce, scanCountOf, repeatSuspects, stateSignal, type Action } from './gameEngine'
+import { initialState, reduce, adoptRemote, scanCountOf, repeatSuspects, stateSignal, type Action } from './gameEngine'
 import { roundScore } from './scoring'
 import type { GameState, Person, Role, ValvId } from './types'
 
@@ -70,6 +70,46 @@ describe('verdikt (ett utpekande i slutet)', () => {
   it('select utanför verdict ignoreras', () => {
     const base = started()
     expect(reduce(base, { type: 'selectThief', personId: 'ravi' })).toBe(base)
+  })
+})
+
+describe('verdikt utan återvändsgränd', () => {
+  it('closeVerdict → tillbaka till utredningen, valet nollat', () => {
+    const v = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'maj' }, { type: 'closeVerdict' }], started())
+    expect(v.phase).toBe('investigate')
+    expect(v.verdictPick).toBeNull()
+    expect(run([{ type: 'openVerdict' }], v).phase).toBe('verdict')
+  })
+  it('closeVerdict utanför verdict ignoreras', () => {
+    const base = started()
+    expect(reduce(base, { type: 'closeVerdict' })).toBe(base)
+  })
+})
+
+describe('synk mellan skärmarna', () => {
+  it('lika version: ledaren vinner, följaren vinner inte', () => {
+    const base = started()
+    const ledarens = run([{ type: 'openVerdict' }], base)
+    const foljarens = run([{ type: 'markSuspect', personId: 'ravi', suspect: true }], base)
+    expect(ledarens.version).toBe(foljarens.version)
+    expect(reduce(foljarens, { type: 'sync', state: ledarens, fromLeader: true })).toBe(ledarens)
+    expect(reduce(ledarens, { type: 'sync', state: foljarens, fromLeader: false })).toBe(ledarens)
+  })
+  it('inom samma runda vinner högre version, oavsett skärm', () => {
+    const base = started()
+    const fram = run([{ type: 'scanSpot', spotId: 's1', person: 'ravi' }], base)
+    expect(adoptRemote(base, fram, false)).toBe(true)
+    expect(adoptRemote(fram, base, true)).toBe(false)
+  })
+  it('ny runda från ledaren tas in även om följaren har högre version (missad nollställning)', () => {
+    let gammal = reduce(initialState(roster), { type: 'start', thiefId: 'ravi', runda: 1 })
+    gammal = run([{ type: 'scanSpot', spotId: 's1', person: 'ravi' }, { type: 'openVerdict' }, { type: 'selectThief', personId: 'ravi' }, { type: 'confirmThief' }], gammal)
+    const ny = reduce(initialState(roster), { type: 'start', thiefId: 'ravi', runda: 2 })
+    expect(gammal.version).toBeGreaterThan(ny.version)
+    expect(adoptRemote(gammal, ny, true)).toBe(true)
+    expect(reduce(gammal, { type: 'sync', state: ny, fromLeader: true }).phase).toBe('investigate')
+    // …men en gammal runda från följaren skriver aldrig över ledarens nya
+    expect(adoptRemote(ny, gammal, false)).toBe(false)
   })
 })
 
