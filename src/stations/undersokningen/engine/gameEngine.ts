@@ -53,6 +53,9 @@ export type Action =
   | { type: 'closeVerdict' }
   | { type: 'selectThief'; personId: string }
   | { type: 'confirmThief' }
+  /** Tiden ute + verdiktets frist slut (XY-RESULTAT-OCH-VINST §2.3): markerad → pekas ut,
+   *  ingen markerad → misslyckat utan utpekande. Stationen kan inte låsa sig före done. */
+  | { type: 'timeoutVerdict' }
   | { type: 'reset'; members?: Record<ValvId, Person[]> }
   | { type: 'sync'; state: GameState; fromLeader?: boolean }
 
@@ -153,6 +156,16 @@ export function reduce(state: GameState, action: Action): GameState {
         next.phase = 'failed'
         next.outcome = 'lost'
       }
+      next.version += 1
+      return next
+    }
+
+    case 'timeoutVerdict': {
+      if (state.phase !== 'verdict') return state
+      if (state.verdictPick) return reduce(state, { type: 'confirmThief' })
+      const next = clone(state)
+      next.phase = 'failed'
+      next.outcome = 'lost'
       next.version += 1
       return next
     }

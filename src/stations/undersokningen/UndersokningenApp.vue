@@ -24,6 +24,7 @@ import FacilitatorControls from './components/FacilitatorControls.vue'
 import Onboarding from './onboarding/Onboarding.vue'
 import RotationScreens from '@/station-kit/rotation/RotationScreens.vue'
 import { initRotation, rotationOptions } from '@/station-kit/rotation/rotation'
+import { initResultat, resultatOptions } from '@/station-kit/resultat'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import VadArDetLek from './lek/VadArDetLek.vue'
@@ -45,6 +46,11 @@ const showGoLive = ref(false)
 //     + sidindelningen, sedan rollval-klipp → valet → ombalansering → "gå till sida A/B".
 //     Sida A = lag1 = LABB, sida B = lag2 = FÄLT (config ENTRE). ---
 const rotation = initRotation(rotationOptions(ROTATION))
+// Resultatet ut (station-kit/resultat): på när rotationen är på, överstyrs med ?result=1|0 / VITE_RESULT.
+{
+  const rot = rotationOptions(ROTATION)
+  initResultat(resultatOptions({ stationN: ROTATION.stationN, enabled: rot.enabled, mqttUrl: rot.mqttUrl }))
+}
 const entre = initEntre({
   stationN: ROTATION.stationN,
   config: ENTRE,

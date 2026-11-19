@@ -12,14 +12,16 @@
  * Får aldrig bli en återvändsgränd: galleriet är aldrig tomt (inget skannat → alla som var i
  * valvet), och medan tiden räcker kan man gå tillbaka till utredningen.
  */
-import { computed, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { personById, PERSONS, THIEF_ID } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Placeholder from './Placeholder.vue'
 import Icon from './Icon.vue'
 import { useRotation } from '@/station-kit/rotation/rotation'
-import { useResultatTid } from '@/station-kit/ljus'
+import { useLjus } from '@/station-kit/ljus'
+import { AvslutRuta, useAvslut, spelaAvslutLjud, AVSLUT_LJUD } from '@/station-kit/resultat'
+import { BADA } from '../ljus'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -42,36 +44,119 @@ function onAgain(): void {
   if (!rotation.finishSkarp()) store.reset()
 }
 
-const rt = useResultatTid({ onAuto: () => store.leader && onAgain() })
-const kanGaVidare = rt.kanGaVidare
-watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
+/*
+ * Avslutet (station-kit/resultat, XY-RESULTAT-OCH-VINST §2.3): båda skärmarna kör samma takter
+ * när utfallet kommer. Uppbyggnad "NI PEKAR UT …" → spänning → stämpeln SKYLDIG/OSKYLDIG.
+ * Fel → en andra, kortare spänning → "DEN RIKTIGA TJUVEN VAR …" + tjuven. Ljus + ljud: bara
+ * ledaren (ljusets skrivare, en ljudkälla). Auto-vidare efter 45 s (ledaren) = done → lek.
+ */
+const ljus = useLjus()
+const tjuvSynlig = ref(false)
+let tjuvTimer: ReturnType<typeof setTimeout> | null = null
+const rattPekad = computed(() => won.value)
+const ingenPekad = computed(() => !picked.value)
+
+const avslut = useAvslut({
+  ljud: () => store.leader,
+  ljus: { skrivare: () => store.leader, ids: BADA },
+  onAvslojande: () => {
+    if (!store.leader) return
+    const u = won.value ? 'vinst' : 'forlust'
+    ljus.utfall(u, BADA, { tyst: true })
+    setTimeout(() => ljus.ljud(u), 650) // efter slaget, aldrig samtidigt
+  },
+  onTakt: (takt) => {
+    if (takt === 'avslojande') tjuvSynlig.value = won.value || ingenPekad.value
+    if (takt === 'utfall' && !won.value && !ingenPekad.value) {
+      // Andra spänningen: vem var det då?
+      if (store.leader) spelaAvslutLjud(AVSLUT_LJUD.virvelKort)
+      tjuvTimer = setTimeout(() => {
+        tjuvSynlig.value = true
+        if (store.leader) spelaAvslutLjud(AVSLUT_LJUD.avslojande)
+      }, 1300)
+    }
+  },
+  onAuto: () => {
+    if (store.leader) onAgain()
+  },
+})
+const takt = avslut.takt
+const kanGaVidare = avslut.kanGaVidare
+
+watch(
+  done,
+  (d) => {
+    if (tjuvTimer) clearTimeout(tjuvTimer)
+    tjuvSynlig.value = false
+    if (d) avslut.start()
+    else avslut.aterstall()
+  },
+  { immediate: true },
+)
+onBeforeUnmount(() => {
+  if (tjuvTimer) clearTimeout(tjuvTimer)
+})
+
+const uppText = computed(() =>
+  pickedPerson.value ? t('verdict.upp_pick', { name: pickedPerson.value.name.toUpperCase() }) : t('verdict.upp_none'),
+)
+const rubrik = computed(() => (won.value ? t('verdict.win_title') : t('verdict.lost_title')))
+const underrubrik = computed(() => {
+  if (won.value && thief.value) return t('verdict.win_who', { name: thief.value.name })
+  if (ingenPekad.value) return t('verdict.none_sub')
+  return ''
+})
+const rad = computed(() => (won.value ? t('verdict.win_rad') : ingenPekad.value ? '' : t('verdict.lost_sub')))
+const knapp = computed(() => (inRotation.value ? t('verdict.vidare') : store.leader ? t('verdict.again') : null))
 </script>
 
 <template>
   <div class="vd">
-    <!-- Utfall -->
-    <template v-if="done">
-      <Icon :name="won ? 'check' : 'exponering'" :size="48" />
-      <h1 class="vd__title" :class="won ? 'vd__title--win' : 'vd__title--lost'">
-        {{ won ? t('verdict.win_title') : t('verdict.lost_title') }}
-      </h1>
-      <p class="vd__sub">{{ won ? t('verdict.win_sub') : t('verdict.lost_sub') }}</p>
-      <div v-if="thief" class="vd__thief amber-frame">
-        <Placeholder class="vd__thief-photo" :path="thief.image" :label="thief.name" />
-        <div>
-          <span class="vd__thief-eyebrow">{{ t('verdict.the_thief_was') }}</span>
-          <span class="vd__thief-name ink-strong">{{ thief.name }}</span>
-          <span class="vd__thief-clothing">{{ thief.clothing }} · {{ thief.hair }}</span>
+    <!-- Utfall: avslutets takter (station-kit/resultat) -->
+    <AvslutRuta
+      v-if="done"
+      :takt="takt"
+      :typ="won ? 'klarat' : 'missat'"
+      :uppbyggnad="uppText"
+      :spanning="t('verdict.spanning')"
+      :rubrik="rubrik"
+      :underrubrik="underrubrik"
+      :rad="rad"
+      :knapp="knapp"
+      :vanta="t('common.waiting')"
+      :kan-ga-vidare="kanGaVidare"
+      @vidare="onAgain"
+    >
+      <template #fore>
+        <div v-if="pickedPerson" class="vd__pekad amber-frame">
+          <Placeholder class="vd__pekad-photo" :path="pickedPerson.image" :label="pickedPerson.name" />
         </div>
-      </div>
-      <button v-if="store.leader || inRotation" class="crt-button crt-button--strong" :disabled="!kanGaVidare" @click="onAgain">
-        {{ inRotation ? 'Vi är klara ▸' : t('verdict.again') }}
-      </button>
-      <p v-else class="vd__wait">{{ t('common.waiting') }}</p>
-    </template>
+        <p v-else class="vd__sub">{{ t('verdict.upp_none_sub') }}</p>
+      </template>
+      <template #media>
+        <div v-if="pickedPerson" class="vd__pekad amber-frame" :class="rattPekad ? 'vd__pekad--ratt' : 'vd__pekad--fel'">
+          <Placeholder class="vd__pekad-photo" :path="pickedPerson.image" :label="pickedPerson.name" />
+          <span class="vd__stampel">{{ rattPekad ? t('verdict.skyldig') : t('verdict.oskyldig') }}</span>
+          <span class="vd__pekad-name ink-strong">{{ pickedPerson.name }}</span>
+        </div>
+      </template>
+      <template #detalj>
+        <div v-if="!rattPekad" class="vd__real">
+          <p class="vd__real-eyebrow">{{ t('verdict.real_thief') }}</p>
+          <div v-if="thief && tjuvSynlig" class="vd__thief amber-frame vd__thief--in">
+            <Placeholder class="vd__thief-photo" :path="thief.image" :label="thief.name" />
+            <div>
+              <span class="vd__thief-eyebrow">{{ t('verdict.the_thief_was') }}</span>
+              <span class="vd__thief-name ink-strong">{{ thief.name }}</span>
+              <span class="vd__thief-clothing">{{ thief.clothing }} · {{ thief.hair }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </AvslutRuta>
 
     <!-- Val -->
-    <template v-else>
+    <template v-if="!done">
       <h1 class="vd__title">{{ t('verdict.title') }}</h1>
       <p class="vd__sub">{{ ingenSkannad ? t('verdict.none_scanned') : t('verdict.hint') }}</p>
       <div class="vd__grid">
@@ -128,5 +213,21 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
 .vd__thief-name { font-size: 1.6rem; }
 .vd__thief-clothing { font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-ink-muted); }
 .vd__wait { font-family: var(--font-mono); color: var(--color-ink-muted); }
+/* Avslutet: personen gruppen pekade ut + stämpeln, sedan (vid fel) den riktiga tjuven */
+.vd__pekad { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.4rem; padding: 0.6rem; background: var(--color-background-2); }
+.vd__pekad-photo { width: clamp(10rem, 20vw, 15rem); aspect-ratio: 4 / 3; }
+.vd__pekad-name { font-family: var(--font-mono); font-weight: 600; }
+.vd__stampel {
+  position: absolute; top: 38%; left: 50%; transform: translate(-50%, -50%) rotate(-12deg);
+  padding: 0.15rem 0.9rem; border: 4px solid currentColor; border-radius: 6px;
+  font-family: var(--font-retro); font-size: clamp(2.2rem, 4.4vw, 3.6rem); letter-spacing: 0.08em;
+  background: rgba(5, 16, 11, 0.55); animation: vd-stampel 0.32s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.vd__pekad--ratt .vd__stampel { color: #4fd14f; }
+.vd__pekad--fel .vd__stampel { color: var(--color-danger); }
+@keyframes vd-stampel { from { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(1.8); } }
+.vd__real { display: flex; flex-direction: column; align-items: center; gap: 0.4rem; min-height: 9rem; }
+.vd__real-eyebrow { margin: 0; font-family: var(--font-retro); font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--color-primary); }
+.vd__thief--in { animation: vd-rise 420ms var(--ease-out) both; opacity: 0; transform: translateY(8px); }
 @media (prefers-reduced-motion: reduce) { .vd__card { animation: none; opacity: 1; transform: none; } }
 </style>

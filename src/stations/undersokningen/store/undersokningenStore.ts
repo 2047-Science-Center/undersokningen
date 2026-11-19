@@ -12,6 +12,7 @@ import type { TransportMessage } from '@/station-kit/adapters/transport/Transpor
 import type { ResultPayload } from '@/station-kit/adapters/result/ResultSink'
 import { tagResult } from '@/station-kit/rotation/rotation'
 import { useLjus } from '@/station-kit/ljus'
+import { skickaResultat } from '@/station-kit/resultat'
 
 import {
   config,
@@ -30,7 +31,7 @@ import type { GameState, Person } from '../engine/types'
 import { personResults, roundScore } from '../engine/scoring'
 import { createSeam, type Seam } from '../seam/createSeam'
 import type { ScanEvent } from '../seam/Scan'
-import { BADA, klassaScan, scanFeedback, utfallVid } from '../ljus'
+import { BADA, klassaScan, scanFeedback } from '../ljus'
 
 export type ViewSide = ValvId | 'shared'
 export type OnbStage = 'tutorial' | 'live'
@@ -72,7 +73,6 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   const mqttOn = ref(false)
   const timerEndsAt = ref<number | null>(null)
 
-  let prevPhase: GameState['phase'] | null = null
   let resultSent = false
   let timer: ReturnType<typeof setInterval> | null = null
 
@@ -89,19 +89,17 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   function applyEffects(): void {
     const s = state.value
     // Skanningens ljud + ljus sker i scanSpot (fältfönstret, där skanningen händer).
-    // Utfallet (vinst/förlust) ses av BÅDA fönstren via snapshot → bara ledaren (= ljusets
-    // skrivare, äger den retained basen) tänder det + spelar ljudet — exakt en gång.
-    const u = utfallVid(prevPhase, s.phase)
-    if (u && leader.value) ljus.utfall(u, BADA)
+    // Utfallets ljus + ljud sätts i avslutets avslöjande-takt (VerdictScreen, bara ledaren),
+    // inte här — så att uppbyggnaden och spänningen hinner före (XY-RESULTAT-OCH-VINST §2.3).
 
     seam.value?.state.set(stateSignal(s))
+    // Resultatet låses när utfallet kommer: bara ledaren skickar, en gång (station-kit/resultat).
     if ((s.phase === 'solved' || s.phase === 'failed') && !resultSent) {
       resultSent = true
-      seam.value?.result.send(tagResult(buildResultPayload()))
+      skickaResultat(tagResult(buildResultPayload()), { ledare: leader.value, reserv: seam.value?.result })
     }
     if (s.phase !== 'solved' && s.phase !== 'failed') resultSent = false
 
-    prevPhase = s.phase
   }
 
   function plainState(): GameState {
@@ -375,6 +373,15 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
       if (leader.value && state.value.phase === 'investigate' && timerEndsAt.value && now.value >= timerEndsAt.value) {
         dispatch({ type: 'openVerdict' })
         ljus.gest('stanger', BADA) // tiden ute → utredningen stängs
+      }
+      // Verdiktets frist ute → avgör (markerad pekas ut, annars utan utpekande). Låser sig aldrig.
+      if (
+        leader.value &&
+        state.value.phase === 'verdict' &&
+        timerEndsAt.value &&
+        now.value >= timerEndsAt.value + config.verdictGraceSeconds * 1000
+      ) {
+        dispatch({ type: 'timeoutVerdict' })
       }
       if (leader.value && sessionActive.value && IDLE_MS > 0 && now.value - lastActivityAt.value >= IDLE_MS) {
         doReset(true)
