@@ -5,7 +5,7 @@
  * tutorial, orange skarpt. Timer syns under fallet; verdikt pekas ut på fält-skärmen.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { config, ROLLVAL, ENTRE, SIDE_TO_VALV, MISSIONS, ROLE_ATTRACT, MUSIC, ROTATION, LJUS, asset, type RoleId } from '@/config'
+import { config, ROLLVAL, ENTRE, BANDLOST, SIDE_TO_VALV, MISSIONS, ROLE_ATTRACT, MUSIC, ROTATION, LJUS, asset, type RoleId } from '@/config'
 import { useStationMode } from '@/station-kit/mode/useStationMode'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
@@ -43,7 +43,12 @@ const showGoLive = ref(false)
 //     + sidindelningen, sedan rollval-klipp → valet → ombalansering → "gå till sida A/B".
 //     Sida A = lag1 = LABB, sida B = lag2 = FÄLT (config ENTRE). ---
 const rotation = initRotation(rotationOptions(ROTATION))
-const entre = initEntre({ stationN: ROTATION.stationN, config: ENTRE, mqttUrl: rotationOptions(ROTATION).mqttUrl })
+const entre = initEntre({
+  stationN: ROTATION.stationN,
+  config: ENTRE,
+  mqttUrl: rotationOptions(ROTATION).mqttUrl,
+  bandlost: BANDLOST,
+})
 const entreDone = computed(() => entre.state.step === 'klar')
 
 // --- Stationsljuset (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD §5.3): samma broker som rotationen.
