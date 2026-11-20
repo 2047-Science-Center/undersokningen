@@ -95,6 +95,24 @@ describe('loggkoppling (fält kopplar person → loggrader)', () => {
   })
 })
 
+describe('hårmatchning (labbet matchar människohår mot en misstänkt)', () => {
+  it('en enda matchning; ny ersätter gammal; null avmarkerar', () => {
+    let s = run([{ type: 'matchHair', personId: 'maj' }], started())
+    expect(s.hairMatch).toBe('maj')
+    s = reduce(s, { type: 'matchHair', personId: 'ravi' })
+    expect(s.hairMatch).toBe('ravi')
+    expect(reduce(s, { type: 'matchHair', personId: 'ravi' })).toBe(s)
+    expect(reduce(s, { type: 'matchHair', personId: null }).hairMatch).toBeNull()
+  })
+  it('går i verdiktet men inte efter utfallet; nollställs vid ny runda', () => {
+    const v = run([{ type: 'openVerdict' }, { type: 'matchHair', personId: 'ravi' }], started())
+    expect(v.hairMatch).toBe('ravi')
+    const klar = run([{ type: 'selectThief', personId: 'ravi' }, { type: 'confirmThief' }], v)
+    expect(reduce(klar, { type: 'matchHair', personId: 'maj' })).toBe(klar)
+    expect(reduce(v, { type: 'start', thiefId: 'ravi' }).hairMatch).toBeNull()
+  })
+})
+
 describe('verdikt utan återvändsgränd', () => {
   it('closeVerdict → tillbaka till utredningen, valet nollat', () => {
     const v = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'maj' }, { type: 'closeVerdict' }], started())

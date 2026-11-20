@@ -38,7 +38,7 @@ const galleri = computed(() => (ingenSkannad.value ? PERSONS.map((p) => ({ ...p,
 const kanGaTillbaka = computed(() => store.secondsLeft > 0)
 /** Helskärm: bläddra mellan de misstänkta (med fältets loggkoppling) innan man väljer. */
 const visas = ref<number | null>(null)
-const visade = computed(() => galleri.value.map((p) => ({ ...p, tider: tiderFor(store.linksFor(p.id)) })))
+const visade = computed(() => galleri.value.map((p) => ({ ...p, tider: tiderFor(store.linksFor(p.id)), har: store.hairMatch === p.id })))
 function valj(id: string): void {
   store.selectThief(id)
   visas.value = null
@@ -96,6 +96,7 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
           <span class="vd__card-clothing">{{ p.clothing }}</span>
           <span v-if="!ingenSkannad" class="vd__card-prints mono"><Icon name="finger" :size="13" /> {{ t('falt.prints_count', { n: p.count }) }}</span>
           <span v-if="visade[i]?.tider" class="vd__card-prints mono"><Icon name="logg" :size="13" /> {{ visade[i].tider }}</span>
+          <span v-if="visade[i]?.har" class="vd__card-har mono"><Icon name="mikroskop" :size="13" /> {{ t('falt.hair_match') }}</span>
         </button>
       </div>
       <PersonViewer :personer="visade" :index="visas" @update:index="visas = $event" @close="visas = null">
@@ -137,6 +138,7 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
 .vd__card-prints { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; color: var(--color-primary); }
 .vd__actions { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 0.4rem; }
 .vd__confirm { font-size: 1.3rem; }
+.vd__card-har { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; color: var(--color-ink-strong); background: rgba(var(--mode-accent-rgb), 0.3); border-radius: 4px; padding: 0 0.3em; align-self: flex-start; }
 .vd__pick { font-size: clamp(1.2rem, 2.6vw, 1.7rem); padding: 0.7em 1.6em; }
 .vd__timeup { margin: 0; font-family: var(--font-mono); font-size: clamp(1rem, 2vw, 1.3rem); color: var(--color-primary); }
 .vd__back { font-size: 1.1rem; }

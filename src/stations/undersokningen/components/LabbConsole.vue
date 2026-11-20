@@ -5,15 +5,15 @@
  * kan öppnas i helskärm: TILLBAKA (ingen ändring) eller TA BORT BILDEN (ångra en
  * sortering och skanna/sortera om). Coach-marks introducerar uppdraget vid live-start.
  *
- * Maddes test 2026-11-20: labbet blev klart långt före fältet. Därför: "VI ÄR KLARA" → GRANSKA —
- * jämför era bilder med kända prov (REF_HAR), flytta/ta bort, eller skanna fler. Vid verdiktet
- * visar labbet de misstänkta (helskärm, bläddra) bredvid sina människohår, så att båda sidor kan
- * jämföra innan fältet pekar ut tjuven.
+ * Maddes test 2026-11-20 (labbet blev klart långt före fältet) → labbets ANDRA uppgift:
+ * "FÄLTETS MISSTÄNKTA" fylls på live när fältet markerar någon. Labbet jämför sina människohår med
+ * de misstänkta och markerar EN matchning (hår ↔ misstänkt), som synkas till fältet. En egen bild i
+ * helskärm visar också kända prov (REF_HAR) som stöd när man flyttar den mellan korgarna.
  *
  * Bilderna är LOKALA för labb-fönstret (skickas aldrig över reläet — tungt).
  */
 import { ref, computed, watch, onMounted } from 'vue'
-import { HAIR_CLASSES, PERSONS, REF_HAR, asset, type HairClassId } from '@/config'
+import { HAIR_CLASSES, REF_HAR, asset, type HairClassId } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { useLjus } from '@/station-kit/ljus'
@@ -21,10 +21,8 @@ import { LABB } from '../ljus'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Microscope from './Microscope.vue'
 import Icon from './Icon.vue'
-import Lightbox from './Lightbox.vue'
 import CoachMarks from './CoachMarks.vue'
 import MissionBox from './MissionBox.vue'
-import PersonViewer from './PersonViewer.vue'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -37,19 +35,6 @@ const placed = ref<Placed[]>([])
 /** Placerad bild som visas i helskärm (null = stängd). */
 const visad = ref<Placed | null>(null)
 const klassNamn = (id: HairClassId | undefined) => HAIR_CLASSES.find((c) => c.id === id)?.label ?? ''
-/** Sortera (mikroskopet) eller granska (jämför med kända prov) — efter "VI ÄR KLARA". */
-const lage = ref<'sortera' | 'granska'>('sortera')
-function klara(): void {
-  lage.value = 'granska'
-  audio.play('confirm')
-  store.notifyActivity()
-}
-function skannaFler(): void {
-  lage.value = 'sortera'
-  store.notifyActivity()
-}
-/** Referensbild i helskärm (kända prov). */
-const refVisad = ref<{ image: string; label: string } | null>(null)
 /** Flytta en placerad bild till en annan korg (efter jämförelsen). */
 function flytta(cat: HairClassId): void {
   const v = visad.value
@@ -60,9 +45,48 @@ function flytta(cat: HairClassId): void {
   useLjus().gest('kvitto', [LABB], { tyst: true })
   store.notifyActivity()
 }
-/* ---- verdikt: jämför människohåren med de misstänkta ---- */
-const misstankta = computed(() => (store.revealedPersons.length ? store.revealedPersons : PERSONS.map((p) => ({ ...p, count: 0 }))))
-const personVisas = ref<number | null>(null)
+/* ---- fältets misstänkta: jämför människohåren och markera EN matchning ---- */
+const manniskohar = computed(() => placedIn('manniska'))
+/** Senast inkomna misstänkta pulserar en stund (fältet har just markerat hen). */
+const ny = ref<string | null>(null)
+let nyTimer: ReturnType<typeof setTimeout> | null = null
+watch(
+  () => store.suspects.map((p) => p.id),
+  (nu, fore) => {
+    const tillkom = nu.find((id) => !(fore ?? []).includes(id))
+    if (!tillkom || !fore) return
+    ny.value = tillkom
+    audio.play('popup')
+    if (nyTimer) clearTimeout(nyTimer)
+    nyTimer = setTimeout(() => (ny.value = null), 2600)
+  },
+)
+/** Misstänkt som jämförs just nu (helskärm) + vald hårbild i jämförelsen. */
+const jamfor = ref<string | null>(null)
+const jamforPerson = computed(() => store.suspects.find((p) => p.id === jamfor.value) ?? null)
+const valdBild = ref<string | null>(null)
+/** Vilken av labbets bilder matchningen gjordes med (lokalt — bilderna lämnar inte labbet). */
+const matchBild = ref<string | null>(null)
+function oppnaJamfor(id: string): void {
+  jamfor.value = id
+  valdBild.value = store.hairMatch === id ? matchBild.value : null
+  store.notifyActivity()
+}
+function matcha(): void {
+  if (!jamfor.value || !valdBild.value) return
+  store.matchHair(jamfor.value)
+  matchBild.value = valdBild.value
+  jamfor.value = null
+  audio.play('confirm')
+  useLjus().gest('kvitto', [LABB], { tyst: true })
+}
+function avmatcha(): void {
+  store.matchHair(null)
+  matchBild.value = null
+  jamfor.value = null
+  audio.play('nobuy')
+}
+const matchadBildSrc = computed(() => placed.value.find((p) => p.id === matchBild.value)?.src ?? null)
 const scopeRef = ref<InstanceType<typeof Microscope> | null>(null)
 
 function onCapture(src: string): void {
@@ -157,9 +181,10 @@ watch(
     pending.value = null
     placed.value = []
     visad.value = null
-    lage.value = 'sortera'
-    refVisad.value = null
-    personVisas.value = null
+    jamfor.value = null
+    valdBild.value = null
+    matchBild.value = null
+    ny.value = null
   },
 )
 </script>
@@ -174,38 +199,32 @@ watch(
           <p class="lab__sub">{{ t('role.labb') }} · {{ t('valv.syd') }}</p>
         </div>
       </div>
-      <div class="lab__head-right">
-        <MissionBox role="labb" />
-        <div v-if="lage === 'sortera' && placed.length" class="lab__done-wrap">
-          <span class="lab__done-hint">{{ t('lab.done_hint') }}</span>
-          <button class="crt-button crt-button--strong lab__done" @click="klara">{{ t('lab.done') }}</button>
-        </div>
-        <button v-else-if="lage === 'granska'" class="crt-button lab__done" @click="skannaFler">{{ t('lab.review_rescan') }}</button>
-      </div>
+      <MissionBox role="labb" />
     </header>
 
-    <!-- Mikroskopet ligger kvar monterat (kameran startar inte om) men döljs medan man granskar -->
-    <Microscope v-show="lage === 'sortera'" ref="scopeRef" class="lab__scope" data-coach="scope" @capture="onCapture" @grab="onGrab" />
+    <div class="lab__mid">
+      <Microscope ref="scopeRef" class="lab__scope" data-coach="scope" @capture="onCapture" @grab="onGrab" />
 
-    <!-- GRANSKA: kända prov att jämföra med -->
-    <section v-if="lage === 'granska'" class="lab__review amber-frame">
-      <div class="lab__review-head">
-        <span class="lab__review-title">{{ t('lab.review_title') }}</span>
-        <span class="lab__review-hint">{{ t('lab.review_hint') }}</span>
-      </div>
-      <div class="lab__ref-cols">
-        <div v-for="c in HAIR_CLASSES" :key="c.id" class="lab__ref-col">
-          <span class="lab__ref-label ink-strong"><Icon :name="c.icon" :size="18" /> {{ c.label }}</span>
-          <span class="lab__class-text">{{ c.text }}</span>
-          <div class="lab__ref-row">
-            <button v-for="r in REF_HAR[c.id]" :key="r.image" class="lab__ref" :title="r.label" @click="refVisad = r">
-              <img :src="asset(r.image)" :alt="r.label" />
-              <span class="lab__ref-cap mono">{{ r.label }}</span>
-            </button>
-          </div>
+      <!-- FÄLTETS MISSTÄNKTA (live): jämför människohåren med dem, markera EN matchning -->
+      <aside class="lab__susp amber-frame">
+        <span class="lab__susp-title"><Icon name="person" :size="16" /> {{ t('lab.susp_title') }}</span>
+        <p class="lab__susp-hint">{{ store.suspects.length ? t('lab.susp_hint') : t('lab.susp_empty') }}</p>
+        <div class="lab__susp-list">
+          <button
+            v-for="p in store.suspects" :key="p.id" class="lab__susp-card"
+            :class="{ 'lab__susp-card--ny': ny === p.id, 'lab__susp-card--match': store.hairMatch === p.id }"
+            @click="oppnaJamfor(p.id)"
+          >
+            <img :src="asset(p.image)" :alt="p.name" />
+            <span class="lab__susp-name ink-strong">{{ p.name }}</span>
+            <span v-if="store.hairMatch === p.id" class="lab__susp-tag mono">
+              <img v-if="matchadBildSrc" :src="matchadBildSrc" alt="" class="lab__susp-hair" />✓ {{ t('lab.match_tag') }}
+            </span>
+            <span v-else class="lab__susp-cta mono">{{ t('lab.match_cta') }}</span>
+          </button>
         </div>
-      </div>
-    </section>
+      </aside>
+    </div>
 
     <!-- Tre hårkategori-containrar (drop-mål) — dra provet hit från mikroskopet -->
     <section class="lab__classes" data-coach="categories">
@@ -230,23 +249,50 @@ watch(
       </div>
     </section>
 
-    <!-- Vid verdikt: jämför människohåren med de misstänkta innan fältet pekar ut tjuven -->
-    <div v-if="verdicting" class="lab__verdict">
-      <p class="lab__verdict-big">{{ t('lab.verdict_title') }}</p>
-      <p class="lab__verdict-sub">{{ t('lab.verdict_hint') }}</p>
-      <div class="lab__vd-persons">
-        <button v-for="(p, i) in misstankta" :key="p.id" class="lab__vd-person amber-frame" @click="personVisas = i">
-          <img :src="asset(p.image)" :alt="p.name" />
-          <span class="lab__vd-name ink-strong">{{ p.name }}</span>
-        </button>
-      </div>
-      <span class="lab__vd-label">{{ t('lab.verdict_hair') }}</span>
-      <div class="lab__vd-hair">
-        <button v-for="p in placedIn('manniska')" :key="p.id" class="lab__vd-hairimg" @click="visad = p"><img :src="p.src" alt="" /></button>
-        <span v-if="!placedIn('manniska').length" class="lab__class-empty">{{ t('lab.verdict_none_hair') }}</span>
-      </div>
+    <!-- Vid verdikt: fältet pekar ut tjuven (labbets matchning syns där) -->
+    <div v-if="verdicting && !jamfor" class="lab__verdict">
+      <Icon name="person" :size="48" />
+      <p class="lab__verdict-big">{{ t('lab.answer_other') }}</p>
+      <p class="lab__verdict-sub">
+        {{ store.hairMatch ? t('lab.verdict_match', { name: store.suspects.find((p) => p.id === store.hairMatch)?.name ?? '' }) : t('lab.help_other') }}
+      </p>
+      <button v-if="store.suspects.length" class="crt-button lab__verdict-btn" @click="oppnaJamfor(store.hairMatch ?? store.suspects[0].id)">{{ t('lab.verdict_change') }}</button>
     </div>
-    <PersonViewer :personer="misstankta" :index="personVisas" @update:index="personVisas = $event" @close="personVisas = null" />
+
+    <!-- Jämför: en misstänkt (helskärm) bredvid labbets människohår → markera matchning -->
+    <Transition name="cmp">
+      <div v-if="jamforPerson" class="lab__cmp lab__cmp--match" @click.self="jamfor = null">
+        <div class="lab__cmp-main">
+          <span class="lab__cmp-label mono">{{ t('lab.susp_title') }} · {{ jamforPerson.name }}</span>
+          <img class="lab__cmp-img" :src="asset(jamforPerson.image)" :alt="jamforPerson.name" />
+          <div class="lab__susp-nav">
+            <button
+              v-for="p in store.suspects" :key="p.id" class="lab__susp-chip" :class="{ 'lab__susp-chip--on': p.id === jamfor }"
+              @click="oppnaJamfor(p.id)"
+            >{{ p.name }}<span v-if="store.hairMatch === p.id"> ✓</span></button>
+          </div>
+        </div>
+        <div class="lab__cmp-refs">
+          <span class="lab__cmp-label mono">{{ t('lab.verdict_hair') }} — {{ t('lab.match_pick') }}</span>
+          <div class="lab__match-grid">
+            <button
+              v-for="h in manniskohar" :key="h.id" class="lab__match-img"
+              :class="{ 'lab__match-img--on': valdBild === h.id }" @click="valdBild = h.id"
+            ><img :src="h.src" alt="" /></button>
+            <p v-if="!manniskohar.length" class="lab__class-empty">{{ t('lab.verdict_none_hair') }}</p>
+          </div>
+        </div>
+        <div class="lab__cmp-actions">
+          <button class="crt-button lab__lb-btn" @click="jamfor = null">{{ t('lab.photo_back') }}</button>
+          <button class="crt-button crt-button--strong lab__lb-btn" :disabled="!valdBild" @click="matcha">
+            {{ t('lab.match_do', { name: jamforPerson.name.toUpperCase() }) }}
+          </button>
+          <button v-if="store.hairMatch === jamforPerson.id" class="crt-button lab__lb-btn lab__lb-btn--del" @click="avmatcha">
+            <Icon name="close" :size="22" /> {{ t('lab.match_undo') }}
+          </button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Drag-spöke -->
     <div v-if="drag" class="lab__ghost" :style="{ left: drag.x + 'px', top: drag.y + 'px' }">
@@ -282,7 +328,7 @@ watch(
         </div>
       </div>
     </Transition>
-    <Lightbox :src="refVisad ? asset(refVisad.image) : null" :label="refVisad ? `${t('lab.review_ref')} · ${refVisad.label}` : ''" @close="refVisad = null" />
+
   </div>
 </template>
 
@@ -292,7 +338,6 @@ watch(
 .lab__role { display: flex; align-items: center; gap: 0.7rem; }
 .lab__title { margin: 0; font-size: 1.5rem; letter-spacing: 0.06em; }
 .lab__sub { margin: 0; font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-ink-muted); }
-.lab__scope { flex: 1 1 auto; min-height: 200px; }
 
 .lab__classes { flex: none; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
 .lab__class {
@@ -330,23 +375,29 @@ watch(
 .lab__verdict-big { margin: 0; font-size: clamp(1.6rem, 4vw, 2.6rem); letter-spacing: 0.05em; text-shadow: var(--glow-strong); }
 .lab__verdict-sub { margin: 0; font-family: var(--font-mono); color: var(--color-ink-muted); max-width: 34ch; }
 
-.lab__head-right { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; justify-content: flex-end; }
-.lab__done-wrap { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; }
-.lab__done-hint { font-family: var(--font-mono); font-size: 0.72rem; color: var(--color-ink-muted); }
-.lab__done { font-size: 1.2rem; }
-
-/* Granska: kända prov */
-.lab__review { flex: 1 1 auto; min-height: 200px; display: flex; flex-direction: column; gap: 0.6rem; padding: 0.8rem; background: var(--color-background-2); overflow: hidden; }
-.lab__review-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.4rem 1rem; }
-.lab__review-title { font-family: var(--font-retro); font-size: 1.3rem; letter-spacing: 0.06em; color: var(--color-primary); }
-.lab__review-hint { font-family: var(--font-mono); font-size: 0.85rem; color: var(--color-ink-muted); }
-.lab__ref-cols { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem; }
-.lab__ref-col { display: flex; flex-direction: column; gap: 0.35rem; min-height: 0; }
-.lab__ref-label { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-retro); font-size: 1.1rem; letter-spacing: 0.04em; }
-.lab__ref-row { flex: 1; min-height: 0; display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
-.lab__ref { position: relative; min-height: 0; padding: 0; border: 1px solid var(--color-primary-dim); border-radius: 6px; overflow: hidden; background: #000; cursor: zoom-in; }
-.lab__ref img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.lab__ref-cap { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.15rem 0.35rem; font-size: 0.7rem; color: var(--color-ink-strong); background: rgba(0, 0, 0, 0.6); text-align: left; }
+/* Mikroskop + fältets misstänkta bredvid */
+.lab__mid { flex: 1 1 auto; min-height: 200px; display: grid; grid-template-columns: minmax(0, 1fr) clamp(13rem, 24%, 20rem); gap: 0.7rem; }
+.lab__mid .lab__scope { min-height: 0; }
+.lab__susp { display: flex; flex-direction: column; gap: 0.4rem; min-height: 0; padding: 0.6rem; background: var(--color-background-2); }
+.lab__susp-title { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-retro); font-size: 1rem; letter-spacing: 0.08em; color: var(--color-primary); }
+.lab__susp-hint { margin: 0; font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.35; color: var(--color-ink-muted); }
+.lab__susp-list { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; }
+.lab__susp-card {
+  display: grid; grid-template-columns: 5.2rem 1fr; grid-template-rows: auto auto; gap: 0.1rem 0.5rem; align-items: center;
+  padding: 0.35rem; text-align: left; color: inherit; background: var(--color-background); cursor: pointer;
+  border: 1px solid var(--color-primary-dim); border-radius: 8px; transition: border-color 0.14s var(--ease-out), transform 0.14s var(--ease-out);
+}
+.lab__susp-card:active { transform: scale(0.98); }
+.lab__susp-card img { grid-row: 1 / 3; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border-radius: 4px; }
+.lab__susp-name { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; }
+.lab__susp-cta { font-size: 0.72rem; color: var(--color-primary); }
+.lab__susp-tag { font-size: 0.75rem; color: var(--color-ink-strong); background: rgba(var(--mode-accent-rgb), 0.3); border-radius: 4px; padding: 0 0.3em; justify-self: start; }
+.lab__susp-tag { display: inline-flex; align-items: center; gap: 0.3rem; }
+.lab__susp-hair { width: 2.2rem; height: 1.6rem; object-fit: cover; border-radius: 3px; }
+.lab__susp-card--match { border-color: var(--color-primary); box-shadow: var(--glow-soft); }
+.lab__susp-card--ny { animation: susp-ny 0.9s ease-in-out 3; border-color: var(--color-primary); }
+@keyframes susp-ny { 50% { box-shadow: var(--glow-strong); transform: scale(1.03); } }
+@media (prefers-reduced-motion: reduce) { .lab__susp-card--ny { animation: none; } }
 
 /* Egen bild jämförd med kända prov */
 .lab__cmp {
@@ -366,16 +417,15 @@ watch(
 .cmp-leave-active { transition: opacity 140ms var(--ease-out); }
 .cmp-enter-from, .cmp-leave-to { opacity: 0; }
 
-/* Verdikt: misstänkta + människohår */
-.lab__vd-persons { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; }
-.lab__vd-person { display: flex; flex-direction: column; gap: 0.3rem; padding: 0.4rem; background: var(--color-background-2); cursor: zoom-in; width: clamp(10rem, 19vw, 16rem); }
-.lab__vd-person img { width: 100%; aspect-ratio: 4 / 3; object-fit: contain; background: #000; border-radius: 4px; }
-.lab__vd-name { font-family: var(--font-mono); font-size: 0.9rem; }
-.lab__vd-label { font-family: var(--font-mono); font-size: 0.8rem; letter-spacing: 0.12em; color: var(--color-primary); margin-top: 0.4rem; }
-.lab__vd-hair { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
-.lab__vd-hairimg { width: clamp(6rem, 11vw, 9rem); aspect-ratio: 4 / 3; padding: 0; border: 1px solid var(--color-primary); border-radius: 6px; overflow: hidden; background: #000; cursor: zoom-in; }
-.lab__vd-hairimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
+/* Matchning: en misstänkt bredvid labbets människohår */
+.lab__susp-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.lab__susp-chip { font-family: var(--font-mono); font-size: 0.9rem; padding: 0.35em 0.8em; border-radius: 999px; border: 1px solid var(--color-primary-dim); background: var(--color-background-2); color: var(--color-ink-muted); cursor: pointer; }
+.lab__susp-chip--on { border-color: var(--color-primary); color: var(--color-ink-strong); }
+.lab__match-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.6rem; align-content: start; }
+.lab__match-img { padding: 0; aspect-ratio: 4 / 3; border: 2px solid var(--color-primary-dim); border-radius: 8px; overflow: hidden; background: #000; cursor: pointer; }
+.lab__match-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lab__match-img--on { border-color: var(--color-primary); box-shadow: var(--glow-strong); }
+.lab__verdict-btn { margin-top: 0.6rem; font-size: 1.1rem; }
 .lab__lb-btn { display: inline-flex; align-items: center; gap: 0.5rem; font-size: clamp(1.2rem, 2.6vw, 1.8rem); padding: 0.8em 1.6em; min-width: 12rem; justify-content: center; }
 .lab__lb-btn--del { color: var(--color-danger); border-color: var(--color-danger); }
 

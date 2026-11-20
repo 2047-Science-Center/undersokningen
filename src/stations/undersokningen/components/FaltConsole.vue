@@ -138,6 +138,7 @@ watch(
         >
           <Placeholder class="falt__suspect-img" :path="p.image" :label="p.name || ''" />
           <span class="falt__suspect-tid mono">{{ tiderFor(store.linksFor(p.id)) ?? '' }}</span>
+          <span v-if="store.hairMatch === p.id" class="falt__suspect-har mono">✓ hår (labbet)</span>
         </button>
       </TransitionGroup>
       <span v-if="!store.suspects.length" class="falt__suspects-empty">{{ t('falt.suspects_empty') }}</span>
@@ -320,6 +321,7 @@ watch(
 .falt__suspects-title { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-retro); font-size: 0.8rem; letter-spacing: 0.1em; color: var(--color-primary); white-space: nowrap; }
 .falt__suspects-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .falt__suspect-tid { display: block; font-size: 0.62rem; line-height: 1.2; color: var(--color-primary); padding: 0.1rem 0.2rem; white-space: nowrap; background: var(--color-background-2); }
+.falt__suspect-har { display: block; font-size: 0.62rem; line-height: 1.3; color: var(--color-ink-strong); background: rgba(var(--mode-accent-rgb), 0.35); white-space: nowrap; }
 .falt__suspect { width: 4.6rem; padding: 0; border: 1px solid var(--color-primary); border-radius: 6px; overflow: hidden; cursor: pointer; background: #000; transition: transform 0.14s var(--ease-out); }
 .falt__suspect:active { transform: scale(0.95); }
 .falt__suspect-img { width: 100%; height: 2.8rem; }

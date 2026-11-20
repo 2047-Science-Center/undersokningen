@@ -31,6 +31,7 @@ export function initialState(members: Record<ValvId, Person[]> = emptyMembers())
     scanCounts: {},
     suspectIds: [],
     links: {},
+    hairMatch: null,
     activeSpotId: null,
     verdictPick: null,
     thiefId: '',
@@ -50,6 +51,7 @@ export type Action =
   | { type: 'scanSpot'; spotId: string; person: string } // person = personId | 'smudge'
   | { type: 'markSuspect'; personId: string; suspect: boolean }
   | { type: 'linkLog'; personId: string; entries: number[] }
+  | { type: 'matchHair'; personId: string | null }
   | { type: 'closePopup' }
   | { type: 'openVerdict' }
   | { type: 'closeVerdict' }
@@ -76,6 +78,7 @@ export function reduce(state: GameState, action: Action): GameState {
       next.scanCounts = {}
       next.suspectIds = []
       next.links = {}
+      next.hairMatch = null
       next.activeSpotId = null
       next.verdictPick = null
       next.thiefId = action.thiefId
@@ -117,6 +120,16 @@ export function reduce(state: GameState, action: Action): GameState {
       if (JSON.stringify(state.links?.[action.personId]) === JSON.stringify(entries)) return state
       const next = clone(state)
       next.links = { ...(next.links ?? {}), [action.personId]: entries }
+      next.version += 1
+      return next
+    }
+
+    case 'matchHair': {
+      // Under utredningen och i verdiktet (labbet får ändra sig medan fältet väljer). En enda matchning.
+      if (state.phase !== 'investigate' && state.phase !== 'verdict') return state
+      if ((state.hairMatch ?? null) === action.personId) return state
+      const next = clone(state)
+      next.hairMatch = action.personId
       next.version += 1
       return next
     }

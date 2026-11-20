@@ -14,6 +14,8 @@ export interface VisadPerson extends Person {
   count?: number
   /** Fältets loggkoppling som text ("14:10 · 14:24"), om den finns. */
   tider?: string | null
+  /** Labbet har matchat sitt människohår med personen. */
+  har?: boolean
 }
 
 const props = defineProps<{ personer: VisadPerson[]; index: number | null }>()
@@ -64,6 +66,7 @@ function upp(e: PointerEvent): void {
           <span class="pv__line mono">{{ p.clothing }}</span>
           <span v-if="p.count != null" class="pv__line pv__line--acc mono"><Icon name="finger" :size="16" /> {{ t('falt.prints_count', { n: p.count }) }}</span>
           <span v-if="p.tider" class="pv__line pv__line--acc mono"><Icon name="logg" :size="16" /> {{ p.tider }}</span>
+          <span v-if="p.har" class="pv__line pv__line--har mono"><Icon name="mikroskop" :size="16" /> {{ t('falt.hair_match') }}</span>
           <span v-if="flera" class="pv__pos mono">{{ (index ?? 0) + 1 }} / {{ personer.length }}</span>
         </div>
         <div v-if="$slots.actions" class="pv__actions"><slot name="actions" :person="p" /></div>
@@ -81,6 +84,7 @@ function upp(e: PointerEvent): void {
 .pv__name { font-size: clamp(1.8rem, 4vw, 2.8rem); }
 .pv__line { display: inline-flex; align-items: center; gap: 0.35rem; font-size: clamp(1rem, 2vw, 1.3rem); color: var(--color-ink-muted); }
 .pv__line--acc { color: var(--color-primary); }
+.pv__line--har { color: var(--color-ink-strong); background: rgba(var(--mode-accent-rgb), 0.3); border-radius: 4px; padding: 0 0.4em; }
 .pv__pos { font-size: 0.9rem; color: var(--color-ink-muted); }
 .pv__actions { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
 .pv__nav {

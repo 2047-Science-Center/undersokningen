@@ -3,7 +3,8 @@
  * LABB rollgenomgång — körs i SAMMA vy som det skarpa spelet (mikroskop-ram +
  * de tre hårkategori-behållarna), med scriptade mock-animationer ovanpå:
  * prov → fokusera (tumme på reglage + bild suddig↔skarp) → frys + dra till korg
- * ("vad tror du?") → slut. Ingen separat layout. Innehåll i config.LABB_TUT.
+ * ("vad tror du?") → fältets misstänkta dyker upp i panelen → matcha håret mot en misstänkt → slut.
+ * Ingen separat layout. Innehåll i config.LABB_TUT.
  */
 import { ref, computed } from 'vue'
 import { LABB_TUT, REF_CASE, HAIR_CLASSES, type HairClassId } from '@/config'
@@ -15,7 +16,7 @@ import Placeholder from '../components/Placeholder.vue'
 const { t } = useI18n()
 const emit = defineEmits<{ done: [] }>()
 
-const SCENES = ['prov', 'fokus', 'sortera', 'slut'] as const
+const SCENES = ['prov', 'fokus', 'sortera', 'misstankta', 'matcha', 'slut'] as const
 type SceneId = (typeof SCENES)[number]
 const ix = ref(0)
 const scene = computed<SceneId>(() => SCENES[ix.value])
@@ -25,6 +26,8 @@ const captions: Record<SceneId, string> = {
   prov: LABB_TUT.prov,
   fokus: LABB_TUT.fokus,
   sortera: LABB_TUT.sort,
+  misstankta: LABB_TUT.misstankta,
+  matcha: LABB_TUT.matcha,
   slut: LABB_TUT.slut,
 }
 const caption = computed(() => captions[scene.value])
@@ -34,7 +37,12 @@ const frozen = computed(() => scene.value === 'sortera' || scene.value === 'slut
 const focusing = computed(() => scene.value === 'fokus')
 const sorting = computed(() => scene.value === 'sortera')
 const TARGET: HairClassId = 'manniska'
-const placedIn = (id: HairClassId) => scene.value === 'slut' && id === TARGET
+/** Efter sorteringen ligger provet kvar i Människohår-korgen. */
+const efterSort = computed(() => ['misstankta', 'matcha', 'slut'].includes(scene.value))
+const placedIn = (id: HairClassId) => efterSort.value && id === TARGET
+/** Fältets misstänkta (Dana) syns i panelen från scen misstankta; matchad från scen matcha. */
+const visaDana = efterSort
+const matchad = computed(() => scene.value === 'matcha' || scene.value === 'slut')
 
 function next(): void {
   audio.play('blip')
@@ -52,6 +60,7 @@ function next(): void {
 
     <!-- Samma vy som spelet: mikroskop + kategori-behållare -->
     <div class="cons">
+      <div class="lt__mid">
       <!-- Mikroskop -->
       <div class="scope amber-frame">
         <div class="scope__head"><Icon name="mikroskop" :size="16" /> <span class="scope__title">MIKROSKOP</span></div>
@@ -82,6 +91,20 @@ function next(): void {
         </div>
       </div>
 
+      <!-- Fältets misstänkta (live i spelet): Dana kommer in → matchas mot människohåret -->
+      <aside class="lt__susp amber-frame">
+        <span class="lt__susp-title"><Icon name="person" :size="15" /> FÄLTETS MISSTÄNKTA</span>
+        <div v-if="visaDana" class="lt__susp-card pop-in" :class="{ 'lt__susp-card--ny': scene === 'misstankta', 'lt__susp-card--match': matchad }">
+          <Placeholder class="lt__susp-img" :path="REF_CASE.dana.image" :label="REF_CASE.dana.name" />
+          <span class="lt__susp-name ink-strong">{{ REF_CASE.dana.name }}</span>
+          <span v-if="matchad" class="lt__susp-tag mono">✓ HÅRET MATCHAR</span>
+          <span v-else class="lt__susp-cta mono">Jämför hår ▸</span>
+          <span v-if="scene === 'matcha'" class="lt__tap lt__tap--susp" aria-hidden="true" />
+        </div>
+        <span v-else class="lt__susp-empty">Fältets misstänkta dyker upp här.</span>
+      </aside>
+      </div>
+
       <!-- Fråga vid sortering (stort, i vyn) -->
       <p v-if="sorting" class="lt__q">{{ LABB_TUT.sort_q }}</p>
 
@@ -89,7 +112,7 @@ function next(): void {
       <section class="lab__classes">
         <div
           v-for="c in HAIR_CLASSES" :key="c.id" class="lab__class amber-frame"
-          :class="{ 'lab__class--over': sorting && c.id === TARGET }"
+          :class="{ 'lab__class--over': (sorting || scene === 'matcha') && c.id === TARGET }"
         >
           <div class="lab__class-head">
             <Icon :name="c.icon" :size="26" />
@@ -127,6 +150,19 @@ function next(): void {
 /* ===== Konsol-replika (samma vy som spelet) ===== */
 .cons { position: relative; flex: 1 1 auto; width: min(99vw, 92rem); min-height: 0; display: flex; flex-direction: column; gap: 0.6rem; }
 
+.lt__mid { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) clamp(11rem, 22%, 17rem); gap: 0.6rem; }
+.lt__susp { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.6rem; background: var(--color-background-2); min-height: 0; }
+.lt__susp-title { display: inline-flex; align-items: center; gap: 0.35rem; font-family: var(--font-retro); font-size: 0.95rem; letter-spacing: 0.08em; color: var(--color-primary); }
+.lt__susp-empty { font-family: var(--font-mono); font-size: 0.78rem; color: var(--color-ink-muted); opacity: 0.7; }
+.lt__susp-card { position: relative; display: flex; flex-direction: column; gap: 0.25rem; padding: 0.4rem; border: 1px solid var(--color-primary-dim); border-radius: 8px; background: var(--color-background); text-align: left; }
+.lt__susp-img { width: 100%; aspect-ratio: 4 / 3; }
+.lt__susp-name { font-family: var(--font-mono); font-size: 0.9rem; font-weight: 600; }
+.lt__susp-cta { font-size: 0.72rem; color: var(--color-primary); }
+.lt__susp-tag { font-size: 0.75rem; color: var(--color-ink-strong); background: rgba(var(--mode-accent-rgb), 0.3); border-radius: 4px; padding: 0 0.3em; align-self: flex-start; }
+.lt__susp-card--ny { border-color: var(--color-primary); animation: lt-ny 1s ease-in-out infinite; }
+@keyframes lt-ny { 50% { box-shadow: var(--glow-strong); } }
+.lt__susp-card--match { border-color: var(--color-primary); box-shadow: var(--glow-soft); }
+.lt__tap--susp { position: absolute; right: 0.8rem; bottom: 0.8rem; width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.85); box-shadow: 0 0 0 7px rgba(var(--mode-accent-rgb), 0.3); animation: tap 1.8s ease-in-out infinite; }
 .scope { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
 .scope__head { display: flex; align-items: center; gap: 0.5rem; padding: 0.4rem 0.7rem; border-bottom: 1px solid var(--color-primary-dim); }
 .scope__title { font-family: var(--font-retro); letter-spacing: 0.08em; color: var(--color-primary); }
@@ -190,6 +226,7 @@ function next(): void {
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
+  .lt__susp-card--ny, .lt__tap--susp { animation: none; }
   .scope__img--focus, .lt__dial-face, .lt__thumb, .lt__tap--freeze, .lt__dragchip, .lab__class--over { animation: none; }
   .scope__img--focus { filter: none; }
   .lt__dragchip { opacity: 1; transform: translate(calc(-50% - 33%), clamp(7rem, 22vh, 13rem)); }

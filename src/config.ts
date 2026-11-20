@@ -122,7 +122,7 @@ export const MISSIONS: Record<RoleId, Mission> = {
   },
   labb: {
     short: 'Sortera hårproven — vilka är människohår?',
-    full: 'Ett av hårproverna är brottslingens. Sortera proven: människohår, djurhår eller fiber. När ni är klara: jämför era bilder med kända prov och rätta det som ligger fel. Berätta sen för fältet vilka människohår ni hittat.',
+    full: 'Ett av hårproverna är brottslingens. Sortera proven: människohår, djurhår eller fiber. Fältets misstänkta dyker upp hos er — jämför era människohår med dem och markera det hår som matchar. Bara ett hår matchar en person.',
   },
 }
 
@@ -160,7 +160,9 @@ export const LABB_TUT = {
   fokus: 'Ni skannar med mikroskopet. Använd tummen på reglaget för att hitta fokus.',
   sort_q: 'Vad tror du att det här är för hårstrå?',
   sort: 'Frys bilden och dra den till rätt kategori.',
-  slut: 'När du sorterat alla hårstrån efter vad du tror att de är — prata med andra sidan för att se hur ni kan hjälpa varandra att lösa brottet.',
+  misstankta: 'Här dyker fältets misstänkta upp, en i taget, när de markerar dem på sin skärm.',
+  matcha: 'Jämför era människohår med de misstänkta. Markera det hår som matchar — bara ett hår matchar en person.',
+  slut: 'Berätta för fältet vems hår som matchar. De pekar ut tjuven — tillsammans löser ni brottet.',
 }
 
 /* ------------------------------------------------------------------ *
@@ -175,8 +177,9 @@ export const FALT_TUT = {
   lys: 'Lys med lyspennan över ytan — fingeravtrycken tänds.',
   skanna: 'När scannern hittar ett avtryck får ni upp en bild på personen från övervakningskamerorna.',
   markera_q: 'Var den här personen i valvet?',
-  markera: 'Markera de som var i valvet som misstänkta — övriga som icke misstänkta.',
-  slut: 'När ni tror ni vet vilka som är misstänkta, prata med labbteknikerna på andra sidan.',
+  koppla: 'Leta upp personen i loggen: tryck på raderna som handlar om hen. Jämför kläderna med bilden.',
+  markera: 'Avgör sen: misstänkt eller inte. Era misstänkta skickas direkt över till labbet.',
+  slut: 'Labbet jämför sitt människohår med era misstänkta. Prata med dem — tillsammans pekar ni ut tjuven.',
 }
 
 /* ------------------------------------------------------------------ *
