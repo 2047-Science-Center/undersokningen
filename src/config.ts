@@ -118,11 +118,11 @@ export interface Mission {
 export const MISSIONS: Record<RoleId, Mission> = {
   falt: {
     short: 'Hitta vilka som var i valvet — peka ut tjuven.',
-    full: 'Någon bröt sig in i valvet. Scanna fram fingeravtrycken och läs övervakningsloggen för att hitta vilka som var på plats — markera de misstänkta och peka ut tjuven. Labbet avgör vems hår som matchar.',
+    full: 'Någon bröt sig in i valvet. Skanna fram fingeravtrycken. För varje person: hitta raderna i övervakningsloggen som handlar om just hen (jämför kläderna!), och avgör sen om hen är misstänkt. Peka ut tjuven tillsammans med labbet — de vet vems hår som matchar.',
   },
   labb: {
     short: 'Sortera hårproven — vilka är människohår?',
-    full: 'Ett av de 9 hårproverna är brottslingens. Sortera ut proven för att se vilka som är människohår — vänd er sen till andra sidan för att se vad ert resultat betyder.',
+    full: 'Ett av hårproverna är brottslingens. Sortera proven: människohår, djurhår eller fiber. När ni är klara: jämför era bilder med kända prov och rätta det som ligger fel. Berätta sen för fältet vilka människohår ni hittat.',
   },
 }
 
@@ -276,6 +276,26 @@ export const HAIR_CLASSES: { id: HairClassId; label: string; text: string; icon:
   { id: 'djur', label: 'Djurhår', text: 'bandad färg, bred märg.', icon: 'har_djur' },
   { id: 'syntet', label: 'Syntet / fiber', text: 'jämntjockt, glansigt.', icon: 'har_syntet' },
 ]
+
+/** REFERENSPROV (kända prov, "K") som labbet jämför sina bilder mot efter "VI ÄR KLARA". Genererade
+ *  mikroskopbilder (tools/ref-har/gen-ref.py); byt gärna mot riktiga Dino-Lite-foton med samma filnamn. */
+export const REF_HAR: Record<HairClassId, { image: string; label: string }[]> = {
+  manniska: [
+    { image: 'mikroskop/ref/manniska-1.jpg', label: 'Mörkt människohår' },
+    { image: 'mikroskop/ref/manniska-2.jpg', label: 'Blont människohår' },
+    { image: 'mikroskop/ref/manniska-3.jpg', label: 'Rött människohår' },
+  ],
+  djur: [
+    { image: 'mikroskop/ref/djur-1.jpg', label: 'Hund' },
+    { image: 'mikroskop/ref/djur-2.jpg', label: 'Katt' },
+    { image: 'mikroskop/ref/djur-3.jpg', label: 'Rådjur / häst' },
+  ],
+  syntet: [
+    { image: 'mikroskop/ref/syntet-1.jpg', label: 'Polyester' },
+    { image: 'mikroskop/ref/syntet-2.jpg', label: 'Nylon (peruk)' },
+    { image: 'mikroskop/ref/syntet-3.jpg', label: 'Akryl' },
+  ],
+}
 
 /* ------------------------------------------------------------------ *
  * TUTORIAL — "ett löst fall" (referensfall 2-911). Text-beats (röst senare).

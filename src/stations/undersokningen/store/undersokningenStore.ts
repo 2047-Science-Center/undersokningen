@@ -236,6 +236,16 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     notifyActivity()
   }
 
+  /** FÄLT kopplar en person till rader i händelseloggen ([] = syns inte i loggen). */
+  function linkLog(personId: string, entries: number[]): void {
+    dispatch({ type: 'linkLog', personId, entries })
+    notifyActivity()
+  }
+  /** Loggraderna FÄLT kopplat till personen, eller null om de inte kopplat än. */
+  function linksFor(personId: string): number[] | null {
+    return state.value.links?.[personId] ?? null
+  }
+
   /* ---------------- verdikt / omgång ---------------- */
 
   function startLive(): void {
@@ -451,6 +461,8 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     scanSpot,
     closePopup,
     markSuspect,
+    linkLog,
+    linksFor,
     startLive,
     openVerdict,
     closeVerdict,

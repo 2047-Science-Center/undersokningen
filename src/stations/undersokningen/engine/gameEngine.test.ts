@@ -73,6 +73,28 @@ describe('verdikt (ett utpekande i slutet)', () => {
   })
 })
 
+describe('loggkoppling (fält kopplar person → loggrader)', () => {
+  it('kopplar, sorterar och tar bort dubbletter; samma koppling igen = samma referens', () => {
+    const s = run([{ type: 'linkLog', personId: 'ravi', entries: [7, 5, 6, 5] }], started())
+    expect(s.links.ravi).toEqual([5, 6, 7])
+    expect(reduce(s, { type: 'linkLog', personId: 'ravi', entries: [5, 6, 7] })).toBe(s)
+  })
+  it('"syns inte i loggen" = tom lista; kan ändras', () => {
+    let s = run([{ type: 'linkLog', personId: 'iris', entries: [] }], started())
+    expect(s.links.iris).toEqual([])
+    s = reduce(s, { type: 'linkLog', personId: 'iris', entries: [0] })
+    expect(s.links.iris).toEqual([0])
+  })
+  it('ignoreras utanför utredningen och för smudge; nollställs vid ny runda', () => {
+    const base = started()
+    expect(reduce(base, { type: 'linkLog', personId: 'smudge', entries: [1] })).toBe(base)
+    const v = run([{ type: 'openVerdict' }], base)
+    expect(reduce(v, { type: 'linkLog', personId: 'ravi', entries: [1] })).toBe(v)
+    const l = run([{ type: 'linkLog', personId: 'ravi', entries: [1] }], base)
+    expect(reduce(l, { type: 'start', thiefId: 'ravi' }).links).toEqual({})
+  })
+})
+
 describe('verdikt utan återvändsgränd', () => {
   it('closeVerdict → tillbaka till utredningen, valet nollat', () => {
     const v = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'maj' }, { type: 'closeVerdict' }], started())

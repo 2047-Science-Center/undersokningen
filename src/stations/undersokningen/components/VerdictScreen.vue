@@ -12,12 +12,14 @@
  * Får aldrig bli en återvändsgränd: galleriet är aldrig tomt (inget skannat → alla som var i
  * valvet), och medan tiden räcker kan man gå tillbaka till utredningen.
  */
-import { computed, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { personById, PERSONS, THIEF_ID } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import Placeholder from './Placeholder.vue'
 import Icon from './Icon.vue'
+import PersonViewer from './PersonViewer.vue'
+import { tiderFor } from '../logg/logg'
 import { useRotation } from '@/station-kit/rotation/rotation'
 import { useResultatTid } from '@/station-kit/ljus'
 
@@ -34,6 +36,13 @@ const ingenSkannad = computed(() => store.revealedPersons.length === 0)
 const galleri = computed(() => (ingenSkannad.value ? PERSONS.map((p) => ({ ...p, count: 0 })) : store.revealedPersons))
 /** Tillbaka till utredningen så länge tiden inte har gått ut. */
 const kanGaTillbaka = computed(() => store.secondsLeft > 0)
+/** Helskärm: bläddra mellan de misstänkta (med fältets loggkoppling) innan man väljer. */
+const visas = ref<number | null>(null)
+const visade = computed(() => galleri.value.map((p) => ({ ...p, tider: tiderFor(store.linksFor(p.id)) })))
+function valj(id: string): void {
+  store.selectThief(id)
+  visas.value = null
+}
 
 // Rotationen: verdiktet visat → "Vi är klara" (på fält-skärmen också) = done + lek.
 const rotation = useRotation()
@@ -73,20 +82,27 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
     <!-- Val -->
     <template v-else>
       <h1 class="vd__title">{{ t('verdict.title') }}</h1>
-      <p class="vd__sub">{{ ingenSkannad ? t('verdict.none_scanned') : t('verdict.hint') }}</p>
+      <p v-if="!kanGaTillbaka" class="vd__timeup">{{ t('verdict.time_up') }}</p>
+      <p class="vd__sub">{{ ingenSkannad ? t('verdict.none_scanned') : t('verdict.hint') }} {{ t('verdict.browse') }}.</p>
       <div class="vd__grid">
         <button
           v-for="(p, i) in galleri" :key="p.id"
           class="vd__card amber-frame" :class="{ 'vd__card--sel': picked === p.id }"
           :style="{ animationDelay: i * 55 + 'ms' }"
-          @click="store.selectThief(p.id)"
+          @click="visas = i"
         >
           <Placeholder class="vd__card-photo" :path="p.image" :label="p.name" />
           <span class="vd__card-name ink-strong">{{ p.name }}</span>
           <span class="vd__card-clothing">{{ p.clothing }}</span>
           <span v-if="!ingenSkannad" class="vd__card-prints mono"><Icon name="finger" :size="13" /> {{ t('falt.prints_count', { n: p.count }) }}</span>
+          <span v-if="visade[i]?.tider" class="vd__card-prints mono"><Icon name="logg" :size="13" /> {{ visade[i].tider }}</span>
         </button>
       </div>
+      <PersonViewer :personer="visade" :index="visas" @update:index="visas = $event" @close="visas = null">
+        <template #actions="{ person }">
+          <button class="crt-button crt-button--strong vd__pick" @click="valj(person.id)">{{ t('verdict.pick_this', { name: person.name }) }}</button>
+        </template>
+      </PersonViewer>
       <div class="vd__actions">
         <button v-if="kanGaTillbaka" class="crt-button vd__back" @click="store.closeVerdict()">{{ t('verdict.back') }}</button>
         <button class="crt-button crt-button--strong vd__confirm" :disabled="!pickedPerson" @click="store.confirmThief()">
@@ -115,11 +131,14 @@ watch(done, (d) => (d ? rt.start() : rt.stop()), { immediate: true })
 .vd__card--sel { border-color: var(--color-ink-strong); box-shadow: 0 0 16px rgba(var(--mode-accent-rgb), 0.6); }
 @keyframes vd-rise { to { opacity: 1; transform: translateY(0); } }
 .vd__card-photo { aspect-ratio: 4 / 3; }
+.vd__card-photo :deep(.ph__img) { object-fit: contain; background: #000; }
 .vd__card-name { font-family: var(--font-mono); font-weight: 600; font-size: 0.95rem; }
 .vd__card-clothing { font-family: var(--font-mono); font-size: 0.8rem; color: var(--color-ink-muted); }
 .vd__card-prints { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.78rem; color: var(--color-primary); }
 .vd__actions { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-top: 0.4rem; }
 .vd__confirm { font-size: 1.3rem; }
+.vd__pick { font-size: clamp(1.2rem, 2.6vw, 1.7rem); padding: 0.7em 1.6em; }
+.vd__timeup { margin: 0; font-family: var(--font-mono); font-size: clamp(1rem, 2vw, 1.3rem); color: var(--color-primary); }
 .vd__back { font-size: 1.1rem; }
 .vd__thief { display: flex; gap: 1rem; align-items: center; margin: 0.5rem 0; padding: 0.6rem; background: var(--color-background-2); }
 .vd__thief-photo { width: 12rem; }

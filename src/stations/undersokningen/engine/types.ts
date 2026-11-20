@@ -31,6 +31,9 @@ export interface GameState {
   revealedPersonIds: string[]
   /** Antal avtryck per person (upprepad närvaro). */
   scanCounts: Record<string, number>
+  /** FÄLT:s koppling person → rader i händelseloggen (index i LOG.entries; [] = "syns inte i loggen").
+   *  Måste göras innan personen bedöms. Ingen rätt/fel-kontroll (Josef 2026-11-20). */
+  links: Record<string, number[]>
   /** Personer FÄLT markerat som misstänkta (topppanelen), i markeringsordning. */
   suspectIds: string[]
   /** Spot vars popup visas just nu (person ELLER smudge), eller null. */
