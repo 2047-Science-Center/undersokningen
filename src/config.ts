@@ -34,6 +34,10 @@ export const config = {
   /** 10-sekunders-varning när så här många sekunder återstår. */
   timerWarnAt: 15,
 
+  /** Sekunder efter att tiden tagit slut innan verdiktet avgörs av sig självt (markerad person
+   *  pekas ut, annars "ingen utpekad"). Så kan stationen aldrig hänga före done. */
+  verdictGraceSeconds: 30,
+
   /** Monter-skala (bekräfta mot avstånd). 1 = kitets 115%-bas. */
   uiScale: 1,
 

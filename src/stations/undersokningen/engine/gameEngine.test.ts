@@ -67,6 +67,21 @@ describe('verdikt (ett utpekande i slutet)', () => {
     const v = run([{ type: 'openVerdict' }], started())
     expect(reduce(v, { type: 'confirmThief' })).toBe(v)
   })
+  it('tiden ute: markerad person pekas ut', () => {
+    const s = run([{ type: 'openVerdict' }, { type: 'selectThief', personId: 'ravi' }, { type: 'timeoutVerdict' }], started())
+    expect(s.phase).toBe('solved')
+    expect(s.verdictPick).toBe('ravi')
+  })
+  it('tiden ute utan markering → failed utan utpekande (låser sig aldrig)', () => {
+    const s = run([{ type: 'openVerdict' }, { type: 'timeoutVerdict' }], started())
+    expect(s.phase).toBe('failed')
+    expect(s.outcome).toBe('lost')
+    expect(s.verdictPick).toBeNull()
+  })
+  it('timeoutVerdict utanför verdict ignoreras', () => {
+    const base = started()
+    expect(reduce(base, { type: 'timeoutVerdict' })).toBe(base)
+  })
   it('select utanför verdict ignoreras', () => {
     const base = started()
     expect(reduce(base, { type: 'selectThief', personId: 'ravi' })).toBe(base)
