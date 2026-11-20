@@ -1,0 +1,49 @@
+{
+  "klipp": "Essy metodspecialist",
+  "fil": "Essy metodspecialist.mp4",
+  "duration_s": 19.25,
+  "sprak": [
+    "sv",
+    "no"
+  ],
+  "_no_status": "UTKAST - ersätts av Josefs norska översättning",
+  "_undertext_status": "Extraherad ur bakat original, timing ögonmått. Verifiera sv-text/timing mot Premiere. Titeln rättad metodspecialist->labbtekniker.",
+  "titel": {
+    "sv": "Labbtekniker",
+    "no": "Labbtekniker"
+  },
+  "portratt": "Essy metodspecialist.portratt.jpg",
+  "undertext": [
+    {
+      "t": 0.0,
+      "slut": 3.0,
+      "sv": "Vad jag gör en vanlig dag som labbtekniker",
+      "no": "Hva jeg gjør en vanlig dag som labbtekniker"
+    },
+    {
+      "t": 5.0,
+      "slut": 8.0,
+      "sv": "Fixar pump för aerosol capture",
+      "no": "Fikser pumpe for aerosolfangst"
+    },
+    {
+      "t": 8.0,
+      "slut": 10.0,
+      "sv": "Redo för transport till landytan",
+      "no": "Klar for transport til landoverflaten"
+    },
+    {
+      "t": 10.0,
+      "slut": 17.0,
+      "sv": "Sen behövde jag undersöka en kammare för mätning av luftfuktighet",
+      "no": "Så måtte jeg undersøke et kammer for måling av luftfuktighet"
+    },
+    {
+      "t": 18.0,
+      "slut": 19.25,
+      "sv": "Jag får fortsätta imorgon",
+      "no": "Jeg får fortsette i morgen"
+    }
+  ],
+  "_titel_rattad_fran": "metodspecialist (källa: undersokningen/src/config.ts:429-430)"
+}

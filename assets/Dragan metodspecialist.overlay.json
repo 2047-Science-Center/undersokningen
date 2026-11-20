@@ -1,0 +1,55 @@
+{
+  "klipp": "Dragan metodspecialist",
+  "fil": "Dragan metodspecialist.mp4",
+  "duration_s": 18.25,
+  "sprak": [
+    "sv",
+    "no"
+  ],
+  "_no_status": "UTKAST - ersätts av Josefs norska översättning",
+  "_undertext_status": "Extraherad ur bakat original, timing ögonmått. Verifiera sv-text/timing mot Premiere. Titeln rättad metodspecialist->labbtekniker (även i caption 0). 'Essentials' ~3s = diegetisk produktetikett, ej caption.",
+  "titel": {
+    "sv": "Labbtekniker",
+    "no": "Labbtekniker"
+  },
+  "portratt": "Dragan metodspecialist.portratt.jpg",
+  "undertext": [
+    {
+      "t": 0.0,
+      "slut": 3.0,
+      "sv": "Vad jag gör en vanlig dag som labbtekniker",
+      "no": "Hva jeg gjør en vanlig dag som labbtekniker"
+    },
+    {
+      "t": 5.0,
+      "slut": 8.0,
+      "sv": "Fixar pump för aerosol capture",
+      "no": "Fikser pumpe for aerosolfangst"
+    },
+    {
+      "t": 8.0,
+      "slut": 11.0,
+      "sv": "Redo för transport till landytan",
+      "no": "Klar for transport til landoverflaten"
+    },
+    {
+      "t": 11.0,
+      "slut": 13.0,
+      "sv": "Dags för labbarbete",
+      "no": "På tide med labbarbeid"
+    },
+    {
+      "t": 13.0,
+      "slut": 16.0,
+      "sv": "Undersöker insamlat material",
+      "no": "Undersøker innsamlet materiale"
+    },
+    {
+      "t": 16.0,
+      "slut": 18.25,
+      "sv": "De va allt",
+      "no": "Det var alt"
+    }
+  ],
+  "_titel_rattad_fran": "metodspecialist (källa: undersokningen/src/config.ts:429-430)"
+}

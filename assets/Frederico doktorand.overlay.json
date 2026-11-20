@@ -1,0 +1,25 @@
+{
+  "klipp": "Frederico doktorand",
+  "fil": "Frederico doktorand.mp4",
+  "duration_s": 15.08,
+  "sprak": [
+    "sv",
+    "no"
+  ],
+  "_no_status": "UTKAST - ersätts av Josefs norska översättning",
+  "_undertext_status": "Extraherad ur bakat original, timing ögonmått. Verifiera sv-text/timing mot Premiere. RÄTTAD: caption sa 'doktorand' -> 'forensiker'. En genomgående POV-caption.",
+  "titel": {
+    "sv": "Forensiker",
+    "no": "Forensiker"
+  },
+  "portratt": "Frederico doktorand.portratt.jpg",
+  "undertext": [
+    {
+      "t": 0.5,
+      "slut": 15.08,
+      "sv": "POV: Du är forensiker och det är fredag i labbet",
+      "no": "POV: Du er forensiker og det er fredag i laben"
+    }
+  ],
+  "_titel_rattad_fran": "doktorand (källa: undersokningen/src/config.ts:429-430)"
+}
