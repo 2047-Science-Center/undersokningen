@@ -123,11 +123,11 @@ export interface Mission {
 export const MISSIONS: Record<RoleId, Mission> = {
   falt: {
     short: 'Hitta vilka som var i valvet — peka ut tjuven.',
-    full: 'Någon bröt sig in i valvet. Scanna fram fingeravtrycken och läs övervakningsloggen för att hitta vilka som var på plats — markera de misstänkta och peka ut tjuven. Labbet avgör vems hår som matchar.',
+    full: 'Någon bröt sig in i valvet. Skanna fram fingeravtrycken. För varje person: hitta raderna i övervakningsloggen som handlar om just hen (jämför kläderna!), och avgör sen om hen är misstänkt. Peka ut tjuven tillsammans med labbet — de vet vems hår som matchar.',
   },
   labb: {
     short: 'Sortera hårproven — vilka är människohår?',
-    full: 'Ett av de 9 hårproverna är brottslingens. Sortera ut proven för att se vilka som är människohår — vänd er sen till andra sidan för att se vad ert resultat betyder.',
+    full: 'Ett av hårproverna är brottslingens. Sortera proven: människohår, djurhår eller fiber. Fältets misstänkta dyker upp hos er — jämför era människohår med dem och markera det hår som matchar. Bara ett hår matchar en person.',
   },
 }
 
@@ -165,7 +165,9 @@ export const LABB_TUT = {
   fokus: 'Ni skannar med mikroskopet. Använd tummen på reglaget för att hitta fokus.',
   sort_q: 'Vad tror du att det här är för hårstrå?',
   sort: 'Frys bilden och dra den till rätt kategori.',
-  slut: 'När du sorterat alla hårstrån efter vad du tror att de är — prata med andra sidan för att se hur ni kan hjälpa varandra att lösa brottet.',
+  misstankta: 'Här dyker fältets misstänkta upp, en i taget, när de markerar dem på sin skärm.',
+  matcha: 'Jämför era människohår med de misstänkta. Markera det hår som matchar — bara ett hår matchar en person.',
+  slut: 'Berätta för fältet vems hår som matchar. De pekar ut tjuven — tillsammans löser ni brottet.',
 }
 
 /* ------------------------------------------------------------------ *
@@ -180,8 +182,9 @@ export const FALT_TUT = {
   lys: 'Lys med lyspennan över ytan — fingeravtrycken tänds.',
   skanna: 'När scannern hittar ett avtryck får ni upp en bild på personen från övervakningskamerorna.',
   markera_q: 'Var den här personen i valvet?',
-  markera: 'Markera de som var i valvet som misstänkta — övriga som icke misstänkta.',
-  slut: 'När ni tror ni vet vilka som är misstänkta, prata med labbteknikerna på andra sidan.',
+  koppla: 'Leta upp personen i loggen: tryck på raderna som handlar om hen. Jämför kläderna med bilden.',
+  markera: 'Avgör sen: misstänkt eller inte. Era misstänkta skickas direkt över till labbet.',
+  slut: 'Labbet jämför sitt människohår med era misstänkta. Prata med dem — tillsammans pekar ni ut tjuven.',
 }
 
 /* ------------------------------------------------------------------ *
@@ -281,6 +284,26 @@ export const HAIR_CLASSES: { id: HairClassId; label: string; text: string; icon:
   { id: 'djur', label: 'Djurhår', text: 'bandad färg, bred märg.', icon: 'har_djur' },
   { id: 'syntet', label: 'Syntet / fiber', text: 'jämntjockt, glansigt.', icon: 'har_syntet' },
 ]
+
+/** REFERENSPROV (kända prov, "K") som labbet jämför sina bilder mot efter "VI ÄR KLARA". Genererade
+ *  mikroskopbilder (tools/ref-har/gen-ref.py); byt gärna mot riktiga Dino-Lite-foton med samma filnamn. */
+export const REF_HAR: Record<HairClassId, { image: string; label: string }[]> = {
+  manniska: [
+    { image: 'mikroskop/ref/manniska-1.jpg', label: 'Mörkt människohår' },
+    { image: 'mikroskop/ref/manniska-2.jpg', label: 'Blont människohår' },
+    { image: 'mikroskop/ref/manniska-3.jpg', label: 'Rött människohår' },
+  ],
+  djur: [
+    { image: 'mikroskop/ref/djur-1.jpg', label: 'Hund' },
+    { image: 'mikroskop/ref/djur-2.jpg', label: 'Katt' },
+    { image: 'mikroskop/ref/djur-3.jpg', label: 'Rådjur / häst' },
+  ],
+  syntet: [
+    { image: 'mikroskop/ref/syntet-1.jpg', label: 'Polyester' },
+    { image: 'mikroskop/ref/syntet-2.jpg', label: 'Nylon (peruk)' },
+    { image: 'mikroskop/ref/syntet-3.jpg', label: 'Akryl' },
+  ],
+}
 
 /* ------------------------------------------------------------------ *
  * TUTORIAL — "ett löst fall" (referensfall 2-911). Text-beats (röst senare).

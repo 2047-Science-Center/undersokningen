@@ -8,7 +8,8 @@
  * Dana (misstänkt) + Nils (icke misstänkt). Innehåll i config.FALT_TUT.
  */
 import { ref, computed, watch } from 'vue'
-import { FALT_TUT, LOG, REF_CASE } from '@/config'
+import { FALT_TUT, REF_CASE } from '@/config'
+import { klippKlader } from '../logg/logg'
 import { useI18n } from '@/station-kit/i18n'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import Icon from '../components/Icon.vue'
@@ -17,7 +18,7 @@ import Placeholder from '../components/Placeholder.vue'
 const { t } = useI18n()
 const emit = defineEmits<{ done: [] }>()
 
-const SCENES = ['lys', 'skanna', 'markera', 'slut'] as const
+const SCENES = ['lys', 'skanna', 'koppla', 'markera', 'slut'] as const
 type SceneId = (typeof SCENES)[number]
 const ix = ref(0)
 const scene = computed<SceneId>(() => SCENES[ix.value])
@@ -26,6 +27,7 @@ const isLast = computed(() => ix.value >= SCENES.length - 1)
 const captions: Record<SceneId, string> = {
   lys: FALT_TUT.lys,
   skanna: FALT_TUT.skanna,
+  koppla: FALT_TUT.koppla,
   markera: FALT_TUT.markera,
   slut: FALT_TUT.slut,
 }
@@ -49,7 +51,10 @@ watch(
   { immediate: true },
 )
 const scanning = computed(() => scene.value === 'skanna' && !revealed.value)
-const showIdCard = computed(() => scene.value === 'skanna' && revealed.value)
+const showIdCard = computed(() => (scene.value === 'skanna' && revealed.value) || scene.value === 'koppla')
+/** Övningsfallets logg; raden om Dana (orange väst) kopplas i scen koppla och ligger kvar markerad. */
+const refLogg = REF_CASE.log.map((e) => ({ ...e, bitar: klippKlader(e.text) }))
+const kopplad = computed(() => scene.value === 'koppla' || scene.value === 'markera' || scene.value === 'slut')
 const sorting = computed(() => scene.value === 'markera')
 /** Panelen visar Dana när hon markerats (markera) och framåt (slut). */
 const inSuspects = computed(() => scene.value === 'markera' || scene.value === 'slut')
@@ -155,9 +160,16 @@ function next(): void {
         <section class="falt__log amber-frame">
           <h3 class="falt__log-title"><Icon name="logg" :size="15" /> HÄNDELSELOGG</h3>
           <ul class="falt__log-list">
-            <li v-for="(e, i) in LOG.entries" :key="i" class="falt__log-row">
+            <li
+              v-for="(e, i) in refLogg" :key="i" class="falt__log-row"
+              :class="{ 'frt__logrow--pick': scene === 'koppla', 'frt__logrow--on': kopplad && e.circle }"
+            >
+              <span class="frt__check" aria-hidden="true">{{ kopplad && e.circle ? '✓' : '' }}</span>
               <span class="falt__log-time mono">{{ e.time }}</span>
-              <span class="falt__log-text">{{ e.text }}</span>
+              <span class="falt__log-text">
+                <template v-for="(b, k) in e.bitar" :key="k"><mark v-if="b.klader && scene === 'koppla'" class="frt__klader">{{ b.text }}</mark><template v-else>{{ b.text }}</template></template>
+              </span>
+              <span v-if="scene === 'koppla' && e.circle" class="frt__tap frt__tap--row" aria-hidden="true" />
             </li>
           </ul>
         </section>
@@ -239,7 +251,12 @@ function next(): void {
 .falt__log { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.8rem; min-height: 0; overflow: hidden; background: var(--color-background-2); }
 .falt__log-title { display: flex; align-items: center; gap: 0.4rem; margin: 0; font-size: 1rem; letter-spacing: 0.06em; color: var(--color-primary); }
 .falt__log-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; overflow-y: auto; }
-.falt__log-row { display: grid; grid-template-columns: 3.4em 1fr; gap: 0.6rem; }
+.falt__log-row { position: relative; display: grid; grid-template-columns: 1.1em 3.2em 1fr; gap: 0.5rem; padding: 0.3rem 0.4rem; border: 1px solid transparent; border-radius: 6px; text-align: left; }
+.frt__logrow--pick { border-color: var(--color-primary-dim); }
+.frt__logrow--on { border-color: var(--color-primary); background: rgba(var(--mode-accent-rgb), 0.16); }
+.frt__check { color: var(--color-primary); font-weight: 700; }
+.frt__klader { background: rgba(var(--mode-accent-rgb), 0.28); color: var(--color-ink-strong); border-radius: 3px; padding: 0 0.15em; }
+.frt__tap--row { right: 1rem; bottom: auto; top: 30%; }
 .falt__log-time { color: var(--color-primary); }
 .falt__log-text { font-family: var(--font-mono); font-size: 0.84rem; line-height: 1.35; }
 
