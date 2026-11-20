@@ -16,6 +16,7 @@ import ModeCountdown from '@/station-kit/components/ModeCountdown.vue'
 import MuteButton from '@/station-kit/components/MuteButton.vue'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from './store/undersokningenStore'
+import { platsFran } from './engine/scoring'
 import LabbConsole from './components/LabbConsole.vue'
 import FaltConsole from './components/FaltConsole.vue'
 import VerdictScreen from './components/VerdictScreen.vue'
@@ -114,6 +115,8 @@ function onEntreDone(): void {
         assigned_role: p.assigned_role,
         // Klippsetet ur DB (station<N>/group set_id + female_role) → hur den valda rollen presenterades.
         role_presented_as: entre.presentedAs(p),
+        // Rollplatsen (labb/skannare/lyspenna/logg) → VALdi-måtten i station3/result.
+        plats: platsFran(p.plats),
       }))
   store.setRoster({ lag1: team('A'), lag2: team('B') })
 }

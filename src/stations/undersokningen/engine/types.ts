@@ -9,6 +9,9 @@
 export type ValvId = 'lag1' | 'lag2'
 export type Role = 'A' | 'B'
 
+/** Rollplatsen (XY-PLATSER): A = labb, B = fält med skannare, lyspenna och logggranskare. SOM.md "Mått per person för VALdi". */
+export type Plats = 'labb' | 'skannare' | 'lyspenna' | 'logg'
+
 export type Phase = 'intro' | 'investigate' | 'verdict' | 'solved' | 'failed'
 export type Outcome = 'win' | 'lost'
 
@@ -19,6 +22,8 @@ export interface Person {
   chosen_role: Role
   assigned_role: Role
   role_presented_as: 'manlig' | 'kvinnlig' | null
+  /** Rollplatsen från entrén. Saknas = okänd (labb härleds ur sidan). */
+  plats?: Plats
 }
 
 export interface GameState {
@@ -43,6 +48,8 @@ export interface GameState {
   activeSpotId: string | null
   /** Vald person i verdikt-fasen (innan bekräftelse). */
   verdictPick: string | null
+  /** Epoch-ms då skarpa rundan startade (VALdi-måttet `tid_s`). null före start. */
+  startedAt: number | null
   /** Rätt svar (sätts vid start). */
   thiefId: string
   outcome: Outcome | null

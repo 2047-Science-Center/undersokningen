@@ -34,6 +34,7 @@ export function initialState(members: Record<ValvId, Person[]> = emptyMembers())
     hairMatch: null,
     activeSpotId: null,
     verdictPick: null,
+    startedAt: null,
     thiefId: '',
     outcome: null,
     members,
@@ -47,7 +48,7 @@ function clone(state: GameState): GameState {
 
 export type Action =
   | { type: 'setMembers'; members: Record<ValvId, Person[]> }
-  | { type: 'start'; thiefId: string; runda?: number }
+  | { type: 'start'; thiefId: string; runda?: number; at?: number }
   | { type: 'scanSpot'; spotId: string; person: string } // person = personId | 'smudge'
   | { type: 'markSuspect'; personId: string; suspect: boolean }
   | { type: 'linkLog'; personId: string; entries: number[] }
@@ -84,6 +85,7 @@ export function reduce(state: GameState, action: Action): GameState {
       next.hairMatch = null
       next.activeSpotId = null
       next.verdictPick = null
+      next.startedAt = action.at ?? null
       next.thiefId = action.thiefId
       next.outcome = null
       next.version += 1
