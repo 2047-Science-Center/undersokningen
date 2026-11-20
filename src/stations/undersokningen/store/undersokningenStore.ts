@@ -239,8 +239,9 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /* ---------------- verdikt / omgång ---------------- */
 
   function startLive(): void {
-    dispatch({ type: 'start', thiefId: THIEF_ID, runda: Date.now() })
-    const ends = Date.now() + config.timerSeconds * 1000
+    const at = Date.now()
+    dispatch({ type: 'start', thiefId: THIEF_ID, runda: at, at })
+    const ends = at + config.timerSeconds * 1000
     timerEndsAt.value = ends
     seam.value?.transport.send({ kind: 'timer', payload: ends })
     // Inget eget 'live'-ljud här: ModeCountdown spelar redan svepet (spelades två gånger).
@@ -266,7 +267,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /* ---------------- resultat ---------------- */
 
   function buildResultPayload(): ResultPayload {
-    const pr = personResults(state.value)
+    const pr = personResults(state.value, Date.now()) // byggs när utfallet kommer → slutet för tid_s
     const sum = (team: ValvId) => pr[team].reduce((a, p) => a + p.result_value, 0)
     return { grupp: 'pilot', rollresultat_A: sum('lag1'), rollresultat_B: sum('lag2'), personer: [...pr.lag1, ...pr.lag2] }
   }
