@@ -1,0 +1,43 @@
+{
+  "klipp": "Karin doktorand",
+  "fil": "Karin doktorand.mp4",
+  "duration_s": 20.5,
+  "sprak": [
+    "sv",
+    "no"
+  ],
+  "_no_status": "UTKAST - ersätts av Josefs norska översättning",
+  "_undertext_status": "Extraherad ur bakat original, timing ögonmått. Verifiera sv-text/timing mot Premiere. RÄTTAD: titel-caption sa 'doktorand' -> 'forensiker'. Sista raden osäker vid extraktion.",
+  "titel": {
+    "sv": "Forensiker",
+    "no": "Forensiker"
+  },
+  "portratt": "Karin doktorand.portratt.jpg",
+  "undertext": [
+    {
+      "t": 0.0,
+      "slut": 4.0,
+      "sv": "Bokstavligen min dag som forensiker",
+      "no": "Bokstavelig talt dagen min som forensiker"
+    },
+    {
+      "t": 5.0,
+      "slut": 10.0,
+      "sv": "De här sensorerna sätter vi på fladdermöss och andra smådjur",
+      "no": "Disse sensorene setter vi på flaggermus og andre smådyr"
+    },
+    {
+      "t": 11.0,
+      "slut": 13.0,
+      "sv": "De blå pilarna på kartan visar deras rörelsemönster",
+      "no": "De blå pilene på kartet viser bevegelsesmønsteret deres"
+    },
+    {
+      "t": 14.0,
+      "slut": 20.5,
+      "sv": "Baserat på deras rörelsemönster drar vi slutsatser om vilka landområden som förväntas bli säkra",
+      "no": "Basert på bevegelsesmønsteret deres trekker vi slutninger om hvilke landområder som forventes å bli trygge"
+    }
+  ],
+  "_titel_rattad_fran": "doktorand (källa: undersokningen/src/config.ts:429-430)"
+}

@@ -10,6 +10,8 @@
  */
 import { computed, onUnmounted, ref, watch } from 'vue'
 import BryggKort from '../stationsintro/BryggKort.vue'
+import Undertext from '../undertext/Undertext.vue'
+import type { OverlayData } from '../undertext/undertext'
 import { audio } from '../audio/AudioEngine'
 import { useEntre, type SeqSteg } from './entre'
 
@@ -20,6 +22,8 @@ const props = defineProps<{
   rollnamn: [string, string]
   /** Klipp-url för roll A och B i det aktiva setet ('' = saknas → steget hoppas över). */
   klipp: [string, string]
+  /** Textlager (XY-TEXTLAGER, overlay.json) för klipp A och B — undertext ritas på det textfria klippet. */
+  overlay?: [OverlayData | null, OverlayData | null]
   valvfarg?: string
   sprak?: 'sv' | 'no'
 }>()
@@ -33,6 +37,15 @@ const src = computed(() =>
   steg.value === 'intro' ? (props.introClip ?? '') : steg.value === 'klippA' ? props.klipp[0] : steg.value === 'klippB' ? props.klipp[1] : '',
 )
 const rollnamn = computed(() => (steg.value === 'klippB' || steg.value === 'kortB' ? props.rollnamn[1] : props.rollnamn[0]))
+/** Textlagret som gäller i klippsteget (intro har inga undertexter). */
+const aktivOverlay = computed<OverlayData | null>(() =>
+  steg.value === 'klippA' ? (props.overlay?.[0] ?? null) : steg.value === 'klippB' ? (props.overlay?.[1] ?? null) : null,
+)
+/** Klippets egen klocka (sekunder) — driver undertexten. */
+const tid = ref(0)
+function onTid(): void {
+  tid.value = video.value?.currentTime ?? 0
+}
 
 const video = ref<HTMLVideoElement | null>(null)
 let guard: ReturnType<typeof setTimeout> | null = null
@@ -100,6 +113,7 @@ watch(
   steg,
   (s) => {
     stada()
+    tid.value = 0
     if (!s || !arKlipp.value) return
     if (!src.value) {
       if (leder.value) klart(s) // klippet saknas → nästa steg direkt
@@ -143,8 +157,15 @@ onUnmounted(stada)
         playsinline
         preload="auto"
         @loadedmetadata="onMeta"
+        @timeupdate="onTid"
         @ended="onSlut"
         @error="onSlut"
+      />
+      <Undertext
+        v-if="steg !== 'intro' && aktivOverlay"
+        :rader="aktivOverlay.undertext"
+        :tid="tid"
+        :sprak="props.sprak ?? 'sv'"
       />
       <span v-if="steg !== 'intro'" class="ss__roll">{{ rollnamn }}</span>
       <span v-if="steg === 'intro'" class="ss__hint">Tryck för att hoppa över ▸</span>

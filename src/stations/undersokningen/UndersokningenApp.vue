@@ -5,7 +5,7 @@
  * tutorial, orange skarpt. Timer syns under fallet; verdikt pekas ut på fält-skärmen.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
-import { config, ROLLVAL, ENTRE, BANDLOST, SIDE_TO_VALV, MISSIONS, ROLE_ATTRACT, MUSIC, ROTATION, LJUS, asset, type RoleId } from '@/config'
+import { config, ROLLVAL, ROLLVAL_OVERLAY_SETS, ROLLVAL_PORTRATT_SETS, ENTRE, BANDLOST, SIDE_TO_VALV, MISSIONS, ROLE_ATTRACT, MUSIC, ROTATION, LJUS, asset, type RoleId } from '@/config'
 import { useStationMode } from '@/station-kit/mode/useStationMode'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import CrtScreen from '@/station-kit/components/CrtScreen.vue'
@@ -251,7 +251,7 @@ onUnmounted(() => {
   <div class="app" :data-mode="stationMode">
     <!-- Entrén: attract (testgrupp + sidindelning) → rollval → valet → utfall -->
     <CrtScreen v-if="!entreDone">
-      <Entre :rollval="ROLLVAL" @start="enter" @done="onEntreDone">
+      <Entre :rollval="ROLLVAL" :overlay-sets="ROLLVAL_OVERLAY_SETS" :portratt-sets="ROLLVAL_PORTRATT_SETS" @start="enter" @done="onEntreDone">
         <template #attract="{ start }">
           <AttractScreen
             :mission="attractMission"

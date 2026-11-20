@@ -11,6 +11,7 @@ import StationIntro from './StationIntro.vue'
 import RollSekvens from './RollSekvens.vue'
 import SynkSekvens from './SynkSekvens.vue'
 import type { RollvalConfig } from '../rollval/types'
+import type { OverlayData } from '../undertext/undertext'
 import { useEntre } from './entre'
 import type { EntrePerson, EntreRole, SideId } from './types'
 
@@ -18,6 +19,10 @@ const props = withDefaults(
   defineProps<{
     /** Rollvalets klipp (station config ROLLVAL). */
     rollval: RollvalConfig
+    /** Textlager per klippset (XY-TEXTLAGER, overlay.json), parallellt med ROLLVAL.clipSets: [{ rollId: overlay }]. */
+    overlaySets?: Array<Record<string, OverlayData | null>>
+    /** Rollvalsporträtt per klippset: [{ rollId: url }] — bilden på personen som spelar rollen i det aktiva setet. */
+    portrattSets?: Array<Record<string, string>>
     showSetToggle?: boolean
   }>(),
   { showSetToggle: false },
@@ -52,6 +57,14 @@ const sideNames = (side: SideId) =>
 /* ---------- rollbilder ---------- */
 function clipFor(role: EntreRole): string {
   return props.rollval.clipSets[s.clipSet]?.[role.rollvalRoleId] ?? props.rollval.clipSets[0]?.[role.rollvalRoleId] ?? ''
+}
+/** Textlagret (overlay.json) för en roll i det aktiva klippsetet. */
+function overlayFor(role: EntreRole): OverlayData | null {
+  return props.overlaySets?.[s.clipSet]?.[role.rollvalRoleId] ?? null
+}
+/** Rollvalsporträttet för en roll i det aktiva setet (annars rollens egen bild, annars klippets första ruta). */
+function portrattFor(role: EntreRole): string {
+  return props.portrattSets?.[s.clipSet]?.[role.rollvalRoleId] || role.image || ''
 }
 function taglineFor(role: EntreRole): string {
   return role.tagline ?? props.rollval.roles.find((r) => r.id === role.rollvalRoleId)?.tagline ?? ''
@@ -148,6 +161,7 @@ function toggleMode(): void {
       :intro-clip="cfg.introClip"
       :rollnamn="[cfg.rollkort.A, cfg.rollkort.B]"
       :klipp="[clipFor(roles[0]), clipFor(roles[1])]"
+      :overlay="[overlayFor(roles[0]), overlayFor(roles[1])]"
       :valvfarg="cfg.rollkort.valvfarg"
       :sprak="cfg.rollkort.sprak"
     />
@@ -167,6 +181,7 @@ function toggleMode(): void {
       v-else-if="s.step === 'rollval' && cfg.rollkort"
       :rollnamn="[cfg.rollkort.A, cfg.rollkort.B]"
       :klipp="[clipFor(roles[0]), clipFor(roles[1])]"
+      :overlay="[overlayFor(roles[0]), overlayFor(roles[1])]"
       :valvfarg="cfg.rollkort.valvfarg"
       :sprak="cfg.rollkort.sprak"
       @done="entre.clipsDone()"
@@ -202,7 +217,7 @@ function toggleMode(): void {
         <h2 class="en__question ink-strong">Vilken roll vill du ha?</h2>
         <div class="en__split">
           <button v-for="r in roles" :key="r.letter" class="en__choice amber-frame" @click="entre.vote(r.letter)">
-            <img v-if="r.image" :src="r.image" :alt="r.name" class="en__img" />
+            <img v-if="portrattFor(r)" :src="portrattFor(r)" :alt="r.name" class="en__img" />
             <video v-else-if="clipFor(r)" :src="clipFor(r) + '#t=1'" class="en__img" muted playsinline preload="metadata" />
             <div v-else class="en__img en__img--ph">{{ r.name }}</div>
             <span class="en__choice-name ink-strong">{{ r.name }}</span>
