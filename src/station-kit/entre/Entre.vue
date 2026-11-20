@@ -12,7 +12,6 @@ import RollSekvens from './RollSekvens.vue'
 import SynkSekvens from './SynkSekvens.vue'
 import type { RollvalConfig } from '../rollval/types'
 import { useEntre } from './entre'
-import { useRotation } from '../rotation/rotation'
 import type { EntrePerson, EntreRole, SideId } from './types'
 
 const props = withDefaults(
@@ -27,8 +26,6 @@ const emit = defineEmits<{ start: []; done: [] }>()
 
 const entre = useEntre()
 const s = entre.state
-/** Startspärren (regi före rotationen): attract visas, men utan uppmaning att trycka. */
-const startLocked = useRotation().startLocked
 const cfg = computed(() => entre.config())
 const roles = computed(() => cfg.value.roles)
 
@@ -133,7 +130,7 @@ function toggleMode(): void {
         <slot name="attract" :start="entre.start">
           <div class="en__stage en__tap" role="button" tabindex="0" @click="entre.start()" @keydown.enter="entre.start()">
             <h1 class="en__title ink-strong">{{ cfg.stationTitle }}</h1>
-            <p class="en__cta">{{ startLocked ? 'Titta på den stora skärmen – vi börjar snart' : 'Tryck för att börja ▸' }}</p>
+            <p class="en__cta">Tryck för att börja ▸</p>
           </div>
         </slot>
       </div>
