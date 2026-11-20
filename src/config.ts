@@ -473,6 +473,8 @@ export const ENTRE: EntreConfig = {
   attractBild: asset('attract/undersokningen-uv.jpg'),
   /** Stationsintrot (hype-klipp ~5–6 s) efter "Ställ er på rätt sida". Saknas filen → hoppas över. */
   introClip: `${import.meta.env.BASE_URL}media/stationsintro/undersokningen.mp4`,
+  /** Båda skärmarna väntar in varandra och spelar introt + rollsekvensen i takt (Josef 2026-11-20). */
+  synkIntro: true,
   /** Rollsekvensen efter introt (inga klick): brygga → kort A → klipp A → brygga → kort B → klipp B → valet.
    *  Rollnamn/valvfärg enligt station-kit/stationsintro/README.md (Josef 2026-11-19). */
   rollkort: { A: 'LABBTEKNIKER', B: 'FORENSIKER', valvfarg: '#4aa3ff', sprak: config.lang === 'no' ? 'no' : 'sv' },

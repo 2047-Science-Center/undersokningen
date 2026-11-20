@@ -63,6 +63,8 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /** VALdi-introts delade klocka: epoch-ms där introts tid 0 ligger (null = ej startat). Ledaren
    *  startar; ett tryck (hoppa kapitel) flyttar den. Båda skärmarna räknar t = (nu − introStartAt). */
   const introStartAt = ref<number | null>(null)
+  /** Vilka skärmar som kommit fram till VALdi-introt. Ledaren startar klockan först när båda är där. */
+  const introRedo = ref<Record<ValvId, boolean>>({ lag1: false, lag2: false })
 
   const paused = ref(false)
   const sessionActive = ref(false)
@@ -154,6 +156,11 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
       case 'introStartAt':
         introStartAt.value = (msg.payload as { at: number }).at
         break
+      case 'introRedo': {
+        const v = (msg.payload as { vault: ValvId }).vault
+        if (v === 'lag1' || v === 'lag2') introRedo.value = { ...introRedo.value, [v]: true }
+        break
+      }
       case 'pause':
         paused.value = (msg.payload as { paused: boolean }).paused
         break
@@ -181,6 +188,11 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   function introStart(at: number): void {
     introStartAt.value = at
     seam.value?.transport.send({ kind: 'introStartAt', payload: { at } })
+  }
+  /** Den här skärmen är framme vid VALdi-introt (skickas om tills klockan startat — tål missade meddelanden). */
+  function introMarkRedo(vault: ValvId): void {
+    introRedo.value = { ...introRedo.value, [vault]: true }
+    seam.value?.transport.send({ kind: 'introRedo', payload: { vault } })
   }
   function onbMarkReady(vault: ValvId): void {
     if (onbReady.value[vault]) return
@@ -281,6 +293,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     onbStage.value = 'tutorial'
     onbReady.value = { lag1: false, lag2: false }
     introStartAt.value = null
+    introRedo.value = { lag1: false, lag2: false }
     paused.value = false
     resultSent = false
     timerEndsAt.value = null
@@ -409,6 +422,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     onbStage,
     onbReady,
     introStartAt,
+    introRedo,
     paused,
     sessionActive,
     now,
@@ -433,6 +447,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     onbGoto,
     onbMarkReady,
     introStart,
+    introMarkRedo,
     scanSpot,
     closePopup,
     markSuspect,

@@ -9,6 +9,7 @@ import RoleSelect from '../rollval/RoleSelect.vue'
 import Ankomst from './Ankomst.vue'
 import StationIntro from './StationIntro.vue'
 import RollSekvens from './RollSekvens.vue'
+import SynkSekvens from './SynkSekvens.vue'
 import type { RollvalConfig } from '../rollval/types'
 import { useEntre } from './entre'
 import { useRotation } from '../rotation/rotation'
@@ -138,6 +139,28 @@ function toggleMode(): void {
       </div>
     </div>
 
+    <!-- synkIntro: den här sidan står rätt, väntar in andra sidan innan introt börjar -->
+    <div v-else-if="s.step === 'redo'" class="en__stage">
+      <h2 class="en__question ink-strong">Väntar på andra sidan …</h2>
+      <p class="en__muted">Introt börjar när båda sidorna står rätt.</p>
+    </div>
+
+    <!-- synkIntro: stationsintrot + rollsekvensen i takt på båda skärmarna (ledaren leder, ljud bara där) -->
+    <SynkSekvens
+      v-else-if="s.step === 'sekvens' && cfg.rollkort"
+      :intro-clip="cfg.introClip"
+      :rollnamn="[cfg.rollkort.A, cfg.rollkort.B]"
+      :klipp="[clipFor(roles[0]), clipFor(roles[1])]"
+      :valvfarg="cfg.rollkort.valvfarg"
+      :sprak="cfg.rollkort.sprak"
+    />
+    <SynkSekvens
+      v-else-if="s.step === 'sekvens'"
+      :intro-clip="cfg.introClip"
+      :rollnamn="['', '']"
+      :klipp="['', '']"
+    />
+
     <!-- STATIONSINTRO: hype-klippet (~5–6 s), ett tryck hoppar över -->
     <StationIntro v-else-if="s.step === 'intro' && cfg.introClip" :src="cfg.introClip" @done="entre.introDone()" />
 
@@ -262,7 +285,7 @@ function toggleMode(): void {
     <div v-if="menu" class="en__fac" @click.stop>
       <button class="en__fac-item" @click="toggleMode">Byt till {{ s.voteMode === 'rfid' ? 'skärm' : 'RFID' }}</button>
       <button
-        v-if="s.step === 'rollval' || s.step === 'valet' || s.step === 'vantar'"
+        v-if="['redo', 'sekvens', 'rollval', 'valet', 'vantar'].includes(s.step)"
         class="en__fac-item"
         @click="entre.skipVote(); menu = false"
       >
