@@ -69,7 +69,7 @@ const ljus = initLjus(
 )
 // --- Regis filmer (station-kit/film, SOM.md "Filmer i riggen"): trailern helskärm i båda
 //     fönstren medan regi står i trailerfasen, sedan tillbaka till stationen. ---
-//     I reveal/syv visar overlayen broker-NUC:ens appar (SOM.md "Appar i riggen").
+//     I reveal/sortering/syv visar overlayen broker-NUC:ens appar (SOM.md "Appar i riggen").
 initFilm(
   filmOptions({
     enabled: config.mode === 'production',
