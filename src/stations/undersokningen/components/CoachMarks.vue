@@ -34,6 +34,10 @@ function measure(): void {
   rect.value = { top: r.top, left: r.left, width: r.width, height: r.height }
 }
 
+/** Tillbaka ett steg (Josef 2026-11-23). */
+function back(): void {
+  if (i.value > 0) i.value -= 1
+}
 function next(): void {
   if (isLast.value) {
     emit('done')
@@ -98,15 +102,20 @@ const cardStyle = computed(() => {
         <span class="coach__step">{{ i + 1 }} / {{ steps.length }}</span>
         <h3 class="coach__title">{{ step.title }}</h3>
         <p class="coach__text">{{ step.text }}</p>
-        <button class="crt-button crt-button--strong coach__btn" @click="next">
-          {{ isLast ? t('coach.done') : t('coach.next') }} ▸
-        </button>
+        <div class="coach__nav">
+          <button v-if="i > 0" class="crt-button coach__btn coach__btn--back" @click="back">◂ {{ t('onboarding.back') }}</button>
+          <button class="crt-button crt-button--strong coach__btn" @click="next">
+            {{ isLast ? t('coach.done') : t('coach.next') }} ▸
+          </button>
+        </div>
       </div>
     </div>
   </Transition>
 </template>
 
 <style scoped>
+.coach__nav { display: flex; gap: 0.6rem; justify-content: center; flex-wrap: wrap; }
+.coach__btn--back { opacity: 0.85; }
 .coach { position: fixed; inset: 0; z-index: 90; }
 .coach__dim { position: absolute; inset: 0; background: rgba(2, 6, 4, 0.8); }
 .coach__hole {

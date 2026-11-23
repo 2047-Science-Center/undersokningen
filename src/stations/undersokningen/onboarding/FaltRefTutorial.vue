@@ -25,6 +25,10 @@ const scene = computed<SceneId>(() => SCENES[ix.value])
 const isLast = computed(() => ix.value >= SCENES.length - 1)
 const caption = computed(() => REF_CASE.scenes[scene.value])
 
+/** Tillbaka ett steg (Josef 2026-11-23: bläddra fram och tillbaka i genomgången). */
+function back(): void {
+  if (ix.value > 0) ix.value -= 1
+}
 function next(): void {
   audio.play('blip')
   if (isLast.value) {
@@ -166,13 +170,18 @@ const nils = REF_CASE.nils
     <div class="rt__dots">
       <span v-for="(s, i) in SCENES" :key="s" class="rt__dot" :class="{ 'rt__dot--on': i <= ix }" />
     </div>
-    <button class="crt-button crt-button--strong rt__btn" @click="next">
-      {{ isLast ? t('onboarding.go_live') : t('onboarding.next') }} ▸
-    </button>
+    <div class="rt__nav">
+      <button v-if="ix > 0" class="crt-button rt__btn rt__btn--back" @click="back">◂ {{ t('onboarding.back') }}</button>
+      <button class="crt-button crt-button--strong rt__btn" @click="next">
+        {{ isLast ? t('onboarding.go_live') : t('onboarding.next') }} ▸
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.rt__nav { display: flex; gap: 0.8rem; justify-content: center; align-items: center; flex-wrap: wrap; }
+.rt__btn--back { opacity: 0.85; }
 .rt { display: flex; flex-direction: column; align-items: center; gap: clamp(0.6rem, 1.8vh, 1.2rem); height: 100%; padding: clamp(0.8rem, 2vh, 1.4rem); text-align: center; }
 .rt__case { margin: 0; font-family: var(--font-retro); font-size: clamp(0.9rem, 1.8vw, 1.15rem); letter-spacing: 0.08em; color: var(--color-primary); display: inline-flex; align-items: center; gap: 0.4rem; }
 .rt__stage { flex: 1 1 auto; width: min(99vw, 100rem); min-height: 0; display: flex; align-items: center; justify-content: center; }

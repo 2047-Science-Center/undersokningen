@@ -66,6 +66,10 @@ const SPOTS = [
 ]
 const SCAN_SPOT = 2
 
+/** Tillbaka ett steg (Josef 2026-11-23: bläddra fram och tillbaka i genomgången). */
+function back(): void {
+  if (ix.value > 0) ix.value -= 1
+}
 function next(): void {
   audio.play('blip')
   if (isLast.value) {
@@ -185,13 +189,18 @@ function next(): void {
     <div class="frt__dots">
       <span v-for="(s, i) in SCENES" :key="s" class="frt__dot" :class="{ 'frt__dot--on': i <= ix }" />
     </div>
-    <button class="crt-button crt-button--strong frt__btn" @click="next">
-      {{ isLast ? t('onboarding.go_live') : t('onboarding.next') }} ▸
-    </button>
+    <div class="frt__nav">
+      <button v-if="ix > 0" class="crt-button frt__btn frt__btn--back" @click="back">◂ {{ t('onboarding.back') }}</button>
+      <button class="crt-button crt-button--strong frt__btn" @click="next">
+        {{ isLast ? t('onboarding.go_live') : t('onboarding.next') }} ▸
+      </button>
+    </div>
   </div>
 </template>
 
 <style scoped>
+.frt__nav { display: flex; gap: 0.8rem; justify-content: center; align-items: center; flex-wrap: wrap; }
+.frt__btn--back { opacity: 0.85; }
 .frt { display: flex; flex-direction: column; align-items: center; gap: clamp(0.4rem, 1.2vh, 0.9rem); height: 100%; padding: clamp(0.6rem, 1.6vh, 1.1rem); text-align: center; }
 .frt__case { margin: 0; font-family: var(--font-retro); font-size: clamp(0.85rem, 1.6vw, 1.05rem); letter-spacing: 0.08em; color: var(--color-primary); display: inline-flex; align-items: center; gap: 0.4rem; }
 

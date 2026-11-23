@@ -126,6 +126,7 @@ export const sv: Record<string, string> = {
 
   // --- Tutorial (referensfall) ---
   'onboarding.next': 'NÄSTA',
+  'onboarding.back': 'TILLBAKA',
   'onboarding.done': 'KLAR',
   'onboarding.skip': 'VI KAN REDAN',
   'onboarding.go_live': 'KÖR SKARPT',
