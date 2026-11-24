@@ -1,10 +1,19 @@
 <script setup lang="ts">
 /**
- * Tutorial: VALdi-introt (inläst, textat, rullar själv: läges-legenden → 3D-filmen över
- * fallet) → rollgenomgång per sida (klickas igenom, utan röst) → sync-barriär → go-live.
+ * Tutorial: spellägeskortet (SAMARBETE, xy-produktion/spellage §9) → VALdi-introt (inläst, textat,
+ * rullar själv: läges-legenden → 3D-filmen över fallet) → rollgenomgång per sida (klickas igenom,
+ * utan röst) → sync-barriär → go-live.
+ *
+ * Spellägeskortet återanvänder introts väntan och delade klocka (introRedo/introStartAt): båda skärmarna
+ * väntar in varandra, ledaren sätter klockan och kortet spelas i takt. När kortet är slut sätter ledaren
+ * en ny klocka för introt (ett tryck efter ~4 s gör samma sak från vilken skärm som helst); den andra
+ * skärmen ser att klockan bytts och går vidare till introt. Ingen ny väntpunkt, inget nytt meddelande.
  */
-import { ref, computed, watch } from 'vue'
-import { type ValvId } from '@/config'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { type ValvId, ROTATION } from '@/config'
+import { useRotation, DEFAULT_ORDER } from '@/station-kit/rotation/rotation'
+import { kortFil } from '@/station-kit/spellage/spellage'
+import SpellageKort from '@/station-kit/spellage/SpellageKort.vue'
 import { useI18n } from '@/station-kit/i18n'
 import { OTHER } from '../engine/gameEngine'
 import { useUndersokningenStore } from '../store/undersokningenStore'
@@ -23,7 +32,7 @@ const leader = computed(() => props.shared || me.value === 'lag1')
 /** FÄLT: referensfall → gate. LABB: referensfall → rollgenomgång → gate. */
 const isFalt = computed(() => props.team === 'lag2')
 
-const phase = ref<'intro' | 'role' | 'gate'>('intro')
+const phase = ref<'kort' | 'intro' | 'role' | 'gate'>('kort')
 const iAmReady = ref(false)
 
 const bothReady = computed(() => store.onbReady[me.value] && (props.shared || store.onbReady[other.value]))
@@ -36,13 +45,73 @@ function markReady(): void {
 watch([bothReady], () => {
   if (leader.value && bothReady.value) store.onbGoto('live')
 })
+
+// ---------- spellägeskortet: efter rollvalet, före introt ----------
+const rotation = useRotation()
+const kortSrc = computed(
+  () => `${import.meta.env.BASE_URL}media/spellage/${kortFil(ROTATION.stationN, rotation.state.round, DEFAULT_ORDER)}`,
+)
+const minSida = computed<ValvId>(() => (store.view === 'lag2' ? 'lag2' : 'lag1'))
+const badaRedo = computed(() => store.view === 'shared' || (store.introRedo.lag1 && store.introRedo.lag2))
+/** Kortets starttid (= introStartAt när kortet började). En ny klocka efter den = kortet är klart. */
+const kortStart = ref<number | null>(null)
+watch(
+  badaRedo,
+  (b) => {
+    if (phase.value === 'kort' && b && store.leader && store.introStartAt == null) store.introStart(Date.now() + 600)
+  },
+  { immediate: true },
+)
+watch(
+  () => store.introStartAt,
+  (at) => {
+    if (phase.value !== 'kort' || at == null) return
+    if (kortStart.value == null) kortStart.value = at
+    else if (at !== kortStart.value) phase.value = 'intro'
+  },
+  { immediate: true },
+)
+/** Filmen slut (ledaren) eller ett tryck (vilken skärm som helst) → ny klocka för introt. */
+function kortKlart(): void {
+  if (phase.value !== 'kort') return
+  store.introStart(Date.now() + 400)
+  phase.value = 'intro'
+}
+let redoTimer: ReturnType<typeof setInterval> | null = null
+onMounted(() => {
+  if (store.view === 'shared') return
+  store.introMarkRedo(minSida.value)
+  // Skicka om tills klockan går (andra skärmen kan ha laddats om eller missat meddelandet).
+  redoTimer = setInterval(() => {
+    if (kortStart.value != null || phase.value !== 'kort') {
+      if (redoTimer) clearInterval(redoTimer)
+      redoTimer = null
+    } else store.introMarkRedo(minSida.value)
+  }, 1500)
+})
+onUnmounted(() => {
+  if (redoTimer) clearInterval(redoTimer)
+})
 </script>
 
 <template>
   <div class="tut">
     <!-- VALdi-introt: läges-legenden + 3D-filmen, inläst och textat, i takt på båda skärmarna.
          Ersätter legend-rutan och filmens textrutor (FaltRefTutorial finns kvar oanvänt). -->
-    <IntroVo v-if="phase === 'intro'" class="tut__vo" @done="phase = 'role'" />
+    <!-- Spellägeskortet (SAMARBETE): väntar in andra sidan, spelas sedan i takt på båda skärmarna -->
+    <template v-if="phase === 'kort'">
+      <BarrierWait v-if="kortStart == null" />
+      <SpellageKort
+        v-else
+        :src="kortSrc"
+        :start-at="kortStart"
+        :leader="store.leader"
+        @done="store.leader && kortKlart()"
+        @skip="kortKlart"
+      />
+    </template>
+
+    <IntroVo v-else-if="phase === 'intro'" class="tut__vo" @done="phase = 'role'" />
 
     <!-- Rollgenomgång (egna verktygen) i samma vy som spelet, efter referensfallet -->
     <template v-else-if="phase === 'role'">

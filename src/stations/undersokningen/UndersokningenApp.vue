@@ -13,6 +13,7 @@ import AttractScreen from '@/station-kit/components/AttractScreen.vue'
 import Entre from '@/station-kit/entre/Entre.vue'
 import { initEntre } from '@/station-kit/entre/entre'
 import ModeCountdown from '@/station-kit/components/ModeCountdown.vue'
+import SpellageSymbol from '@/station-kit/spellage/SpellageSymbol.vue'
 import MuteButton from '@/station-kit/components/MuteButton.vue'
 import { useI18n } from '@/station-kit/i18n'
 import { useUndersokningenStore } from './store/undersokningenStore'
@@ -298,7 +299,10 @@ onUnmounted(() => {
     <MuteButton class="app__mute" />
     <FacilitatorControls v-if="entered" />
     <PilotPanel v-if="isPilot && entered" />
-    <ModeCountdown v-if="showGoLive" :title="t('mode.golive_title')" :from="3" @done="goLiveDone" />
+    <!-- Spelläget ④: symbolen + TILLSAMMANS i nedräkningen (xy-produktion/spellage §9) -->
+    <ModeCountdown v-if="showGoLive" :title="t('mode.golive_title')" :under="t('mode.golive_under')" :from="3" @done="goLiveDone">
+      <template #symbol><SpellageSymbol lage="samarbete" :size="150" /></template>
+    </ModeCountdown>
 
     <div v-if="store.paused" class="app__pause">
       <p class="app__pause-title">{{ t('facil.paused_title') }}</p>

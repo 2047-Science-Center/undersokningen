@@ -17,6 +17,7 @@ export const sv: Record<string, string> = {
   'mode.legend_tutorial': 'När skärmen är BLÅ övar vi',
   'mode.legend_live': 'När den blir skarp kör vi på riktigt',
   'mode.golive_title': 'NU KÖR VI PÅ RIKTIGT',
+  'mode.golive_under': 'TILLSAMMANS',
 
   // --- Attract ---
   'attract.boot': 'STARTAR TERMINAL …',
