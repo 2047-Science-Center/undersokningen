@@ -66,7 +66,7 @@ describe('Undersökningen → ljus: skanningar', () => {
     })
     it('okänd UID: fel på B + kanon kvitto-fel', () => {
       scanFeedback(useLjus(), 'okand')
-      expect(fb()).toMatchObject({ gest: 'fel', segments: [{ id: 'B', from: 30, to: 59 }] })
+      expect(fb()).toMatchObject({ gest: 'fel', segments: [{ id: 'B', from: 70, to: 139 }] })
       expect(spelat).toEqual(['kanon:kvitto-fel'])
     })
   })
