@@ -69,6 +69,12 @@ useHoppa(() => {
 const ljus = useLjus()
 const tjuvSynlig = ref(false)
 let tjuvTimer: ReturnType<typeof setTimeout> | null = null
+let stingerTimer: ReturnType<typeof setTimeout> | null = null
+/** Finalens stingers (public/Sound/sfx/, kanon i xy-simulator/media/ljud/xy-ljud/sfx/resultat/r2-*). */
+const FINAL_LJUD = { vinst: 'sfx-final-vinst.mp3', forlust: 'sfx-final-forlust.mp3' } as const
+const STINGER_EFTER_MS = 450
+/** Från takt 'utfall' (slaget + 1,4 s) till den andra virveln: förlust-stingern hinner klinga ut. */
+const ANDRA_SPANNING_MS = 1700
 const rattPekad = computed(() => won.value)
 const ingenPekad = computed(() => !picked.value)
 
@@ -79,17 +85,22 @@ const avslut = useAvslut({
     if (!store.leader) return
     const u = won.value ? 'vinst' : 'forlust'
     ljus.utfall(u, BADA, { tyst: true })
-    setTimeout(() => ljus.ljud(u), 650) // efter slaget, aldrig samtidigt
+    // Pampig final-stinger (ElevenLabs, sfx/resultat r2-*) strax efter slaget, i stället för kanon-
+    // ljudet: musiken är redan bruten (UndersokningenApp), så den står ensam.
+    stingerTimer = setTimeout(() => spelaAvslutLjud(won.value ? FINAL_LJUD.vinst : FINAL_LJUD.forlust), STINGER_EFTER_MS)
   },
   onTakt: (takt) => {
     if (takt === 'avslojande') tjuvSynlig.value = won.value || ingenPekad.value
     if (takt === 'utfall' && !won.value && !ingenPekad.value) {
       // Andra spänningen: vem var det då?
-      if (store.leader) spelaAvslutLjud(AVSLUT_LJUD.virvelKort)
+      // …efter att förlust-stingern klingat ut (den börjar 450 ms efter slaget, ~2,9 s lång).
       tjuvTimer = setTimeout(() => {
-        tjuvSynlig.value = true
-        if (store.leader) spelaAvslutLjud(AVSLUT_LJUD.avslojande)
-      }, 1300)
+        if (store.leader) spelaAvslutLjud(AVSLUT_LJUD.virvelKort)
+        tjuvTimer = setTimeout(() => {
+          tjuvSynlig.value = true
+          if (store.leader) spelaAvslutLjud(AVSLUT_LJUD.avslojande)
+        }, 1300)
+      }, ANDRA_SPANNING_MS)
     }
   },
   onAuto: () => {
@@ -103,6 +114,7 @@ watch(
   done,
   (d) => {
     if (tjuvTimer) clearTimeout(tjuvTimer)
+    if (stingerTimer) clearTimeout(stingerTimer)
     tjuvSynlig.value = false
     if (d) avslut.start()
     else avslut.aterstall()
@@ -111,6 +123,7 @@ watch(
 )
 onBeforeUnmount(() => {
   if (tjuvTimer) clearTimeout(tjuvTimer)
+  if (stingerTimer) clearTimeout(stingerTimer)
 })
 
 const uppText = computed(() =>

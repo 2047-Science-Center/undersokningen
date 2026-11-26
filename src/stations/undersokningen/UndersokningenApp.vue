@@ -162,8 +162,12 @@ watch(
 //     intro-rösten; börjar från början när TUTORIALEN (rollgenomgången) börjar, svag där och
 //     högre skarpt. EN källa: bara ledar-fönstret spelar, annars dubbelspelas den osynkat. ---
 const tutorialStartad = ref(false)
+// Utfallet bryter musiken (Josef 2026-11-26): när tjuven är utpekad tystnar den tvärt, så avslutets
+// virvel + slag + final-stinger står ensamma. Startar om från början nästa runda.
 const musikNiva = computed(() =>
-  !entered.value || !(tutorialStartad.value || onboarded.value) ? 0 : onboarded.value ? MUSIC.live : MUSIC.tutorial,
+  !entered.value || !(tutorialStartad.value || onboarded.value) || store.phase === 'solved' || store.phase === 'failed'
+    ? 0
+    : onboarded.value ? MUSIC.live : MUSIC.tutorial,
 )
 watch(musikNiva, (n, old) => {
   if (!store.leader) return
