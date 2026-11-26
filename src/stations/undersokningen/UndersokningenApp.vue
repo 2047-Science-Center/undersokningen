@@ -21,6 +21,7 @@ import { platsFran } from './engine/scoring'
 import LabbConsole from './components/LabbConsole.vue'
 import FaltConsole from './components/FaltConsole.vue'
 import VerdictScreen from './components/VerdictScreen.vue'
+import Tavlan from './components/platser/Tavlan.vue'
 import PilotPanel from './components/PilotPanel.vue'
 import FacilitatorControls from './components/FacilitatorControls.vue'
 import Onboarding from './onboarding/Onboarding.vue'
@@ -142,8 +143,9 @@ const lekRole = computed(() => (store.view === 'lag1' ? 'labb' : store.view === 
 
 const isShared = computed(() => store.view === 'shared')
 const onboardTeam = computed(() => (store.view === 'lag2' ? 'lag2' : 'lag1'))
-/** Fält-innehåll: investigate → konsol, annars (verdict/solved/failed) → verdikt. */
-const faltVerdict = computed(() => store.phase !== 'investigate' && store.phase !== 'intro')
+/** Stegflödet: investigate → platserna (konsolerna), verdict → ★ tavlan på båda skärmarna, utfall → avslutet. */
+const tavlan = computed(() => store.phase === 'verdict')
+const utfall = computed(() => store.phase === 'solved' || store.phase === 'failed')
 
 const stationMode = computed<'tutorial' | 'live'>(() =>
   entered.value && !onboarded.value && entreDone.value ? 'tutorial' : 'live',
@@ -170,13 +172,7 @@ watch(musikNiva, (n, old) => {
   else audio.stopMusic()
 })
 
-const mmss = computed(() => {
-  const s = store.secondsLeft
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-})
-const showTimer = computed(() => onboarded.value && store.phase === 'investigate')
-/** Labbsidan visar också utfallet (VerdictScreen), annars föll den tillbaka till konsolen. */
-const labbResultat = computed(() => store.phase === 'solved' || store.phase === 'failed')
+const showTimer = computed(() => onboarded.value && (store.phase === 'investigate' || store.phase === 'verdict'))
 
 // --- Ljusets läge: rotationen styr när den är på (ankomst/tutorial/skarp/lek); annars appens
 //     egna faser (attract = vila, tutorial, skarpt). Utfallet (vinst/förlust) håller sin bas
@@ -289,23 +285,26 @@ onUnmounted(() => {
 
     <!-- Skarpt -->
     <div v-else class="app__live">
-      <div v-if="showTimer" class="app__timer" :class="{ 'app__timer--warn': store.timerWarn }">
-        {{ t('timer.label') }} <span class="app__timer-num mono">{{ mmss }}</span>
-      </div>
-
+      <!-- Timern bor i platsremsan / tavlans band (stegflödet) — ingen egen rad överst. -->
       <div v-if="isShared" class="app__split">
-        <CrtScreen><LabbConsole /></CrtScreen>
         <CrtScreen>
-          <VerdictScreen v-if="faltVerdict" />
+          <Tavlan v-if="tavlan || utfall" vault="lag1" />
+          <LabbConsole v-else />
+        </CrtScreen>
+        <CrtScreen>
+          <VerdictScreen v-if="utfall" />
+          <Tavlan v-else-if="tavlan" vault="lag2" />
           <FaltConsole v-else />
         </CrtScreen>
       </div>
       <CrtScreen v-else-if="store.view === 'lag1'">
-        <VerdictScreen v-if="labbResultat" />
+        <VerdictScreen v-if="utfall" />
+        <Tavlan v-else-if="tavlan" vault="lag1" />
         <LabbConsole v-else />
       </CrtScreen>
       <CrtScreen v-else>
-        <VerdictScreen v-if="faltVerdict" />
+        <VerdictScreen v-if="utfall" />
+        <Tavlan v-else-if="tavlan" vault="lag2" />
         <FaltConsole v-else />
       </CrtScreen>
     </div>

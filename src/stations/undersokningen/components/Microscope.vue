@@ -6,8 +6,12 @@
  * live. När bilden är fryst drar man DIREKT från den (pointerdown → emit
  * 'grab') ner i en hårkategori. `release()` exponeras så labbkonsolen kan
  * återgå till live efter att provet sorterats.
+ *
+ * Stegflödet (Mikroskopbordet): `okular` = rund okularvy utan rubrikrad, slot `over` = innehåll ovanpå
+ * den frusna bilden (Q-chippen). `reserv` = reservbilder när kameran saknas (pilot/testbrowser): FRYS
+ * visar då nästa reservbild som om den vore frusen ur kameran. 'release' = tillbaka till live.
  */
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { config } from '@/config'
 import { useI18n } from '@/station-kit/i18n'
 import { audio } from '@/station-kit/audio/AudioEngine'
@@ -16,7 +20,13 @@ import { LABB } from '../ljus'
 import Icon from './Icon.vue'
 
 const { t } = useI18n()
-const emit = defineEmits<{ capture: [string]; grab: [PointerEvent] }>()
+const props = withDefaults(defineProps<{ okular?: boolean; reserv?: string[]; frysText?: string; tillbakaText?: string }>(), {
+  okular: false,
+  reserv: () => [],
+  frysText: '',
+  tillbakaText: '',
+})
+const emit = defineEmits<{ capture: [string]; grab: [PointerEvent]; release: [] }>()
 
 const video = ref<HTMLVideoElement | null>(null)
 const msg = ref<string>('')
@@ -25,6 +35,12 @@ const cameras = ref<MediaDeviceInfo[]>([])
 const currentId = ref<string>('')
 let stream: MediaStream | null = null
 let canvas: HTMLCanvasElement | null = null
+/** Reservbilden som visas fryst när kameran saknas (null = kameran används). */
+const reservSrc = ref<string | null>(null)
+let reservIx = 0
+/** Kameran saknas men reservbilder finns → FRYS fungerar ändå. */
+const reservLage = computed(() => !!msg.value && props.reserv.length > 0)
+const kanDra = computed(() => frozen.value && (!msg.value || !!reservSrc.value))
 
 function pickDevice(devices: MediaDeviceInfo[]): string | undefined {
   const needle = config.cameraLabel.toLowerCase()
@@ -87,6 +103,14 @@ function toggleFreeze(): void {
   audio.play(frozen.value ? 'stamp' : 'blip')
   // Frysning = kvitto på labbsegmentet (stationsljudet 'stamp' behålls → gesten tyst).
   if (frozen.value) useLjus().gest('kvitto', [LABB], { tyst: true })
+  if (!frozen.value) emit('release')
+  if (reservLage.value) {
+    if (frozen.value) {
+      reservSrc.value = props.reserv[reservIx++ % props.reserv.length]
+      emit('capture', reservSrc.value)
+    } else reservSrc.value = null
+    return
+  }
   if (!video.value) return
   if (frozen.value) {
     video.value.pause()
@@ -105,7 +129,7 @@ defineExpose({ release })
 
 /** Fryst bild = dra direkt från den. */
 function onStagePointerDown(e: PointerEvent): void {
-  if (frozen.value && !msg.value) emit('grab', e)
+  if (kanDra.value) emit('grab', e)
 }
 
 onMounted(async () => {
@@ -126,8 +150,8 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="scope amber-frame">
-    <div class="scope__head">
+  <div class="scope" :class="okular ? 'scope--okular' : 'amber-frame'">
+    <div v-if="!okular" class="scope__head">
       <Icon name="mikroskop" :size="18" />
       <span class="scope__title">{{ t('mikroskop.title') }}</span>
       <select v-if="cameras.length > 1" class="scope__cam" :value="currentId" @change="onPick">
@@ -136,28 +160,37 @@ onBeforeUnmount(() => {
         </option>
       </select>
     </div>
-    <div
-      class="scope__stage" :class="{ 'scope__stage--frozen': frozen, 'scope__stage--grab': frozen && !msg }"
-      @pointerdown.prevent="onStagePointerDown"
-    >
-      <video ref="video" class="scope__video" autoplay playsinline muted />
-      <div v-if="msg" class="scope__msg">
-        <Icon name="mikroskop" :size="34" />
-        <span>{{ msg }}</span>
-        <span class="scope__hint">{{ t('mikroskop.allow') }}</span>
-      </div>
-      <span v-if="frozen && !msg" class="scope__frozen-tag"><Icon name="check" :size="13" /> FRYST</span>
-      <!-- Dra-affordans: syns på den frysta bilden -->
-      <div v-if="frozen && !msg" class="scope__draghint" aria-hidden="true">
-        <span class="scope__draghint-text">{{ t('mikroskop.drag_hint') }}</span>
-        <span class="scope__arrows"><span>▼</span><span>▼</span><span>▼</span></span>
+    <div class="scope__ram">
+      <div
+        class="scope__stage" :class="{ 'scope__stage--frozen': frozen, 'scope__stage--grab': kanDra }"
+        @pointerdown.prevent="onStagePointerDown"
+      >
+        <video ref="video" class="scope__video" autoplay playsinline muted />
+        <img v-if="reservSrc" class="scope__video scope__reserv" :src="reservSrc" alt="" draggable="false" />
+        <div v-if="msg && !reservSrc" class="scope__msg">
+          <Icon name="mikroskop" :size="34" />
+          <span>{{ msg }}</span>
+          <span class="scope__hint">{{ reservLage ? 'Pilot: FRYS visar en reservbild.' : t('mikroskop.allow') }}</span>
+        </div>
+        <span v-if="kanDra" class="scope__frozen-tag"><Icon name="check" :size="13" /> FRYST</span>
+        <!-- Dra-affordans: syns på den frysta bilden -->
+        <div v-if="kanDra && !okular" class="scope__draghint" aria-hidden="true">
+          <span class="scope__draghint-text">{{ t('mikroskop.drag_hint') }}</span>
+          <span class="scope__arrows"><span>▼</span><span>▼</span><span>▼</span></span>
+        </div>
+        <slot v-if="kanDra" name="over" />
       </div>
     </div>
     <div class="scope__tools">
       <button class="scope__btn scope__btn--freeze" :class="{ 'scope__btn--on': frozen }" @click="toggleFreeze">
         <Icon :name="frozen ? 'check' : 'exponering'" :size="26" />
-        {{ frozen ? t('mikroskop.release') : t('mikroskop.freeze') }}
+        {{ frozen ? (tillbakaText || t('mikroskop.release')) : (frysText || t('mikroskop.freeze')) }}
       </button>
+      <select v-if="okular && cameras.length > 1" class="scope__cam" :value="currentId" @change="onPick">
+        <option v-for="(c, i) in cameras" :key="c.deviceId" :value="c.deviceId">
+          {{ c.label || ('Kamera ' + (i + 1)) }}
+        </option>
+      </select>
     </div>
   </div>
 </template>
@@ -171,7 +204,9 @@ onBeforeUnmount(() => {
   background: var(--color-background-2); border: 1px solid var(--color-primary-dim); border-radius: 6px;
   padding: 0.1em 0.4em; max-width: 12rem;
 }
+.scope__ram { position: relative; flex: 1; min-height: 0; display: flex; }
 .scope__stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; background: #000; }
+.scope__reserv { position: absolute; inset: 0; margin: auto; object-fit: contain; }
 .scope__stage--frozen { outline: 2px solid var(--color-primary); outline-offset: -2px; }
 .scope__stage--grab { cursor: grab; touch-action: none; }
 .scope__stage--grab:active { cursor: grabbing; }
@@ -201,4 +236,21 @@ onBeforeUnmount(() => {
 .scope__btn:active { transform: scale(0.98); }
 .scope__btn--on { color: var(--color-ink-strong); border-color: var(--color-primary); box-shadow: var(--glow-soft); }
 @media (prefers-reduced-motion: reduce) { .scope__arrows span { animation: none; opacity: 0.9; } }
+
+/* Okularvyn (Mikroskopbordet): rund bild i en mörk mässingsring, så stor som rutan tillåter */
+.scope--okular { height: 100%; gap: 0.7rem; }
+.scope--okular .scope__ram { container-type: size; align-items: center; justify-content: center; }
+.scope--okular .scope__stage {
+  flex: none; width: min(100cqw, 100cqh); height: min(100cqw, 100cqh); border-radius: 50%; overflow: hidden;
+  border: clamp(6px, 1.2cqmin, 14px) solid #17120d;
+  box-shadow: 0 0 0 3px var(--color-primary), 0 16px 36px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(0, 0, 0, 0.85);
+}
+.scope--okular .scope__stage--frozen { outline: none; box-shadow: 0 0 0 4px var(--color-primary), var(--glow-strong), inset 0 0 40px rgba(0, 0, 0, 0.85); }
+.scope--okular .scope__video { width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; }
+.scope--okular .scope__frozen-tag { top: 14%; left: 50%; translate: -50% 0; }
+.scope--okular .scope__msg { padding: 18%; }
+.scope--okular .scope__tools { border-top: none; padding: 0; justify-content: center; align-items: center; }
+.scope--okular .scope__btn { flex: 0 1 22rem; border: 2px solid var(--color-primary); color: var(--color-primary); background: rgba(0, 0, 0, 0.35); }
+.scope--okular .scope__btn--on { color: var(--color-ink-strong); }
+.scope--okular .scope__cam { margin-left: 0; }
 </style>

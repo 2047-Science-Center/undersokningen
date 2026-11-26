@@ -164,7 +164,7 @@ export type LjudNamn =
   | 'oppnar'
   | 'stanger'
 
-export type Gest = 'kvitto' | 'ratt' | 'inom' | 'fel' | 'over' | 'oppnar' | 'stanger' | 'vinst' | 'forlust' | 'klar'
+export type Gest = 'kvitto' | 'ratt' | 'inom' | 'fel' | 'over' | 'oppnar' | 'stanger' | 'vinst' | 'forlust' | 'klar' | 'oenig'
 
 export interface GestDef {
   color: string
@@ -189,6 +189,8 @@ export const GEST: Record<Gest, GestDef> = {
   vinst: { color: FARG.gron, tempo: 400, antal: 3, prio: 3, ljud: 'vinst', bas: 'vinst' },
   forlust: { color: FARG.rod, tempo: 600, antal: 3, prio: 3, ljud: 'forlust', bas: 'forlust' },
   klar: { color: FARG.lek, tempo: 600, antal: 1, prio: 3, ljud: 'klar', bas: 'lek' },
+  /** Sidorna tror olika (Undersökningens tavla): orange, inte rött — det är inte fel, bara oenigt. */
+  oenig: { color: FARG.amber, tempo: 450, antal: 2, prio: 2, ljud: 'fel' },
 }
 
 /**

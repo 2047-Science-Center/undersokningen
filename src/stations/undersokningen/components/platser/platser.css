@@ -1,0 +1,61 @@
+/*
+ * Stegflödets formspråk (docs/STEGFLODE-FORSLAG.md §3, storyboard docs/stegflode-forslag.mp4):
+ * en PLATS i taget = ett illustrerat arbetsbord med föremål (papper, polaroid, stämpel, röd penna,
+ * provglas, burkar, ljusbord, rörpost, anslagstavla). Stationens CRT-ram och accent runt om
+ * (--color-primary = blått i genomgången, orange skarpt). Globala klasser med prefix pl-.
+ */
+.pl-plats { position: relative; height: 100%; min-height: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.pl-huvud { display: flex; align-items: baseline; gap: 1rem; padding: 0 0.3rem; }
+.pl-titel { margin: 0; font-family: var(--font-retro); font-size: clamp(1.6rem, 3.2vw, 2.6rem); letter-spacing: 0.06em; color: var(--color-primary); text-shadow: var(--glow-soft); }
+.pl-uppdrag { margin: 0; font-family: var(--font-mono); font-size: clamp(1rem, 1.6vw, 1.3rem); color: var(--color-ink-strong); }
+
+/* Arbetsbordet */
+.pl-bord {
+  position: relative; flex: 1; min-height: 0; overflow: hidden; border-radius: 14px;
+  border: 2px solid var(--color-primary-dim);
+  background-color: #2b1d12;
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.025) 0 2px, transparent 2px 46px),
+    radial-gradient(ellipse at 50% 40%, rgba(255, 190, 120, 0.08), transparent 70%);
+}
+.pl-raknare { font-family: var(--font-retro); font-size: clamp(1.6rem, 3vw, 2.4rem); color: var(--color-ink-strong); }
+.pl-raknare b { color: var(--color-primary); font-weight: 400; }
+
+/* Polaroid */
+.pl-pol { position: relative; background: #f3eee2; padding: 0.6rem 0.6rem 2.4rem; box-shadow: 0 10px 22px rgba(0, 0, 0, 0.55); }
+.pl-pol img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #111; }
+.pl-pol__cap { position: absolute; left: 0.7rem; right: 0.7rem; bottom: 0.45rem; font-family: var(--font-mono); font-weight: 600;
+  font-size: clamp(0.8rem, 1.3vw, 1.15rem); color: #1d1d1d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Stämpel (sätts med klassen pl-stamp--in för slag-animationen) */
+.pl-stamp { position: absolute; z-index: 5; border: 6px solid #d0241b; border-radius: 10px; padding: 0.1em 0.6em 0.2em;
+  font-family: var(--font-retro); font-size: clamp(1.6rem, 3vw, 2.6rem); letter-spacing: 0.04em; color: #d0241b;
+  white-space: nowrap; background: rgba(243, 238, 226, 0.12); transform: rotate(-10deg); pointer-events: none; }
+.pl-stamp--or { border-color: var(--color-primary); color: var(--color-primary); background: rgba(5, 16, 11, 0.85); }
+.pl-stamp--gra { border-color: #6f6a60; color: #6f6a60; }
+.pl-stamp--in { animation: pl-stamp-in 260ms cubic-bezier(0.2, 1.6, 0.4, 1) both; }
+@keyframes pl-stamp-in { from { opacity: 0; transform: rotate(-10deg) scale(1.6); } to { opacity: 1; transform: rotate(-10deg) scale(1); } }
+
+/* Papper (loggen) + röd penna */
+.pl-papper { position: relative; background: #efe9da; color: #1d1d1d; box-shadow: 0 12px 26px rgba(0, 0, 0, 0.55); font-family: var(--font-mono); }
+.pl-penna { fill: none; stroke: #d0241b; stroke-width: 4; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 0;
+  animation: pl-penna 450ms ease-in-out both; vector-effect: non-scaling-stroke; }
+@keyframes pl-penna { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+
+/* Utvägen "gå vidare ▸" — diskret, syns först efter UTVAG_EFTER_SEK */
+.pl-utvag { font-family: var(--font-mono); font-size: 1rem; color: var(--color-ink-muted); background: transparent;
+  border: 2px dashed var(--color-primary-dim); border-radius: 10px; padding: 0.45em 1em; cursor: pointer; }
+
+/* Platsbyte: bordet glider åt sidan (FaltConsole/LabbConsole <Transition name="pl-glid">) */
+.pl-glid-enter-active, .pl-glid-leave-active { transition: transform 650ms cubic-bezier(0.65, 0, 0.35, 1), opacity 650ms; }
+.pl-glid-enter-from { transform: translateX(100%); opacity: 0.4; }
+.pl-glid-leave-to { transform: translateX(-100%); opacity: 0.4; }
+.pl-glid-leave-active { position: absolute; inset: 0; }
+
+/* "✓ … KLAR"-stämpeln vid platsbyte */
+.pl-klar { position: absolute; left: 50%; top: 42%; z-index: 20; translate: -50% -50%; }
+
+@media (prefers-reduced-motion: reduce) {
+  .pl-stamp--in, .pl-penna { animation: none; }
+  .pl-glid-enter-active, .pl-glid-leave-active { transition: none; }
+}

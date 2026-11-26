@@ -161,13 +161,15 @@ export const MUSIC = {
  * ------------------------------------------------------------------ */
 
 export const LABB_TUT = {
-  prov: 'Ni har ett antal hårprover framför er. Ett av dem är tjuvens.',
-  fokus: 'Ni skannar med mikroskopet. Använd tummen på reglaget för att hitta fokus.',
+  // Stegflödet (Josef 2026-11-26): samma platser och ordning som i spelet, en sak i taget.
+  prov: 'Mikroskopbordet: här ligger sex hårprov, Q1–Q6. Ett av dem är tjuvens.',
+  fokus: 'Lägg provet under mikroskopet. Vrid på reglaget med tummen tills bilden blir skarp.',
   sort_q: 'Vad tror du att det här är för hårstrå?',
-  sort: 'Frys bilden och dra den till rätt kategori.',
-  misstankta: 'Här dyker fältets misstänkta upp, en i taget, när de markerar dem på sin skärm.',
-  matcha: 'Jämför era människohår med de misstänkta. Markera det hår som matchar — bara ett hår matchar en person.',
-  slut: 'Berätta för fältet vems hår som matchar. De pekar ut tjuven — tillsammans löser ni brottet.',
+  sort: 'Frys bilden, välj vilket prov det är och dra det till rätt burk. Gör så med alla sex.',
+  ljusbord: 'Ljusbordet: människohåren hamnar här. Sätt en färgetikett på varje hår.',
+  misstankta: 'Rörposten: när fältet hittar en misstänkt kommer den hit med rörposten.',
+  matcha: 'Lägg det hår som matchar på polaroiden. Bara ett hår matchar en person.',
+  slut: 'Sist möts ni vid tavlan. Båda sidor sätter sin nål — på samma person.',
 }
 
 /* ------------------------------------------------------------------ *
@@ -179,12 +181,13 @@ export const LABB_TUT = {
  * ------------------------------------------------------------------ */
 
 export const FALT_TUT = {
-  lys: 'Lys med lyspennan över ytan — fingeravtrycken tänds.',
-  skanna: 'När scannern hittar ett avtryck får ni upp en bild på personen från övervakningskamerorna.',
+  // Stegflödet (Josef 2026-11-26): samma platser och ordning som i spelet, en sak i taget.
+  lys: 'Brottsplatsen: lys med UV-pennan över ytan — fingeravtrycken tänds.',
+  skanna: 'Håll skannern mot avtrycket. Varje avtryck hamnar i en bevispåse. Hitta alla nio.',
   markera_q: 'Var den här personen i valvet?',
-  koppla: 'Leta upp personen i loggen: tryck på raderna som handlar om hen. Jämför kläderna med bilden.',
-  markera: 'Avgör sen: misstänkt eller inte. Era misstänkta skickas direkt över till labbet.',
-  slut: 'Labbet jämför sitt människohår med era misstänkta. Prata med dem — tillsammans pekar ni ut tjuven.',
+  koppla: 'Utredningsbordet: en person i taget. Ringa in raderna i loggen som handlar om hen — jämför kläderna.',
+  markera: 'Stämpla sen: MISSTÄNKT eller AVSKRIVEN. Misstänkta skickas med rörposten till labbet.',
+  slut: 'Sist möts ni vid tavlan. Båda sidor sätter sin nål — på samma person.',
 }
 
 /* ------------------------------------------------------------------ *
@@ -216,6 +219,16 @@ export function personById(id: string): Person | undefined {
 
 /** Tjuven — det rätta svaret. Pekas ut i verdikt. */
 export const THIEF_ID = 'ravi'
+
+/** Hårproven på labbets bord (laminerade, märkta). Labbet anger vilket prov varje frusen bild är. */
+export const PROV_IDS = ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'] as const
+
+/** Stegflödet: tavlan öppnas av sig själv när så här många sekunder återstår (Josef 2026-11-26). */
+export const TAVLAN_VID_SEK = 90
+/** Utvägen "gå vidare ▸" på en plats som inte är klar visas efter så här lång tid i rundan. */
+export const UTVAG_EFTER_SEK = 180
+/** Tavlan: ÅNGRA-fönstret innan utpekandet gäller (som Förhandlingens Klubba). */
+export const ANGRA_MS = 5000
 
 /* ------------------------------------------------------------------ *
  * FINGERAVTRYCK — spots på ytan (mock: klickbara). Varje spot → en person,

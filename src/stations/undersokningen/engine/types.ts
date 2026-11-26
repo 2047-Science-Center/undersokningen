@@ -46,8 +46,20 @@ export interface GameState {
   suspectIds: string[]
   /** Spot vars popup visas just nu (person ELLER smudge), eller null. */
   activeSpotId: string | null
-  /** Vald person i verdikt-fasen (innan bekräftelse). */
+  /** Den utpekade (sätts när sidorna enats och ÅNGRA-fönstret gått ut). Läses av poängen/avslutet. */
   verdictPick: string | null
+  /** FÄLT:s bedömning per person på utredningsbordet: true = MISSTÄNKT, false = AVSKRIVEN.
+   *  Saknas = inte bedömd än (personen står kvar i kön). */
+  judged: Record<string, boolean>
+  /** LABB:s framsteg — bara id/antal, bilderna lämnar aldrig labb-fönstret.
+   *  prov = klara provglas (Q1–Q6), manniska = bilder i MÄNNISKA-burken, etiketter = av dem med färgetikett. */
+  labb: { prov: string[]; manniska: number; etiketter: number }
+  /** Utvägen "gå vidare ▸" (platsen inte klar men de vill/måste vidare). */
+  vidare: { brott: boolean; mikroskop: boolean; ljusbord: boolean }
+  /** Tavlan: varje sidas nål (personId eller null). Syns direkt hos båda (Josef 2026-11-26). */
+  picks: Record<ValvId, string | null>
+  /** Epoch-ms då nålarna blev överens (ÅNGRA-fönstret räknas härifrån). null = inte överens. */
+  agreedAt: number | null
   /** Epoch-ms då skarpa rundan startade (VALdi-måttet `tid_s`). null före start. */
   startedAt: number | null
   /** Rätt svar (sätts vid start). */

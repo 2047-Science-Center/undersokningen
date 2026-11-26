@@ -1,6 +1,6 @@
 # Intro-VO: VALdi läser introt i Undersökningen (Stölden i valvet)
 
-> **Status 2026-11-19:** INSPELAD (v1). Josef godkände kapitel 1–2. Rollgenomgången klickas igenom utan röst.
+> **Status 2026-11-26:** INSPELAD (v2, stegflödet). Kapitel 1 oförändrat från v1; kapitel 2 omskrivet efter platserna. Rollgenomgången klickas igenom utan röst.
 > **Ersätter:** läges-legendens klickruta ("Se hur ett tidigare fall löstes" + NÄSTA) och introfilmens
 > VO-captions (text på fasta tider utan röst).
 > **Data:** [`src/stations/undersokningen/onboarding/introvo/vo.json`](../src/stations/undersokningen/onboarding/introvo/vo.json)
@@ -22,23 +22,26 @@
 | o2 | När skärmen är blå, då övar vi. | blått lyser upp |
 | o3 | När den slår om till orange gäller det på riktigt. | orange lyser upp |
 
-## Kapitel 2: Fallet (3D-filmen, samma på båda skärmarna)
+## Kapitel 2: Fallet (3D-filmen, samma på båda skärmarna) — STEGFLÖDET (inspelad 2026-11-26)
 
-| # | Replik | Beat i filmen |
-|---|---|---|
-| f1 | I natt bröt sig någon in i valvet och stal värdefull information. | open |
-| f2 | Ni är forensiker och labbtekniker. Tillsammans ska ni peka ut tjuven. | open |
-| f3 | Forensikerna börjar vid brottsplatsen. Här finns avtryck från alla som varit där – tjuven också. | forensik |
-| f4 | Lys över ytan med UV-pennan. Där något tänds, där finns ett avtryck. | uv |
-| f5 | För skannern över avtrycket, så tar den fram personen från övervakningskamerorna. | skanna (skärmkort) |
-| f6 | Läs loggen. Var personen i valvet när det hände? Stämmer kläderna, håret, åldern? | markera (skärmkort) |
-| f7 | Stämmer det: markera som misstänkt. Annars: inte misstänkt. | markera |
-| f8 | Nu har ni en lista med misstänkta. Men den räcker inte hela vägen. | lista |
-| f9 | På andra sidan sitter labbteknikerna, med hårprover från brottsplatsen. Tjuvens hår finns bland dem. | panlabb |
-| f10 | Skanna varje prov i mikroskopet och sortera det: människohår, djurhår, eller fibrer som bara liknar hår. | sortera (skärmkort) |
-| f11 | Och nu det viktiga: prata med varandra. Labbet vet vad håret är. Fältet vet vilka som var där. | samarbete |
-| f12 | Matcha håret mot de misstänkta och stryk dem som inte passar, tills bara en är kvar. | samarbete |
-| f13 | Det är så ni tar tjuven. | slut |
+Replikerna följer spelets platser, steg för steg. Stegkortet ovanpå filmen visar fasen. 3D-beat = den nuvarande scenens beat tills
+[`bestallning-introfilm-3js-stegflode.md`](bestallning-introfilm-3js-stegflode.md) är levererad.
+
+| # | Replik (undertext) | Stegkort (fas) | 3D-beat (nu) |
+|---|---|---|---|
+| f1 | I natt bröt sig någon in i valvet och stal värdefull information. | — | `open` |
+| f2 | Ni är forensiker och labbtekniker. Ni tar er an fallet steg för steg, och sist pekar ni ut tjuven tillsammans. | — | `open` |
+| f3 | Forensikerna, steg ett: brottsplatsen. Här finns avtryck från alla som varit där – tjuven också. | Fältet · steg 1 · Brottsplatsen | `forensik` |
+| f4 | Lys över ytan med UV-pennan. Där något tänds, där finns ett avtryck. | Fältet · steg 1 · Brottsplatsen | `uv` |
+| f5 | Håll skannern mot avtrycket. Varje avtryck hamnar i en bevispåse – hitta alla nio. | Fältet · steg 1 · Brottsplatsen | `skanna` |
+| f6 | Steg två: utredningsbordet. En person i taget – ringa in raderna i loggen som handlar om personen. | Fältet · steg 2 · Utredningsbordet | `markera` |
+| f7 | Stämpla sen: misstänkt eller avskriven. De misstänkta skickas med rörposten till labbet. | Fältet · steg 2 · Utredningsbordet | `lista` |
+| f8 | Labbteknikerna, steg ett: mikroskopbordet. Sex hårprov – ett av dem är tjuvens. | Labbet · steg 1 · Mikroskopbordet | `panlabb` |
+| f9 | Frys varje prov i mikroskopet och sortera det: människohår, djurhår eller fiber. | Labbet · steg 1 · Mikroskopbordet | `sortera` |
+| f10 | Steg två: ljusbordet. Sätt en färgetikett på varje människohår. | Labbet · steg 2 · Ljusbordet | `sortera` |
+| f11 | Steg tre: rörposten. När fältets misstänkta kommer – lägg håret som matchar på polaroiden. | Labbet · steg 3 · Rörposten | `samarbete` |
+| f12 | Sist möts ni vid tavlan. Båda sidor sätter sin nål – tror ni olika, prata ihop er. | Tillsammans · Tavlan | `samarbete` |
+| f13 | Är ni överens, då tar ni tjuven. | Tillsammans · Tavlan | `slut` |
 
 ## Efter introt: rollgenomgången (ingen röst)
 
@@ -55,7 +58,7 @@ Varje sida klickar sig igenom sin egen spelvy (`LabbRoleTutorial` / `FaltRoleTut
 Undertexterna på bokmål är **utkast** (`no` i `vo.json`). En norsk läsare bör granska dem. Rösten
 spelas bara in på svenska. Den norska undertexten följer den svenska replikens tider.
 
-## Inspelning och längd (v1, 2026-11-19)
+## Inspelning och längd (v1, 2026-11-19; v2 2026-11-26: 16 repliker, 121 s)
 
 - **Längd:** 110,7 s ljud (16 repliker, 24 undertextrader). Introt slutar 0,9 s efter sista repliken
   (≈ 111,6 s). Öppningen tar 0–12,8 s och 3D-filmen 12,8–111,6 s.

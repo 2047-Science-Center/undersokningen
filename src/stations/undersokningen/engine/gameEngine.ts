@@ -34,6 +34,11 @@ export function initialState(members: Record<ValvId, Person[]> = emptyMembers())
     hairMatch: null,
     activeSpotId: null,
     verdictPick: null,
+    judged: {},
+    labb: { prov: [], manniska: 0, etiketter: 0 },
+    vidare: { brott: false, mikroskop: false, ljusbord: false },
+    picks: { lag1: null, lag2: null },
+    agreedAt: null,
     startedAt: null,
     thiefId: '',
     outcome: null,
@@ -57,9 +62,17 @@ export type Action =
   | { type: 'openVerdict' }
   | { type: 'closeVerdict' }
   | { type: 'selectThief'; personId: string }
+  /** Tavlan: en sidas nål (null = ta bort). `at` = nu (sätter ÅNGRA-fönstret när sidorna blir överens). */
+  | { type: 'pickThief'; vault: ValvId; personId: string | null; at: number }
+  /** LABB:s framsteg (antal/id). */
+  | { type: 'labbProgress'; prov: string[]; manniska: number; etiketter: number }
+  /** Utvägen: gå vidare från en plats som inte är klar. */
+  | { type: 'gaVidare'; plats: 'brott' | 'mikroskop' | 'ljusbord' }
+  /** Utpeka: bara när nålarna är överens (efter ÅNGRA-fönstret, storen tajmar). */
   | { type: 'confirmThief' }
-  /** Tiden ute + verdiktets frist slut (XY-RESULTAT-OCH-VINST §2.3): markerad → pekas ut,
-   *  ingen markerad → misslyckat utan utpekande. Stationen kan inte låsa sig före done. */
+  /** Facilitatorn tvingar fram ett utfall (hörngesten): överens-nålen, annars fältets, annars labbets nål,
+   *  annars misslyckat utan utpekande. Tiden ute avgör INTE längre av sig själv — sidorna måste enas
+   *  (Josef 2026-11-26); idle-återställningen + hörngesten hindrar att stationen låser sig. */
   | { type: 'timeoutVerdict' }
   | { type: 'reset'; members?: Record<ValvId, Person[]> }
   | { type: 'sync'; state: GameState; fromLeader?: boolean }
@@ -85,6 +98,11 @@ export function reduce(state: GameState, action: Action): GameState {
       next.hairMatch = null
       next.activeSpotId = null
       next.verdictPick = null
+      next.judged = {}
+      next.labb = { prov: [], manniska: 0, etiketter: 0 }
+      next.vidare = { brott: false, mikroskop: false, ljusbord: false }
+      next.picks = { lag1: null, lag2: null }
+      next.agreedAt = null
       next.startedAt = action.at ?? null
       next.thiefId = action.thiefId
       next.outcome = null
@@ -107,14 +125,46 @@ export function reduce(state: GameState, action: Action): GameState {
     }
 
     case 'markSuspect': {
+      // Utredningsbordets stämpel: MISSTÄNKT (true) / AVSKRIVEN (false). Bedömningen sparas alltid.
       if (state.phase !== 'investigate') return state
       if (action.personId === 'smudge') return state
       const already = state.suspectIds.includes(action.personId)
-      if (action.suspect === already) return state
+      if (action.suspect === already && state.judged?.[action.personId] === action.suspect) return state
       const next = clone(state)
       next.suspectIds = action.suspect
-        ? [...next.suspectIds, action.personId]
+        ? already ? next.suspectIds : [...next.suspectIds, action.personId]
         : next.suspectIds.filter((id) => id !== action.personId)
+      next.judged = { ...(next.judged ?? {}), [action.personId]: action.suspect }
+      next.version += 1
+      return next
+    }
+
+    case 'labbProgress': {
+      if (state.phase !== 'investigate' && state.phase !== 'verdict') return state
+      const nu = { prov: [...new Set(action.prov)], manniska: Math.max(0, action.manniska), etiketter: Math.max(0, action.etiketter) }
+      if (JSON.stringify(state.labb) === JSON.stringify(nu)) return state
+      const next = clone(state)
+      next.labb = nu
+      next.version += 1
+      return next
+    }
+
+    case 'gaVidare': {
+      if (state.phase !== 'investigate' || state.vidare?.[action.plats]) return state
+      const next = clone(state)
+      next.vidare = { ...(next.vidare ?? { brott: false, mikroskop: false, ljusbord: false }), [action.plats]: true }
+      next.version += 1
+      return next
+    }
+
+    case 'pickThief': {
+      if (state.phase !== 'verdict') return state
+      const picks = state.picks ?? { lag1: null, lag2: null }
+      if (picks[action.vault] === action.personId) return state
+      const next = clone(state)
+      next.picks = { ...picks, [action.vault]: action.personId }
+      const overens = !!next.picks.lag1 && next.picks.lag1 === next.picks.lag2
+      next.agreedAt = overens ? action.at : null
       next.version += 1
       return next
     }
@@ -153,6 +203,7 @@ export function reduce(state: GameState, action: Action): GameState {
       next.phase = 'verdict'
       next.activeSpotId = null
       next.verdictPick = null
+      next.agreedAt = null // nålarna sitter kvar om man går tillbaka och sen kommer igen, men ÅNGRA börjar om
       next.version += 1
       return next
     }
@@ -162,6 +213,7 @@ export function reduce(state: GameState, action: Action): GameState {
       const next = clone(state)
       next.phase = 'investigate'
       next.verdictPick = null
+      next.agreedAt = null
       next.version += 1
       return next
     }
@@ -175,8 +227,13 @@ export function reduce(state: GameState, action: Action): GameState {
     }
 
     case 'confirmThief': {
-      if (state.phase !== 'verdict' || !state.verdictPick) return state
+      if (state.phase !== 'verdict') return state
+      const p = state.picks ?? { lag1: null, lag2: null }
+      // Nålarna överens → den. (verdictPick via selectThief finns kvar för äldre anrop/tester.)
+      const pick = p.lag1 && p.lag1 === p.lag2 ? p.lag1 : state.verdictPick
+      if (!pick) return state
       const next = clone(state)
+      next.verdictPick = pick
       if (next.verdictPick === next.thiefId) {
         next.phase = 'solved'
         next.outcome = 'win'
@@ -190,7 +247,14 @@ export function reduce(state: GameState, action: Action): GameState {
 
     case 'timeoutVerdict': {
       if (state.phase !== 'verdict') return state
-      if (state.verdictPick) return reduce(state, { type: 'confirmThief' })
+      const p = state.picks ?? { lag1: null, lag2: null }
+      const tvingad = (p.lag1 && p.lag1 === p.lag2 ? p.lag1 : null) ?? p.lag2 ?? p.lag1 ?? state.verdictPick
+      if (tvingad) {
+        const med = clone(state)
+        med.verdictPick = tvingad
+        med.picks = { lag1: tvingad, lag2: tvingad }
+        return reduce(med, { type: 'confirmThief' })
+      }
       const next = clone(state)
       next.phase = 'failed'
       next.outcome = 'lost'
