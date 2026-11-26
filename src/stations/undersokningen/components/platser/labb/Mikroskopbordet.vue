@@ -6,10 +6,13 @@
  *   FRYS (`stamp`, Microscope) → "Vilket prov?" (Q-chip, nästa ej klara förvalt) → dra bilden till en burk
  *   (`confirm` + kvitto-blink) → provglaset får ✓. Tryck en bild i en burk → helskärm bredvid kända prov
  *   (REF_HAR): flytta / ta bort.
- * Utvägen "Gå vidare ▸" efter UTVAG_EFTER_SEK och minst 4 klara provglas.
+ * Ändrar man sig: DRA en bild från en burk till en annan (tryck = granska som förut).
+ * "Är ni nöjda?" (Josef 2026-11-26): när alla sex är sorterade visas alla burkar i helskärm — JA går vidare
+ * till ljusbordet (`gaVidare('mikroskop')`), NEJ tillbaka till bordet ("Vi är klara ▸" öppnar den igen).
+ * Utvägen "Gå vidare ▸" efter UTVAG_EFTER_SEK och minst 4 klara provglas öppnar samma översikt.
  * Saknas kameran och ?pilot=1 → FRYS visar en reservbild (REF_HAR i tur och ordning) så flödet går att testa.
  */
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
 import { HAIR_CLASSES, PROV_IDS, REF_HAR, UTVAG_EFTER_SEK, asset, type HairClassId } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { useLjus } from '@/station-kit/ljus'
@@ -59,8 +62,9 @@ function valjQ(q: string): void {
   store.notifyActivity()
 }
 
-/* ---- pointer-drag från den frusna bilden till en burk (touch-vänligt, ingen HTML5 DnD) ---- */
-const drag = ref<{ src: string; x: number; y: number } | null>(null)
+/* ---- pointer-drag till en burk (touch-vänligt, ingen HTML5 DnD): den frusna bilden, ELLER en bild som redan
+ *      ligger i en burk och flyttas (flyttaId) när man ändrar sig ---- */
+const drag = ref<{ src: string; q: string | null; x: number; y: number; flyttaId?: string } | null>(null)
 const overBurk = ref<HairClassId | null>(null)
 
 function burkUnder(x: number, y: number): HairClassId | null {
@@ -82,7 +86,16 @@ function slutaDra(): void {
 }
 function onUp(e: PointerEvent): void {
   const kat = burkUnder(e.clientX, e.clientY)
-  if (kat && laggIBurk(kat)) {
+  const fid = drag.value?.flyttaId
+  if (fid) {
+    const b = bord.bilder.find((x) => x.id === fid)
+    if (kat && b && b.kategori !== kat) {
+      flytta(fid, kat)
+      audio.play('confirm')
+      useLjus().gest('kvitto', [LABB], { tyst: true })
+      store.notifyActivity()
+    }
+  } else if (kat && laggIBurk(kat)) {
     audio.play('confirm')
     // Bara kvitto: appen vet inte om provet hamnade rätt (ingen facit-kontroll) → inte rätt/fel.
     useLjus().gest('kvitto', [LABB], { tyst: true })
@@ -93,13 +106,69 @@ function onUp(e: PointerEvent): void {
 }
 function onGrab(e: PointerEvent): void {
   if (!bord.fryst) return
-  drag.value = { src: bord.fryst.src, x: e.clientX, y: e.clientY }
+  drag.value = { src: bord.fryst.src, q: bord.frystQ, x: e.clientX, y: e.clientY }
   bord.drar = true
   ;(e.currentTarget as HTMLElement | null)?.setPointerCapture?.(e.pointerId)
   window.addEventListener('pointermove', onMove)
   window.addEventListener('pointerup', onUp)
   window.addEventListener('pointercancel', slutaDra)
 }
+
+/* ---- en bild i en burk: tryck = granska, dra (> 10 px) = flytta till en annan burk ---- */
+let tryck: { b: LabbBild; x: number; y: number; id: number } | null = null
+function tummeNer(e: PointerEvent, b: LabbBild): void {
+  if (bord.fryst) return // en sak i taget: sortera den frusna bilden först
+  tryck = { b, x: e.clientX, y: e.clientY, id: e.pointerId }
+  window.addEventListener('pointermove', tummeFlytt)
+  window.addEventListener('pointerup', tummeUpp)
+  window.addEventListener('pointercancel', tummeAvbryt)
+}
+function tummeFlytt(e: PointerEvent): void {
+  if (!tryck || drag.value) return
+  if (Math.hypot(e.clientX - tryck.x, e.clientY - tryck.y) < 10) return
+  // Rörde sig → börja dra bilden (tryck-granskningen blir inte av).
+  drag.value = { src: tryck.b.src, q: tryck.b.q, x: e.clientX, y: e.clientY, flyttaId: tryck.b.id }
+  bord.drar = true
+  tummeAvbryt()
+  window.addEventListener('pointermove', onMove)
+  window.addEventListener('pointerup', onUp)
+  window.addEventListener('pointercancel', slutaDra)
+}
+function tummeUpp(): void {
+  const b = tryck?.b
+  tummeAvbryt()
+  if (b) oppna(b)
+}
+function tummeAvbryt(): void {
+  tryck = null
+  window.removeEventListener('pointermove', tummeFlytt)
+  window.removeEventListener('pointerup', tummeUpp)
+  window.removeEventListener('pointercancel', tummeAvbryt)
+}
+
+/* ---- "Är ni nöjda?": alla burkar i helskärm innan ljusbordet ---- */
+const nojd = ref(false)
+const allaKlara = computed(() => klara.value >= PROV_IDS.length)
+function oppnaNojd(): void {
+  if (bord.fryst) slappFryst()
+  visadId.value = null
+  nojd.value = true
+  audio.play('popup')
+  store.notifyActivity()
+}
+function nojdNej(): void {
+  nojd.value = false
+  audio.play('blip')
+  store.notifyActivity()
+}
+function nojdJa(): void {
+  nojd.value = false
+  store.gaVidare('mikroskop')
+}
+// Sista provglaset hamnar i en burk → översikten kommer av sig själv (en gång per gång de blir klara).
+watch(allaKlara, (ja, fore) => {
+  if (ja && !fore) setTimeout(() => { if (allaKlara.value && !bord.fryst) oppnaNojd() }, 700)
+})
 
 /* ---- granska en bild i helskärm bredvid kända prov ---- */
 const visadId = ref<string | null>(null)
@@ -131,6 +200,7 @@ function taBortVisad(): void {
 
 onBeforeUnmount(() => {
   slutaDra()
+  tummeAvbryt()
   // Okularvyn monteras om i live-läge → en kvarglömd fryst bild släpps.
   if (bord.fryst) slappFryst()
 })
@@ -194,7 +264,7 @@ onBeforeUnmount(() => {
             <div class="mb__burk-inne">
               <button
                 v-for="b in bilderI(c.id)" :key="b.id" type="button" class="mb__tumme" :title="T.mikroskop.burkTryck"
-                @click="oppna(b)"
+                :class="{ 'mb__tumme--dras': drag?.flyttaId === b.id }" @pointerdown.prevent="tummeNer($event, b)"
               >
                 <img :src="b.src" alt="" draggable="false" />
                 <span class="mb__tumme-q">{{ b.q }}</span>
@@ -205,14 +275,47 @@ onBeforeUnmount(() => {
       </div>
 
      </div>
-      <button v-if="utvag" type="button" class="pl-utvag mb__utvag" @click="store.gaVidare('mikroskop')">{{ T.utvag }}</button>
+      <button v-if="allaKlara" type="button" class="crt-button crt-button--strong mb__klara" @click="oppnaNojd">{{ T.mikroskop.klara }}</button>
+      <button v-else-if="utvag" type="button" class="pl-utvag mb__utvag" @click="oppnaNojd">{{ T.utvag }}</button>
     </div>
 
     <!-- Drag-spöke -->
     <div v-if="drag" class="mb__spoke" :style="{ left: drag.x + 'px', top: drag.y + 'px' }">
       <img :src="drag.src" alt="" />
-      <span>{{ bord.frystQ }}</span>
+      <span>{{ drag.q }}</span>
     </div>
+
+    <!-- "Är ni nöjda?" — alla burkar i helskärm; dra mellan burkarna här också -->
+    <Transition name="mb-fade">
+      <div v-if="nojd" class="mb__nojd">
+        <header class="mb__nojd-huvud">
+          <h2 class="mb__nojd-fraga">{{ T.mikroskop.nojdFraga }}</h2>
+          <p class="mb__nojd-sub">{{ T.mikroskop.nojdSub }}<template v-if="!allaKlara"> {{ T.mikroskop.nojdSaknas(PROV_IDS.length - klara) }}</template></p>
+        </header>
+        <div class="mb__nojd-burkar">
+          <div
+            v-for="c in HAIR_CLASSES" :key="c.id" class="mb__nojd-burk" :data-burk="c.id"
+            :class="{ 'mb__burk--drop': !!drag, 'mb__burk--over': overBurk === c.id }"
+          >
+            <span class="mb__burk-etikett mb__nojd-etikett">{{ T.burk[c.id] }}</span>
+            <div class="mb__nojd-inne">
+              <button
+                v-for="b in bilderI(c.id)" :key="b.id" type="button" class="mb__tumme mb__nojd-tumme"
+                :class="{ 'mb__tumme--dras': drag?.flyttaId === b.id }" @pointerdown.prevent="tummeNer($event, b)"
+              >
+                <img :src="b.src" alt="" draggable="false" />
+                <span class="mb__tumme-q">{{ b.q }}</span>
+              </button>
+              <span v-if="!bilderI(c.id).length" class="mb__nojd-tom">—</span>
+            </div>
+          </div>
+        </div>
+        <div class="mb__nojd-knappar">
+          <button type="button" class="crt-button mb__knapp" @click="nojdNej">{{ T.mikroskop.nojdNej }}</button>
+          <button type="button" class="crt-button crt-button--strong mb__knapp" @click="nojdJa">{{ T.mikroskop.nojdJa }}</button>
+        </div>
+      </div>
+    </Transition>
 
     <!-- Egen bild i helskärm bredvid kända prov: flytta, ta bort eller tillbaka -->
     <Transition name="mb-fade">
@@ -332,6 +435,31 @@ onBeforeUnmount(() => {
 @keyframes mb-in { from { opacity: 0; transform: scale(0.8) translateY(-10px); } }
 
 .mb__utvag { position: absolute; right: 1rem; bottom: 1rem; z-index: 4; }
+.mb__klara { position: absolute; right: 1rem; bottom: 1rem; z-index: 4; font-size: clamp(1.1rem, 2.4cqi, 1.7rem); animation: mb-puls 1.6s ease-in-out infinite; }
+.mb__tumme { touch-action: none; }
+.mb__tumme--dras { opacity: 0.35; }
+
+/* "Är ni nöjda?" (helskärm över platsen) */
+.mb__nojd {
+  position: absolute; inset: 0; z-index: 40; display: flex; flex-direction: column; gap: clamp(0.6rem, 2vmin, 1.4rem);
+  padding: clamp(0.8rem, 3vmin, 2rem); background: rgba(2, 6, 4, 0.96);
+}
+.mb__nojd-huvud { text-align: center; }
+.mb__nojd-fraga { margin: 0; font-family: var(--font-retro); font-size: clamp(2rem, 6cqi, 4rem); color: var(--color-primary); text-shadow: var(--glow-soft); }
+.mb__nojd-sub { margin: 0.3rem 0 0; font-family: var(--font-mono); font-size: clamp(0.95rem, 2cqi, 1.3rem); color: var(--color-ink-strong); }
+.mb__nojd-burkar { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(0.6rem, 2cqi, 1.6rem); }
+.mb__nojd-burk {
+  position: relative; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 0.6rem;
+  padding: 0.8rem 0.6rem; border: 3px solid rgba(220, 235, 240, 0.32); border-top-width: 6px; border-radius: 6px 6px 26px 26px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.015) 40%, rgba(255, 255, 255, 0.08));
+  transition: border-color 0.14s, box-shadow 0.14s, transform 0.14s;
+}
+.mb__nojd-etikett { font-size: clamp(1rem, 3cqi, 1.8rem); }
+.mb__nojd-inne { flex: 1; min-height: 0; width: 100%; display: flex; flex-wrap: wrap; align-content: flex-start; justify-content: center; gap: 0.6rem; overflow-y: auto; }
+.mb__nojd-tumme { width: clamp(6rem, 18cqi, 12rem); }
+.mb__nojd-tumme .mb__tumme-q { font-size: clamp(0.8rem, 1.8cqi, 1.1rem); }
+.mb__nojd-tom { align-self: center; font-family: var(--font-mono); color: var(--color-ink-muted); }
+.mb__nojd-knappar { display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap; }
 
 .mb__spoke {
   position: fixed; z-index: 95; width: 6rem; aspect-ratio: 4 / 3; margin: -2.25rem 0 0 -3rem; pointer-events: none;
