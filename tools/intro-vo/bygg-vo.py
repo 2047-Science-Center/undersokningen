@@ -66,7 +66,7 @@ with tempfile.TemporaryDirectory() as tmp:
                 slut = bas + st[nxt] - 0.02
             undertext.append({
                 "id": r["id"] if not delar else f"{r['id']}.{k + 1}",
-                "kapitel": r["kapitel"], **({"beat": r["beat"]} if "beat" in r else {}),
+                "kapitel": r["kapitel"], **({"beat": r["beat"]} if "beat" in r else {}), **({"fas": r["fas"]} if "fas" in r else {}),
                 "t": round(start, 2), "slut": round(slut + (0.25 if k + 1 == len(bitar) else 0), 2),
                 "sv": r["text"][s0:s1].strip(), "no": r["no"][n0:n1].strip(),
             })

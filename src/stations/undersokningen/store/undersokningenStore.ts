@@ -21,6 +21,9 @@ import {
   THIEF_ID,
   VALV,
   IDLE_RESTART,
+  PROV_IDS,
+  TAVLAN_VID_SEK,
+  ANGRA_MS,
   type ValvId,
   type Spot,
   type Person as PersonInfo,
@@ -32,6 +35,7 @@ import { personResults, roundScore } from '../engine/scoring'
 import { createSeam, type Seam } from '../seam/createSeam'
 import type { ScanEvent } from '../seam/Scan'
 import { BADA, klassaScan, scanFeedback } from '../ljus'
+import { faltPlats as faltPlatsAv, labbPlats as labbPlatsAv, faltAktuell as faltAktuellAv, tavlanRedo, overens } from '../engine/platser'
 
 export type ViewSide = ValvId | 'shared'
 export type OnbStage = 'tutorial' | 'live'
@@ -76,6 +80,9 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   const timerEndsAt = ref<number | null>(null)
 
   let resultSent = false
+  /** Ledaren öppnar tavlan av sig själv EN gång per orsak (båda klara / 1:30 kvar) — går de tillbaka
+   *  till borden öppnas den inte igen förrän de själva trycker TILL TAVLAN. */
+  let autoTavlan = { redo: false, tid: false }
   let timer: ReturnType<typeof setInterval> | null = null
 
   /* ---------------- kärna ---------------- */
@@ -224,13 +231,25 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     dispatch({ type: 'closePopup' })
     notifyActivity()
   }
-  /** FÄLT markerar en person som misstänkt (→ topppanelen) eller tar bort. */
+  /** FÄLT stämplar personen på utredningsbordet: MISSTÄNKT (→ rörposten till labbet) eller AVSKRIVEN. */
   function markSuspect(personId: string, suspect: boolean): void {
     dispatch({ type: 'markSuspect', personId, suspect })
-    if (suspect) {
-      audio.play('stamp') // stationsljudet behålls → gesten tyst
-      ljus.gest('kvitto', BADA, { tyst: true })
-    }
+    audio.play('stamp') // stämpeln (stationsljudet behålls → gesten tyst)
+    if (suspect) ljus.gest('kvitto', BADA, { tyst: true })
+    notifyActivity()
+  }
+  /** LABB:s framsteg (antal/id) → fältet ser det, platserna härleds ur det. */
+  function labbProgress(prov: string[], manniska: number, etiketter: number): void {
+    dispatch({ type: 'labbProgress', prov, manniska, etiketter })
+  }
+  /** Utvägen: gå vidare från en plats som inte är klar. */
+  function gaVidare(plats: 'brott' | 'mikroskop' | 'ljusbord'): void {
+    dispatch({ type: 'gaVidare', plats })
+    notifyActivity()
+  }
+  /** Tavlan: sätt (eller ta bort) den här sidans nål. Syns direkt hos båda. */
+  function pickThief(vault: ValvId, personId: string | null): void {
+    dispatch({ type: 'pickThief', vault, personId, at: Date.now() })
     notifyActivity()
   }
 
@@ -253,6 +272,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   /* ---------------- verdikt / omgång ---------------- */
 
   function startLive(): void {
+    autoTavlan = { redo: false, tid: false }
     const at = Date.now()
     dispatch({ type: 'start', thiefId: THIEF_ID, runda: at, at })
     const ends = at + config.timerSeconds * 1000
@@ -311,6 +331,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     if (v) lastActivityAt.value = Date.now()
   }
   function doReset(broadcastIt = true): void {
+    autoTavlan = { redo: false, tid: false }
     dispatch({ type: 'reset', members: defaultRoster() })
     onbStage.value = 'tutorial'
     onbReady.value = { lag1: false, lag2: false }
@@ -377,6 +398,21 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
   }
   const score = computed(() => roundScore(state.value))
 
+  /* ---- stegflödet (engine/platser) ---- */
+  const faltPlats = computed(() => faltPlatsAv(state.value, SPOTS.length))
+  const labbPlats = computed(() => labbPlatsAv(state.value, PROV_IDS.length))
+  /** Personen på utredningsbordet just nu (första obedömda), eller null. */
+  const faltAktuell = computed(() => {
+    const id = faltAktuellAv(state.value)
+    return id ? (personById(id) ?? null) : null
+  })
+  const picks = computed(() => state.value.picks ?? { lag1: null, lag2: null })
+  const overensOm = computed(() => overens(state.value))
+  /** Kvar av ÅNGRA-fönstret i hela sekunder (0 = inget fönster). */
+  const angraKvar = computed(() =>
+    state.value.agreedAt ? Math.max(0, Math.ceil((state.value.agreedAt + ANGRA_MS - now.value) / 1000)) : 0,
+  )
+
   const secondsLeft = computed(() => {
     if (!timerEndsAt.value) return config.timerSeconds
     return Math.max(0, Math.ceil((timerEndsAt.value - now.value) / 1000))
@@ -411,14 +447,26 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
         dispatch({ type: 'openVerdict' })
         ljus.gest('stanger', BADA) // tiden ute → utredningen stängs
       }
-      // Verdiktets frist ute → avgör (markerad pekas ut, annars utan utpekande). Låser sig aldrig.
+      // Stegflödet: tavlan öppnas av sig själv när båda sidor är klara, eller när 1:30 återstår (en gång var).
+      if (leader.value && state.value.phase === 'investigate' && timerEndsAt.value) {
+        if (!autoTavlan.redo && tavlanRedo(state.value, SPOTS.length)) {
+          autoTavlan.redo = true
+          dispatch({ type: 'openVerdict' })
+        } else if (!autoTavlan.tid && timerEndsAt.value - now.value <= TAVLAN_VID_SEK * 1000) {
+          autoTavlan.tid = true
+          dispatch({ type: 'openVerdict' })
+        }
+      }
+      // Tavlan: nålarna överens och ÅNGRA-fönstret ute → utpekat. Tiden ute avgör INTE längre av sig själv
+      // (Josef 2026-11-26: de måste enas) — idle-återställningen och hörngesten hindrar att stationen låser sig.
       if (
         leader.value &&
         state.value.phase === 'verdict' &&
-        timerEndsAt.value &&
-        now.value >= timerEndsAt.value + config.verdictGraceSeconds * 1000
+        state.value.agreedAt &&
+        overens(state.value) &&
+        now.value >= state.value.agreedAt + ANGRA_MS
       ) {
-        dispatch({ type: 'timeoutVerdict' })
+        dispatch({ type: 'confirmThief' })
       }
       if (leader.value && sessionActive.value && IDLE_MS > 0 && now.value - lastActivityAt.value >= IDLE_MS) {
         doReset(true)
@@ -492,6 +540,15 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     selectThief,
     confirmThief,
     hoppaFram,
+    labbProgress,
+    gaVidare,
+    pickThief,
+    faltPlats,
+    labbPlats,
+    faltAktuell,
+    picks,
+    overensOm,
+    angraKvar,
     reset,
     quitStation,
     setPaused,

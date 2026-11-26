@@ -1,5 +1,5 @@
 {
- "_info": "VALdi-introt i Undersökningen. Sanning för repliker. text = undertext (sv), tts = det som läses in (stavat för uttal), no = norsk undertext (UTKAST bokmål, låt en norsk läsare granska). kapitel: oppning | fall. beat = introfilmens beat (kapitel fall). Rollgenomgången efteråt klickas igenom utan VO (Josef 2026-11-19). paus = tystnad (s) EFTER repliken. Läsversion: docs/intro-vo-manus.md.",
+ "_info": "VALdi-introt i Undersökningen. Sanning för repliker. text = undertext (sv), tts = det som läses in (stavat för uttal), no = norsk undertext (UTKAST bokmål, låt en norsk läsare granska). kapitel: oppning | fall. beat = introfilmens beat (kapitel fall). Rollgenomgången efteråt klickas igenom utan VO (Josef 2026-11-19). paus = tystnad (s) EFTER repliken. Läsversion: docs/intro-vo-manus.md. STEGFLÖDET 2026-11-26: fall-replikerna följer platserna (fas = stegkortet ovanpå filmen: falt1/falt2/labb1/labb2/labb3/tavlan); beat = nuvarande 3D-scens beat tills three.js-beställningen docs/bestallning-introfilm-3js-stegflode.md är levererad.",
  "rader": [
   {
    "id": "o1",
@@ -38,108 +38,119 @@
    "id": "f2",
    "kapitel": "fall",
    "beat": "open",
-   "text": "Ni är forensiker och labbtekniker. Tillsammans ska ni peka ut tjuven.",
-   "tts": "Ni är forensiker och labbtekniker. Tillsammans ska ni peka ut tjuven.",
-   "no": "Dere er kriminalteknikere og laboratorieteknikere. Sammen skal dere peke ut tyven.",
+   "text": "Ni är forensiker och labbtekniker. Ni tar er an fallet steg för steg, och sist pekar ni ut tjuven tillsammans.",
+   "tts": "Ni är forensiker och labbtekniker. Ni tar er an fallet steg för steg, och sist pekar ni ut tjuven tillsammans.",
+   "no": "Dere er kriminalteknikere og laboratorieteknikere. Dere tar saken steg for steg, og til slutt peker dere ut tyven sammen.",
    "paus": 0.6
   },
   {
    "id": "f3",
    "kapitel": "fall",
    "beat": "forensik",
-   "text": "Forensikerna börjar vid brottsplatsen. Här finns avtryck från alla som varit där – tjuven också.",
-   "tts": "Forensikerna börjar vid brottsplatsen. Här finns avtryck från alla som varit där. Tjuven också.",
-   "no": "Kriminalteknikerne starter på åstedet. Her finnes avtrykk fra alle som har vært der – tyven også.",
-   "paus": 0.5
+   "fas": "falt1",
+   "text": "Forensikerna, steg ett: brottsplatsen. Här finns avtryck från alla som varit där – tjuven också.",
+   "tts": "Forensikerna, steg ett: brottsplatsen. Här finns avtryck från alla som varit där. Tjuven också.",
+   "no": "Kriminalteknikerne, steg én: åstedet. Her finnes avtrykk fra alle som har vært der – tyven også.",
+   "paus": 0.4
   },
   {
    "id": "f4",
    "kapitel": "fall",
    "beat": "uv",
+   "fas": "falt1",
    "text": "Lys över ytan med UV-pennan. Där något tänds, där finns ett avtryck.",
    "tts": "Lys över ytan med U V-pennan. Där något tänds… där finns ett avtryck.",
    "no": "Lys over flaten med UV-pennen. Der noe lyser opp, der finnes et avtrykk.",
-   "paus": 0.5
+   "paus": 0.4
   },
   {
    "id": "f5",
    "kapitel": "fall",
    "beat": "skanna",
-   "text": "För skannern över avtrycket, så tar den fram personen från övervakningskamerorna.",
-   "tts": "För skannern över avtrycket, så tar den fram personen från övervakningskamerorna.",
-   "no": "Før skanneren over avtrykket, så henter den fram personen fra overvåkingskameraene.",
-   "paus": 0.5
+   "fas": "falt1",
+   "text": "Håll skannern mot avtrycket. Varje avtryck hamnar i en bevispåse – hitta alla nio.",
+   "tts": "Håll skannern mot avtrycket. Varje avtryck hamnar i en bevispåse. Hitta alla nio.",
+   "no": "Hold skanneren mot avtrykket. Hvert avtrykk havner i en bevispose – finn alle ni.",
+   "paus": 0.6
   },
   {
    "id": "f6",
    "kapitel": "fall",
    "beat": "markera",
-   "text": "Läs loggen. Var personen i valvet när det hände? Stämmer kläderna, håret, åldern?",
-   "tts": "Läs loggen. Var personen i valvet när det hände? Stämmer kläderna… håret… åldern?",
-   "no": "Les loggen. Var personen i hvelvet da det skjedde? Stemmer klærne, håret, alderen?",
+   "fas": "falt2",
+   "text": "Steg två: utredningsbordet. En person i taget – ringa in raderna i loggen som handlar om personen.",
+   "tts": "Steg två: utredningsbordet. En person i taget. Ringa in raderna i loggen som handlar om personen.",
+   "no": "Steg to: etterforskningsbordet. Én person om gangen – ring inn linjene i loggen som handler om personen.",
    "paus": 0.4
   },
   {
    "id": "f7",
    "kapitel": "fall",
-   "beat": "markera",
-   "text": "Stämmer det: markera som misstänkt. Annars: inte misstänkt.",
-   "tts": "Stämmer det, markera som misstänkt. Annars: inte misstänkt.",
-   "no": "Stemmer det: marker som mistenkt. Ellers: ikke mistenkt.",
-   "paus": 0.6
+   "beat": "lista",
+   "fas": "falt2",
+   "text": "Stämpla sen: misstänkt eller avskriven. De misstänkta skickas med rörposten till labbet.",
+   "tts": "Stämpla sen: misstänkt, eller avskriven. De misstänkta skickas med rörposten till labbet.",
+   "no": "Stemple så: mistenkt eller avskrevet. De mistenkte sendes med rørposten til laben.",
+   "paus": 0.7
   },
   {
    "id": "f8",
    "kapitel": "fall",
-   "beat": "lista",
-   "text": "Nu har ni en lista med misstänkta. Men den räcker inte hela vägen.",
-   "tts": "Nu har ni en lista med misstänkta. Men den räcker inte hela vägen.",
-   "no": "Nå har dere en liste med mistenkte. Men den holder ikke hele veien.",
-   "paus": 0.5
+   "beat": "panlabb",
+   "fas": "labb1",
+   "text": "Labbteknikerna, steg ett: mikroskopbordet. Sex hårprov – ett av dem är tjuvens.",
+   "tts": "Labbteknikerna, steg ett: mikroskopbordet. Sex hårprov. Ett av dem är tjuvens.",
+   "no": "Laboratorieteknikerne, steg én: mikroskopbordet. Seks hårprøver – én av dem er tyvens.",
+   "paus": 0.4
   },
   {
    "id": "f9",
    "kapitel": "fall",
-   "beat": "panlabb",
-   "text": "På andra sidan sitter labbteknikerna, med hårprover från brottsplatsen. Tjuvens hår finns bland dem.",
-   "tts": "På andra sidan sitter labbteknikerna, med hårprover från brottsplatsen. Tjuvens hår finns bland dem.",
-   "no": "På andre siden sitter laboratorieteknikerne, med hårprøver fra åstedet. Tyvens hår er blant dem.",
+   "beat": "sortera",
+   "fas": "labb1",
+   "text": "Frys varje prov i mikroskopet och sortera det: människohår, djurhår eller fiber.",
+   "tts": "Frys varje prov i mikroskopet, och sortera det: människohår… djurhår… eller fiber.",
+   "no": "Frys hver prøve i mikroskopet og sorter den: menneskehår, dyrehår eller fiber.",
    "paus": 0.5
   },
   {
    "id": "f10",
    "kapitel": "fall",
    "beat": "sortera",
-   "text": "Skanna varje prov i mikroskopet och sortera det: människohår, djurhår, eller fibrer som bara liknar hår.",
-   "tts": "Skanna varje prov i mikroskopet, och sortera det: människohår… djurhår… eller fibrer som bara liknar hår.",
-   "no": "Skann hver prøve i mikroskopet og sorter den: menneskehår, dyrehår, eller fibre som bare ligner hår.",
-   "paus": 0.6
+   "fas": "labb2",
+   "text": "Steg två: ljusbordet. Sätt en färgetikett på varje människohår.",
+   "tts": "Steg två: ljusbordet. Sätt en färgetikett på varje människohår.",
+   "no": "Steg to: lysbordet. Sett en fargelapp på hvert menneskehår.",
+   "paus": 0.5
   },
   {
    "id": "f11",
    "kapitel": "fall",
    "beat": "samarbete",
-   "text": "Och nu det viktiga: prata med varandra. Labbet vet vad håret är. Fältet vet vilka som var där.",
-   "tts": "Och nu, det viktiga: prata med varandra. Labbet vet vad håret är. Fältet vet vilka som var där.",
-   "no": "Og nå det viktige: snakk med hverandre. Laben vet hva håret er. Feltet vet hvem som var der.",
-   "paus": 0.3
+   "fas": "labb3",
+   "text": "Steg tre: rörposten. När fältets misstänkta kommer – lägg håret som matchar på polaroiden.",
+   "tts": "Steg tre: rörposten. När fältets misstänkta kommer, lägg håret som matchar på polaroiden.",
+   "no": "Steg tre: rørposten. Når feltets mistenkte kommer – legg håret som matcher på polaroiden.",
+   "paus": 0.6
   },
   {
    "id": "f12",
    "kapitel": "fall",
    "beat": "samarbete",
-   "text": "Matcha håret mot de misstänkta och stryk dem som inte passar, tills bara en är kvar.",
-   "tts": "Matcha håret mot de misstänkta, och stryk dem som inte passar… tills bara en är kvar.",
-   "no": "Match håret mot de mistenkte og stryk dem som ikke passer, til bare én er igjen.",
-   "paus": 0.5
+   "fas": "tavlan",
+   "text": "Sist möts ni vid tavlan. Båda sidor sätter sin nål – tror ni olika, prata ihop er.",
+   "tts": "Sist möts ni vid tavlan. Båda sidor sätter sin nål. Tror ni olika… prata ihop er.",
+   "no": "Til slutt møtes dere ved tavlen. Begge sider setter sin nål – tror dere forskjellig, snakk sammen.",
+   "paus": 0.4
   },
   {
    "id": "f13",
    "kapitel": "fall",
    "beat": "slut",
-   "text": "Det är så ni tar tjuven.",
-   "tts": "Det är så ni tar tjuven.",
-   "no": "Det er slik dere tar tyven.",
+   "fas": "tavlan",
+   "text": "Är ni överens, då tar ni tjuven.",
+   "tts": "Är ni överens… då tar ni tjuven.",
+   "no": "Er dere enige, da tar dere tyven.",
    "paus": 1.2
   }
  ]

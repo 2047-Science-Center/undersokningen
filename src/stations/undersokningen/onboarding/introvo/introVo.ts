@@ -12,6 +12,8 @@ export interface IntroRad extends UndertextRad {
   id: string
   kapitel: 'oppning' | 'fall'
   beat?: string
+  /** Stegflödets fas (stegkortet ovanpå filmen): falt1/falt2/labb1/labb2/labb3/tavlan. */
+  fas?: string
 }
 
 export const INTRO_VO = data as OverlayData & { ljud: string; undertext: IntroRad[] }
@@ -26,6 +28,17 @@ const forstaFall = INTRO_RADER.find((r) => r.kapitel === 'fall')
 /** Introfilmen (3D) börjar strax före första fall-repliken. */
 export const FILM_START = Math.max(0, (forstaFall?.t ?? 0) - 0.6)
 export const INTRO_END = INTRO_VO.duration_s + SVANS
+
+/** Stegflödets fas vid introtid t (sek från introts start): senast påbörjade replikens fas (bilden byter
+ *  BILD_FORE före repliken). Repliker utan fas (öppningen, fallets inledning) → null. */
+export function fasVid(t: number): string | null {
+  let fas: string | null = null
+  for (const r of INTRO_RADER) {
+    if (r.t - BILD_FORE > t) break
+    fas = r.fas ?? (r.kapitel === 'fall' && r.beat === 'open' ? null : fas)
+  }
+  return fas
+}
 
 export type Kapitel = 'oppning' | 'fall' | 'klar'
 export const KAPITEL_START: Record<Kapitel, number> = { oppning: 0, fall: FILM_START, klar: INTRO_END }
