@@ -61,6 +61,15 @@ install_one undersokningen-restart.desktop     restart.sh     undersokningen-res
 install_one undersokningen-update.desktop      update.sh      undersokningen-update.desktop
 install_one undersokningen-reset-touch.desktop reset-touch.sh undersokningen-reset-touch.desktop
 
+# Touch vid inloggning (bara touchen, INTE spelet): självläkande mappning via reset-touch.sh --watch,
+# så pekpanelerna hamnar på rätt skärm direkt efter omstart.
+# Ångra: rm ~/.config/autostart/undersokningen-touch.desktop
+mkdir -p "$HOME/.config/autostart"
+printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=Undersökningen: touch till rätt skärm' \
+  "Exec=bash \"$HERE/reset-touch.sh\" --watch" 'X-GNOME-Autostart-enabled=true' 'NoDisplay=true' \
+  > "$HOME/.config/autostart/undersokningen-touch.desktop"
+echo "  ok  autostart: touch-mappning vid inloggning (~/.config/autostart/undersokningen-touch.desktop)"
+
 # Uppdatera menydatabasen (om verktyget finns).
 update-desktop-database "$apps" 2>/dev/null || true
 
