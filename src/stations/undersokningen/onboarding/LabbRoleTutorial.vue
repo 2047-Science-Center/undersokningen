@@ -12,6 +12,7 @@ import { useI18n } from '@/station-kit/i18n'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import Icon from '../components/Icon.vue'
 import Placeholder from '../components/Placeholder.vue'
+import { useHoppa } from '@/station-kit/kiosk/kioskSkip'
 
 const { t } = useI18n()
 const emit = defineEmits<{ done: [] }>()
@@ -56,6 +57,7 @@ function next(): void {
   }
   ix.value += 1
 }
+useHoppa(() => next()) // hörngesten (kioskSkip): nästa steg i genomgången
 </script>
 
 <template>

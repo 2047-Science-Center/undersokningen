@@ -18,6 +18,7 @@ import { useI18n } from '@/station-kit/i18n'
 import { OTHER } from '../engine/gameEngine'
 import { useUndersokningenStore } from '../store/undersokningenStore'
 import BarrierWait from './BarrierWait.vue'
+import { useHoppa } from '@/station-kit/kiosk/kioskSkip'
 import IntroVo from './introvo/IntroVo.vue'
 import LabbRoleTutorial from './LabbRoleTutorial.vue'
 import FaltRoleTutorial from './FaltRoleTutorial.vue'
@@ -80,6 +81,14 @@ function kortKlart(): void {
   store.introStart(Date.now() + 400)
   phase.value = 'intro'
 }
+// Hörngesten (kioskSkip): väntläget → "redo". Spellägeskortet, intro-rösten (ett kapitel per hopp) och
+// rollgenomgången (ett steg per hopp) har egna hopp; Vue monterar barn före förälder, så den här
+// ligger överst i stapeln och släpper vidare (false) i de lägena.
+useHoppa(() => {
+  if (phase.value === 'gate' && !iAmReady.value) markReady()
+  else return false
+  return true
+})
 let redoTimer: ReturnType<typeof setInterval> | null = null
 onMounted(() => {
   if (store.view === 'shared') return

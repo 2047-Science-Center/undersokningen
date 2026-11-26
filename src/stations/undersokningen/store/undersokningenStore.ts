@@ -277,6 +277,13 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     dispatch({ type: 'confirmThief' })
     notifyActivity()
   }
+  /** Hörngesten (station-kit/kiosk/kioskSkip) i spelet, bara för facilitatorn: utredningen → verdiktet;
+   *  verdiktet → avgör (markerad pekas ut, annars utan utpekande — samma som när fristen gått ut). */
+  function hoppaFram(): void {
+    if (state.value.phase === 'investigate') dispatch({ type: 'openVerdict' })
+    else if (state.value.phase === 'verdict') dispatch({ type: 'timeoutVerdict' })
+    notifyActivity()
+  }
 
   /* ---------------- resultat ---------------- */
 
@@ -484,6 +491,7 @@ export const useUndersokningenStore = defineStore('undersokningen', () => {
     closeVerdict,
     selectThief,
     confirmThief,
+    hoppaFram,
     reset,
     quitStation,
     setPaused,

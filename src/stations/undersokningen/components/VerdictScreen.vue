@@ -24,6 +24,7 @@ import { useRotation } from '@/station-kit/rotation/rotation'
 import { useLjus } from '@/station-kit/ljus'
 import { AvslutRuta, useAvslut, spelaAvslutLjud, AVSLUT_LJUD } from '@/station-kit/resultat'
 import { BADA } from '../ljus'
+import { useHoppa } from '@/station-kit/kiosk/kioskSkip'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
@@ -52,6 +53,12 @@ const inRotation = computed(() => rotation.state.phase === 'running')
 function onAgain(): void {
   if (!rotation.finishSkarp()) store.reset()
 }
+// Hörngesten (kioskSkip): utfallet klart → samma som "Vi är klara".
+useHoppa(() => {
+  if (!done.value) return false
+  onAgain()
+  return true
+})
 
 /*
  * Avslutet (station-kit/resultat, XY-RESULTAT-OCH-VINST §2.3): båda skärmarna kör samma takter

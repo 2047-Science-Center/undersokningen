@@ -35,12 +35,16 @@ import { initFilm, filmOptions, FilmOverlay } from '@/station-kit/film'
 import { initIncheckning, incheckningOptions } from '@/station-kit/incheckning/incheckning'
 import IncheckningScreen from '@/station-kit/incheckning/IncheckningScreen.vue'
 import { spela, appLage, varningsNiva, BADA } from './ljus'
+import { useHoppa, pilotUi } from '@/station-kit/kiosk/kioskSkip'
 
 const store = useUndersokningenStore()
 const { t } = useI18n()
 const { setMode } = useStationMode()
 
-const isPilot = config.mode === 'pilot'
+// Pilotpanelen (⚙) och facilitatorns Paus/Nollställ/Avsluta syns bara med ?pilot=1 (Josef 2026-11-26:
+// inga sådana knappar på skärmen). Hörngesten (håll övre högra hörnet 2 s) tar nästa steg i stället.
+const visaPilot = pilotUi()
+const isPilot = config.mode === 'pilot' && visaPilot
 const entered = ref(false)
 const showGoLive = ref(false)
 
@@ -222,6 +226,12 @@ watch(
     } else if (old === 'running') store.reset()
   },
 )
+// Hörngesten i det skarpa spelet: utredningen → verdiktet → avgör (avslutet har eget hopp).
+useHoppa(() => {
+  if (!onboarded.value || (store.phase !== 'investigate' && store.phase !== 'verdict')) return false
+  store.hoppaFram()
+  return true
+})
 function goLiveDone(): void {
   showGoLive.value = false
   if (store.leader && store.phase !== 'investigate') store.startLive()
@@ -301,8 +311,8 @@ onUnmounted(() => {
     </div>
 
     <!-- Overlays -->
-    <MuteButton class="app__mute" />
-    <FacilitatorControls v-if="entered" />
+    <MuteButton v-if="visaPilot" class="app__mute" />
+    <FacilitatorControls v-if="entered && visaPilot" />
     <PilotPanel v-if="isPilot && entered" />
     <!-- Spelläget ④: symbolen + TILLSAMMANS i nedräkningen (xy-produktion/spellage §9) -->
     <ModeCountdown v-if="showGoLive" :title="t('mode.golive_title')" :under="t('mode.golive_under')" :from="3" @done="goLiveDone">
