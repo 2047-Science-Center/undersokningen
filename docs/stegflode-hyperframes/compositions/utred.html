@@ -1,0 +1,144 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "IBM Plex Mono", monospace; }
+    .u-pol { left: 70px; top: 36px; width: 400px; }
+    #u-pol2 { opacity: 0; }
+    .u-info { position: absolute; left: 70px; top: 400px; font-size: 26px; font-weight: 700; color: #c99a5b; }
+    #u-info2 { opacity: 0; }
+    .u-q { position: absolute; left: 70px; top: 444px; width: 430px; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 38px; line-height: 1.12; color: #f5f5f0; opacity: 0; }
+    .u-pad { position: absolute; top: 562px; width: 200px; height: 64px; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-family: "Oswald", sans-serif; font-weight: 700; font-size: 30px; opacity: 0; }
+    #u-pad1 { left: 70px; border: 5px solid #d0241b; color: #d0241b; background: rgba(208,36,27,0.08); }
+    #u-pad2 { left: 290px; border: 5px solid #8a857a; color: #8a857a; }
+    #u-ko { position: absolute; left: 70px; top: 636px; display: flex; align-items: flex-end; gap: 14px; }
+    .u-mini { position: relative; width: 92px; background: #f3eee2; padding: 5px 5px 16px; box-shadow: 0 4px 8px rgba(0,0,0,0.5); }
+    .u-mini img { display: block; width: 100%; aspect-ratio: 4/3; object-fit: cover; }
+    .u-mst { position: absolute; left: -6px; top: 18px; border: 3px solid #6f6a60; color: #6f6a60; font-family: "Oswald", sans-serif; font-weight: 700;
+      font-size: 15px; padding: 0 4px; background: rgba(243,238,226,0.9); opacity: 0; }
+    #u-cnt { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 40px; color: #f5f5f0; margin-left: 10px; }
+    #u-cnt .n { position: relative; display: inline-block; width: 22px; height: 52px; vertical-align: top; color: #ff9500; }
+    #u-cnt .n span { position: absolute; left: 0; top: 0; opacity: 0; }
+    #u-cnt .n span:first-child { opacity: 1; }
+    #u-ark { position: absolute; left: 520px; top: 26px; width: 840px; height: 672px; background: #efe9da; box-shadow: 0 12px 26px rgba(0,0,0,0.55);
+      transform: rotate(0.6deg); padding: 22px 24px; color: #1d1d1d; }
+    #u-ark h5 { font-size: 22px; font-weight: 700; letter-spacing: 0.08em; }
+    .u-rad { position: absolute; left: 30px; right: 20px; height: 74px; display: flex; align-items: center; gap: 18px; font-size: 24px; white-space: nowrap; }
+    .u-rad b { font-weight: 700; }
+    .u-rad u { text-decoration-thickness: 2px; text-underline-offset: 4px; }
+    #u-penna { position: absolute; left: 0; top: 0; width: 840px; height: 672px; pointer-events: none; }
+    #u-penna ellipse { fill: none; stroke: #d0241b; stroke-width: 5; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+    #u-ror { position: absolute; left: -10px; top: 150px; width: 60px; height: 140px; border-radius: 0 30px 30px 0; background: #c9a24b;
+      border: 4px solid #8d6d2a; }
+    #u-ror::after { content: ""; position: absolute; left: 6px; top: 16px; width: 26px; height: 100px; border-radius: 0 14px 14px 0; background: #2a1d12; }
+    #u-till { position: absolute; left: 60px; top: 196px; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 34px; color: #ff9500; opacity: 0; }
+    #u-st1, #u-st2 { left: 130px; top: 170px; }
+    #u-klar { left: 340px; top: 300px; }
+  </style>
+  <div id="root" data-composition-id="utred" data-width="1920" data-height="1080">
+    <div class="lbl">SKISS · FÄLTET · SIDA B</div>
+    <div class="plats">2 · UTREDNINGSBORDET</div>
+    <div id="u-rub" class="rub">Ringa in raderna. <b>Stämpla personen.</b></div>
+
+    <div id="u-skarm" class="skarm big">
+      <div class="bord">
+        <div id="u-ror"></div>
+        <div id="u-pol1" class="pol u-pol"><img src="assets/personer/ravi.jpg" alt="" /><span class="cap">RAVI HOLM</span><div id="u-st1" class="stamp" data-layout-allow-overlap>MISSTÄNKT</div></div>
+        <div id="u-pol2" class="pol u-pol"><img src="assets/personer/maj.jpg" alt="" /><span class="cap">MAJ LINDKVIST</span><div id="u-st2" class="stamp" data-layout-allow-overlap>MISSTÄNKT</div></div>
+        <div id="u-info1" class="u-info">röd overall · 2 avtryck</div>
+        <div id="u-info2" class="u-info">gula byxor · 2 avtryck</div>
+        <div id="u-q1" class="u-q">Vilka rader handlar om Ravi?</div>
+        <div id="u-q2" class="u-q">Är Ravi misstänkt?</div>
+        <div id="u-q3" class="u-q">Vilka rader handlar om Maj?</div>
+        <div id="u-q4" class="u-q">Är Maj misstänkt?</div>
+        <div id="u-pad1" class="u-pad">MISSTÄNKT</div>
+        <div id="u-pad2" class="u-pad">AVSKRIVEN</div>
+        <div id="u-ko">
+          <div class="u-mini" id="u-mm"><img src="assets/personer/maj.jpg" alt="" /></div>
+          <div class="u-mini"><img src="assets/personer/tomas.jpg" alt="" /><span data-layout-allow-overlap class="u-mst" id="u-ms1">AVSKRIVEN</span></div>
+          <div class="u-mini"><img src="assets/personer/iris.jpg" alt="" /><span data-layout-allow-overlap class="u-mst" id="u-ms2">AVSKRIVEN</span></div>
+          <div id="u-cnt"><span class="n"><span id="u-n1">1</span><span id="u-n2">2</span><span id="u-n3">3</span><span id="u-n4">4</span></span> av 4</div>
+        </div>
+        <div id="u-till">◂ TILL LABBET</div>
+
+        <div id="u-ark">
+          <h5>ÄRENDE 3-074 · ÖVERVAKNINGSLOGG · SEKTOR C</h5>
+          <div class="u-rad" style="top:70px"><b>13:02</b>Kvinna, <u>blå rock</u> över overallen, provback.</div>
+          <div class="u-rad" style="top:144px"><b>13:15</b>Äldre man, <u>grön fältjacka</u>, vid skåpets panel.</div>
+          <div class="u-rad" style="top:218px"><b>13:28</b>Två i <u>gröna overaller</u> mot verkstaden.</div>
+          <div class="u-rad" style="top:292px"><b>13:40</b>Person i <u>grå overall</u>, ansiktet bortvänt.</div>
+          <div class="u-rad" style="top:366px"><b>13:55</b>Kvinna, <u>gula byxor, mörk väst</u>, vid arkivet.</div>
+          <div class="u-rad" style="top:440px"><b>14:10</b>Man, <u>röd overall</u>, rör sig lugnt runt skåpet.</div>
+          <div class="u-rad" style="top:514px"><b>14:24</b><u>Röd overall</u> och <u>gula byxor</u> nära skåpet.</div>
+          <div class="u-rad" style="top:588px"><b>14:30</b>LARM. Skåpet öppet. En av de två tar något.</div>
+          <svg id="u-penna" viewBox="0 0 840 672">
+            <ellipse id="u-c1" cx="420" cy="477" rx="410" ry="34" pathLength="1" />
+            <ellipse id="u-c2" cx="420" cy="551" rx="410" ry="34" pathLength="1" />
+            <ellipse id="u-c3" cx="420" cy="403" rx="406" ry="32" pathLength="1" />
+            <ellipse id="u-c4" cx="424" cy="553" rx="398" ry="28" pathLength="1" />
+            <ellipse id="u-c5" cx="420" cy="181" rx="404" ry="32" pathLength="1" />
+            <ellipse id="u-c6" cx="420" cy="107" rx="404" ry="32" pathLength="1" />
+          </svg>
+        </div>
+        <div id="u-klar" class="stamp or" data-layout-allow-overlap>✓ UTREDNINGSBORDET KLART</div>
+      </div>
+      <div class="rem">
+        <div class="pr"><span class="klar">✓ BROTTSPLATSEN</span><span class="on">● UTREDNINGSBORDET</span><span>○ TAVLAN</span></div>
+        <span>SIDA B · FÄLTET</span><span class="tid">5:12</span><span class="tv">TILL TAVLAN ▸</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const pen = (sel, t) => tl.fromTo(sel, { strokeDashoffset: 1 }, { strokeDashoffset: 0, duration: 0.45, ease: "power1.inOut" }, t);
+    const stamp = (sel, t, rot) => tl.fromTo(sel, { opacity: 0, scale: 1.6, rotation: rot }, { opacity: 1, scale: 1, rotation: rot, duration: 0.22, ease: "back.out(2)" }, t);
+    const swap = (ut, inn, t) => { if (ut) tl.to(ut, { opacity: 0, duration: 0.2 }, t); tl.fromTo(inn, { opacity: 0 }, { opacity: 1, duration: 0.25 }, t + 0.1); };
+    tl.fromTo("#u-skarm", { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.4, ease: "expo.out" }, 0);
+    tl.fromTo("#u-rub", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0.2);
+    // Ravi: ringa in → stämpla → rörposten
+    swap(null, "#u-q1", 0.5);
+    pen("#u-c1", 1.6);
+    pen("#u-c2", 2.3);
+    swap("#u-q1", "#u-q2", 3.1);
+    tl.fromTo(["#u-pad1", "#u-pad2"], { opacity: 0, y: 12 }, { opacity: 1, y: 0, duration: 0.3, ease: "expo.out" }, 3.2);
+    tl.to("#u-pad1", { scale: 0.9, duration: 0.1, yoyo: true, repeat: 1 }, 4.1);
+    stamp("#u-st1", 4.3, -12);
+    tl.fromTo("#u-till", { opacity: 0, x: 20 }, { opacity: 1, x: 0, duration: 0.3 }, 4.8);
+    tl.to("#u-pol1", { x: -430, y: 110, scale: 0.22, duration: 0.55, ease: "power2.in" }, 5.0);
+    tl.to("#u-pol1", { opacity: 0, duration: 0.1 }, 5.5);
+    tl.to("#u-till", { opacity: 0, duration: 0.3 }, 6.0);
+    // Maj
+    tl.to(["#u-pad1", "#u-pad2"], { opacity: 0, duration: 0.2 }, 5.6);
+    tl.to(["#u-pad1", "#u-pad2"], { opacity: 1, duration: 0.25 }, 7.5);
+    tl.to(["#u-c1", "#u-c2"], { opacity: 0.3, duration: 0.3 }, 5.8);
+    tl.to("#u-mm", { opacity: 0, y: -20, duration: 0.3 }, 5.7);
+    tl.fromTo("#u-pol2", { opacity: 0, x: 160 }, { opacity: 1, x: 0, duration: 0.45, ease: "expo.out" }, 5.8);
+    swap("#u-info1", "#u-info2", 5.8);
+    swap("#u-q2", "#u-q3", 5.8);
+    tl.set("#u-n1", { opacity: 0 }, 5.8);
+    tl.set("#u-n2", { opacity: 1 }, 5.8);
+    pen("#u-c3", 6.2);
+    pen("#u-c4", 6.65);
+    swap("#u-q3", "#u-q4", 7.45);
+    stamp("#u-st2", 7.7, -10);
+    tl.set("#u-till", { x: 20 }, 7.85);
+    tl.to("#u-till", { opacity: 1, x: 0, duration: 0.3 }, 7.85);
+    tl.to("#u-pol2", { x: -430, y: 110, scale: 0.22, duration: 0.55, ease: "power2.in" }, 8.1);
+    tl.to("#u-pol2", { opacity: 0, duration: 0.1 }, 8.6);
+    tl.to("#u-till", { opacity: 0, duration: 0.3 }, 9.0);
+    tl.to(["#u-c3", "#u-c4"], { opacity: 0.3, duration: 0.3 }, 8.5);
+    // Tomas och Iris: avskrivna
+    tl.to(["#u-q4", "#u-info2"], { opacity: 0, duration: 0.2 }, 8.6);
+    pen("#u-c5", 8.6);
+    stamp("#u-ms1", 8.8, -8);
+    tl.set("#u-n2", { opacity: 0 }, 8.8);
+    tl.set("#u-n3", { opacity: 1 }, 8.8);
+    pen("#u-c6", 9.0);
+    stamp("#u-ms2", 9.2, -8);
+    tl.set("#u-n3", { opacity: 0 }, 9.2);
+    tl.set("#u-n4", { opacity: 1 }, 9.2);
+    tl.to(["#u-pad1", "#u-pad2"], { opacity: 0, duration: 0.2 }, 9.4);
+    stamp("#u-klar", 9.75, -5);
+    tl.to("#root", { opacity: 0, duration: 0.35 }, 10.6);
+    window.__timelines["utred"] = tl;
+  </script>
+</template>

@@ -1,0 +1,97 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "IBM Plex Mono", monospace; }
+    #b-hand { position: absolute; left: 40px; top: 30px; width: 600px; height: 230px; border-radius: 14px; background: #1b130c;
+      border: 2px solid rgba(255,190,120,0.18); }
+    #b-txt { position: absolute; left: 680px; top: 44px; width: 680px; }
+    #b-txt h3 { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 46px; line-height: 1.1; color: #f5f5f0; }
+    #b-txt p { margin-top: 12px; font-size: 26px; color: #c99a5b; font-weight: 700; }
+    .b-pase { position: absolute; top: 300px; width: 136px; height: 220px; border: 2px dashed rgba(220,230,235,0.32); border-radius: 8px;
+      background: rgba(220,230,235,0.05); }
+    .b-pase::before { content: "BEVIS"; position: absolute; left: 0; right: 0; top: 0; height: 26px; background: rgba(208,36,27,0.55);
+      font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 16px; letter-spacing: 0.2em; color: #f3eee2; text-align: center; line-height: 26px;
+      border-radius: 6px 6px 0 0; }
+    .b-fyll { position: absolute; inset: 34px 8px 8px; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: 0; }
+    .b-fyll img { width: 116px; height: 87px; object-fit: cover; border: 5px solid #f3eee2; border-bottom-width: 12px; }
+    .b-namn { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 30px; color: #f5f5f0; }
+    .b-x2 { font-family: "Oswald", sans-serif; font-weight: 700; font-size: 30px; color: #ff9500; }
+    .b-smet { width: 100px; height: 87px; border-radius: 50%; background: radial-gradient(circle, rgba(170,170,170,0.5) 0%, rgba(120,120,120,0.15) 60%, transparent 70%); }
+    .b-smettxt { font-size: 20px; font-weight: 700; color: #9fb2c0; }
+    .b-solid { position: absolute; inset: -2px; border: 2px solid rgba(220,230,235,0.6); border-radius: 8px; opacity: 0; }
+    #b-cnt { position: absolute; left: 40px; top: 560px; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 52px; color: #f5f5f0; }
+    #b-cnt .n { display: inline-block; position: relative; width: 36px; height: 64px; vertical-align: top; color: #ff9500; }
+    #b-cnt .n span { position: absolute; left: 0; top: 0; opacity: 0; }
+    #b-cnt .n span:first-child { opacity: 1; }
+    #b-loggflik { position: absolute; right: 40px; top: 572px; font-size: 26px; font-weight: 700; color: #9fb2c0;
+      border: 2px dashed #6f8a7e; border-radius: 8px; padding: 6px 16px; }
+    #b-klar { left: 410px; top: 180px; }
+  </style>
+  <div id="root" data-composition-id="brott" data-width="1920" data-height="1080">
+    <div class="lbl">SKISS · FÄLTET · SIDA B</div>
+    <div id="b-plats" class="plats">1 · BROTTSPLATSEN</div>
+    <div id="b-rub" class="rub">En sak i taget: <b>hitta alla 9 avtryck</b></div>
+
+    <div id="b-skarm" class="skarm big">
+      <div class="bord">
+        <!-- Bilden av handlingen: UV-pennan tänder avtrycket, skannern hålls mot det -->
+        <div id="b-hand">
+          <svg width="600" height="230" viewBox="0 0 600 230">
+            <rect x="30" y="150" width="540" height="56" rx="8" fill="#3a3a38" />
+            <g id="b-beam"><polygon points="160,40 228,150 352,150" fill="rgba(150,110,255,0.32)" /></g>
+            <g transform="rotate(-28 150 40)"><rect x="70" y="28" width="150" height="22" rx="10" fill="#d8d8d8" /><rect x="206" y="30" width="18" height="18" rx="4" fill="#8a6cff" /></g>
+            <g id="b-print" fill="none" stroke="#c9b6ff" stroke-width="3" stroke-linecap="round" opacity="0.15">
+              <path d="M272 192c1-14 9-22 18-22s17 8 18 22" /><path d="M278 196c0-10 5-18 12-18s12 8 12 18" /><path d="M284 199c0-8 2-13 6-13s6 5 6 11" />
+            </g>
+            <g id="b-scanner"><rect x="420" y="70" width="110" height="70" rx="12" fill="#ff9500" /><rect x="434" y="84" width="82" height="26" rx="4" fill="#05100b" />
+              <text x="475" y="103" font-family="IBM Plex Mono" font-weight="700" font-size="15" fill="#ff9500" text-anchor="middle">SKANNA</text>
+              <rect x="460" y="140" width="30" height="12" fill="#b8690f" /></g>
+          </svg>
+        </div>
+        <div id="b-txt"><h3>Lys med UV-pennan.<br />Håll skannern mot avtrycket.</h3><p>Varje avtryck hamnar i en påse.</p></div>
+
+        <div class="b-pase" style="left:40px"><div class="b-solid" id="b-s1"></div><div class="b-fyll" id="b-f1"><img src="assets/personer/ravi.jpg" alt="" /><span class="b-namn">Ravi</span></div></div>
+        <div class="b-pase" style="left:188px"><div class="b-solid" id="b-s2"></div><div class="b-fyll" id="b-f2"><img src="assets/personer/tomas.jpg" alt="" /><span class="b-namn">Tomas</span></div></div>
+        <div class="b-pase" style="left:336px"><div class="b-solid" id="b-s3"></div><div class="b-fyll" id="b-f3"><div class="b-smet"></div><span class="b-smettxt">utsmetat</span></div></div>
+        <div class="b-pase" style="left:484px"><div class="b-solid" id="b-s4"></div><div class="b-fyll" id="b-f4"><img src="assets/personer/maj.jpg" alt="" /><span class="b-namn">Maj</span></div></div>
+        <div class="b-pase" style="left:632px"><div class="b-solid" id="b-s5"></div><div class="b-fyll" id="b-f5"><img src="assets/personer/ravi.jpg" alt="" /><span class="b-x2">Ravi ×2</span></div></div>
+        <div class="b-pase" style="left:780px"><div class="b-solid" id="b-s6"></div><div class="b-fyll" id="b-f6"><img src="assets/personer/maj.jpg" alt="" /><span class="b-x2">Maj ×2</span></div></div>
+        <div class="b-pase" style="left:928px"><div class="b-solid" id="b-s7"></div><div class="b-fyll" id="b-f7"><img src="assets/personer/iris.jpg" alt="" /><span class="b-namn">Iris</span></div></div>
+        <div class="b-pase" style="left:1076px"><div class="b-solid" id="b-s8"></div><div class="b-fyll" id="b-f8"><div class="b-smet"></div><span class="b-smettxt">utsmetat</span></div></div>
+        <div class="b-pase" style="left:1224px"><div class="b-solid" id="b-s9"></div><div class="b-fyll" id="b-f9"><div class="b-smet"></div><span class="b-smettxt">utsmetat</span></div></div>
+
+        <div id="b-cnt">Bevispåsar: <span class="n"><span id="b-n0">0</span><span id="b-n1">1</span><span id="b-n2">2</span><span id="b-n3">3</span><span id="b-n4">4</span><span id="b-n5">5</span><span id="b-n6">6</span><span id="b-n7">7</span><span id="b-n8">8</span><span id="b-n9">9</span></span> av 9</div>
+        <div id="b-loggflik">🔒 Loggen öppnas på nästa bord</div>
+        <div id="b-klar" class="stamp or" data-layout-allow-overlap>✓ BROTTSPLATSEN KLAR</div>
+      </div>
+      <div class="rem">
+        <div class="pr"><span id="b-d1" class="on">● BROTTSPLATSEN</span><span id="b-d2">○ UTREDNINGSBORDET</span><span>○ TAVLAN</span></div>
+        <span>SIDA B · FÄLTET</span><span class="tid">7:41</span><span class="tv">TILL TAVLAN ▸</span>
+      </div>
+    </div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    tl.fromTo("#b-skarm", { opacity: 0, scale: 0.97 }, { opacity: 1, scale: 1, duration: 0.4, ease: "expo.out" }, 0);
+    tl.fromTo("#b-rub", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0.2);
+    // handlingen: UV-strålen tänder avtrycket, skannern glider in över det
+    tl.fromTo("#b-beam", { opacity: 0 }, { opacity: 1, duration: 0.25 }, 0.6);
+    tl.fromTo("#b-print", { opacity: 0.15 }, { opacity: 1, duration: 0.3 }, 0.8);
+    tl.fromTo("#b-scanner", { x: 0, y: 0 }, { x: -150, y: 20, duration: 0.7, ease: "power2.inOut" }, 1.3);
+    tl.to("#b-beam", { opacity: 0, duration: 0.2 }, 1.5);
+    tl.to(["#b-hand", "#b-txt"], { opacity: 0.35, duration: 0.4 }, 2.5);
+    // påsarna fylls i skanningsordning
+    const T = [2.4, 3.0, 3.5, 4.0, 4.5, 5.0, 5.4, 5.8, 6.2];
+    T.forEach((t, i) => {
+      const k = i + 1;
+      tl.fromTo("#b-f" + k, { opacity: 0, y: -40 }, { opacity: 1, y: 0, duration: 0.35, ease: "back.out(1.6)" }, t);
+      tl.fromTo("#b-s" + k, { opacity: 0 }, { opacity: 1, duration: 0.2 }, t);
+      tl.set("#b-n" + i, { opacity: 0 }, t);
+      tl.set("#b-n" + k, { opacity: 1 }, t);
+    });
+    tl.fromTo("#b-klar", { opacity: 0, scale: 1.5, rotation: -5 }, { opacity: 1, scale: 1, rotation: -5, duration: 0.22, ease: "back.out(2)" }, 6.7);
+    tl.set("#b-d1", { color: "#f5f5f0" }, 7.6);
+    tl.set("#b-d2", { color: "#ff9500" }, 7.6);
+    tl.to("#root", { opacity: 0, duration: 0.35 }, 8.6);
+    window.__timelines["brott"] = tl;
+  </script>
+</template>

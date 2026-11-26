@@ -1,0 +1,96 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "IBM Plex Mono", monospace; }
+    #n-rub2 { top: 110px; left: 120px; color: #ff9500; opacity: 0; }
+    #n-e1 { left: 120px; color: #9fb2c0; }
+    #n-e2 { left: 1000px; color: #9fb2c0; }
+    .n-head { position: absolute; left: 18px; right: 18px; top: 12px; height: 40px; display: flex; align-items: center; gap: 14px;
+      font-family: "Oswald", sans-serif; font-weight: 700; font-size: 26px; color: #ff9500; }
+    .n-head .chip { font-family: "IBM Plex Mono", monospace; font-size: 15px; border: 1px solid #b8690f; border-radius: 8px; padding: 2px 10px; color: #c99a5b; }
+    .n-head .gissa { margin-left: auto; font-size: 20px; border: 2px solid #ff9500; border-radius: 8px; padding: 0 12px; }
+    .n-box { position: absolute; border: 1px solid #b8690f; border-radius: 8px; background: #08170f; }
+    .n-small { font-size: 14px; color: #c99a5b; line-height: 1.3; padding: 8px 10px; }
+    .n-scope { left: 18px; top: 62px; width: 520px; height: 250px; overflow: hidden; }
+    .n-scope img { width: 100%; height: 100%; object-fit: cover; opacity: 0.85; }
+    .n-frys { position: absolute; left: 18px; top: 318px; width: 520px; height: 34px; border: 1px solid #b8690f; border-radius: 8px;
+      font-family: "Oswald", sans-serif; font-size: 20px; color: #c99a5b; display: flex; align-items: center; justify-content: center; }
+    .n-side { left: 552px; top: 62px; width: 230px; height: 290px; }
+    .n-korgar { position: absolute; left: 18px; right: 18px; top: 362px; height: 74px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .n-korg { border: 1px solid #b8690f; border-radius: 8px; background: #08170f; font-size: 15px; color: #c99a5b; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; }
+    .n-korg b { font-family: "Oswald", sans-serif; font-size: 20px; color: #f5f5f0; }
+    .n-susp { left: 18px; top: 62px; width: 764px; height: 44px; font-size: 15px; color: #c99a5b; display: flex; align-items: center; padding: 0 10px; }
+    .n-yta { left: 18px; top: 116px; width: 400px; height: 320px; }
+    .n-fp { position: absolute; width: 34px; height: 34px; color: #b8690f; }
+    .n-logg { left: 430px; top: 116px; width: 352px; height: 320px; overflow: hidden; padding: 8px 10px; }
+    .n-rad { font-size: 12.5px; line-height: 1.32; color: #c99a5b; margin-bottom: 6px; }
+    .n-rad i { font-style: normal; color: #f5f5f0; font-weight: 700; }
+    .n-ring { position: absolute; border: 4px solid #ff9500; border-radius: 50%; opacity: 0; }
+    #n-ring1 { left: 1420px; top: 368px; width: 380px; height: 340px; }
+    #n-ring2 { left: 1010px; top: 368px; width: 420px; height: 340px; }
+    #n-ring3 { left: 120px; top: 312px; width: 560px; height: 300px; }
+  </style>
+  <div id="root" data-composition-id="nulage" data-width="1920" data-height="1080">
+    <div id="n-lbl" class="lbl">SKISS · I DAG</div>
+    <div id="n-rub" class="rub">I dag: allt syns på en gång.</div>
+    <div id="n-rub2" class="rub">Vad gör vi först?</div>
+    <div id="n-e1" class="etik">LABBET · SIDA A</div>
+    <div id="n-e2" class="etik">FÄLTET · SIDA B</div>
+
+    <div id="n-sL" class="skarm vL" data-layout-ignore>
+      <div class="n-head">LABBKONSOL <span class="chip">UPPDRAG ▾ Sortera hårproven …</span></div>
+      <div class="n-box n-scope"><img src="assets/har/manniska-1.jpg" alt="" /></div>
+      <div class="n-frys">FRYS</div>
+      <div class="n-box n-side n-small"><b style="color:#ff9500">FÄLTETS MISSTÄNKTA</b><br />Här dyker de personer upp som fältet markerar som misstänkta. Sortera fram människohår under tiden.</div>
+      <div class="n-korgar">
+        <div class="n-korg"><b>Människohår</b>släpp bilder här</div>
+        <div class="n-korg"><b>Djurhår</b>släpp bilder här</div>
+        <div class="n-korg"><b>Syntet / fiber</b>släpp bilder här</div>
+      </div>
+    </div>
+
+    <div id="n-sR" class="skarm vR" data-layout-ignore>
+      <div class="n-head">FÄLTKONSOL <span class="chip">UPPDRAG ▾</span><span class="gissa">GISSA TJUVEN ▸</span></div>
+      <div class="n-box n-susp">MISSTÄNKTA — Markera misstänkta, de dyker upp här.</div>
+      <div class="n-box n-yta">
+        <svg class="n-fp" style="left:13%;top:20%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:68%;top:14%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:36%;top:34%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:57%;top:48%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:24%;top:60%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:79%;top:41%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:46%;top:70%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:8%;top:76%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+        <svg class="n-fp" style="left:84%;top:68%" viewBox="0 0 48 48"><g fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M10 26c1-10 7-16 14-16s13 6 14 16"/><path d="M14 30c0-8 4-14 10-14s10 6 10 14"/><path d="M18 34c0-10 2-14 6-14s6 4 6 12"/><path d="M24 24v14"/></g></svg>
+      </div>
+      <div class="n-box n-logg">
+        <div class="n-rad"><i>13:02</i> Kvinna, ca 40, lugn hållning, blå rock över overallen, bär en provback. Ställer ner den vid bänken …</div>
+        <div class="n-rad"><i>13:15</i> Man, äldre, kraftig, grön fältjacka, lutar sig länge över kassaskåpets panel och antecknar …</div>
+        <div class="n-rad"><i>13:28</i> Två personer i gröna standardoveraller passerar snabbt mot verkstaden …</div>
+        <div class="n-rad"><i>13:40</i> Mager, något kutryggig person i grå overall, ansiktet bortvänt från kameran, dröjer i …</div>
+        <div class="n-rad"><i>13:55</i> Kvinna, slutet av 20-årsåldern, spänd, gula byxor och mörk väst. Står länge vid arkivhyllan …</div>
+        <div class="n-rad"><i>14:10</i> Man, medellång, röd overall, rör sig lugnt runt kassaskåpet, lutar sig mot väggen …</div>
+        <div class="n-rad"><i>14:24</i> Mannen i röd overall och kvinnan i gula byxor står nära varandra vid skåpet …</div>
+        <div class="n-rad"><i>14:30</i> LARM. Kassaskåpet står öppet. I oredan syns en av de två sträcka sig in …</div>
+      </div>
+    </div>
+
+    <div id="n-ring1" class="n-ring"></div>
+    <div id="n-ring2" class="n-ring"></div>
+    <div id="n-ring3" class="n-ring"></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+            tl.fromTo(["#n-e1", "#n-sL"], { opacity: 0, x: -30 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.4);
+    tl.fromTo(["#n-e2", "#n-sR"], { opacity: 0, x: 30 }, { opacity: 1, x: 0, duration: 0.5, ease: "expo.out" }, 0.55);
+    // allt drar i blicken: loggen, ytan, mikroskopet
+    tl.fromTo("#n-ring1", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 2.4);
+    tl.fromTo("#n-ring2", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 2.8);
+    tl.fromTo("#n-ring3", { opacity: 0, scale: 0.85 }, { opacity: 1, scale: 1, duration: 0.3, ease: "back.out(2)" }, 3.2);
+    tl.to("#n-rub", { opacity: 0, duration: 0.25 }, 3.5);
+    tl.fromTo("#n-rub2", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 3.7);
+    tl.to(["#n-sL", "#n-sR", "#n-e1", "#n-e2", "#n-ring1", "#n-ring2", "#n-ring3"], { opacity: 0.25, duration: 0.4 }, 4.4);
+    tl.to("#root", { opacity: 0, duration: 0.35 }, 6.6);
+    window.__timelines["nulage"] = tl;
+  </script>
+</template>

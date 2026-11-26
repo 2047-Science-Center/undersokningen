@@ -1,0 +1,122 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; font-family: "IBM Plex Mono", monospace; }
+    #t-e1 { left: 120px; color: #9fb2c0; }
+    #t-e2 { left: 1000px; color: #9fb2c0; }
+    #t-rub2, #t-rub3 { opacity: 0; }
+    #t-rub2 { color: #ff9500; }
+    .t-kork { position: absolute; left: 0; top: 0; width: 800px; height: 408px; background-color: #b78a55;
+      background-image: radial-gradient(rgba(90,55,20,0.35) 1px, transparent 1.6px), radial-gradient(rgba(255,235,200,0.18) 1px, transparent 1.6px);
+      background-size: 9px 9px, 13px 13px; }
+    .t-head { position: absolute; left: 0; right: 0; top: 0; height: 52px; background: rgba(5,16,11,0.9); display: flex; align-items: center; gap: 14px; padding: 0 18px;
+      font-family: "Oswald", sans-serif; font-weight: 700; font-size: 30px; color: #f5f5f0; }
+    .t-head span { font-family: "IBM Plex Mono", monospace; font-size: 20px; color: #c99a5b; }
+    .t-pol { top: 70px; width: 260px; padding: 10px 10px 38px; }
+    .t-pol .cap { font-size: 18px; bottom: 6px; left: 10px; }
+    .t-pol .stamp { left: 24px; top: 64px; font-size: 38px; border-width: 5px; padding: 2px 12px 4px; }
+    .t-not { position: absolute; top: 310px; width: 250px; font-size: 20px; font-weight: 700; color: #1d1d1d; }
+    .t-not b { color: #8a3d00; }
+    .t-kopp { position: absolute; top: 352px; width: 100px; text-align: center; font-size: 17px; font-weight: 700; color: #3a2510; }
+    .t-nal { position: absolute; width: 34px; height: 34px; border-radius: 50%; box-shadow: 2px 5px 6px rgba(0,0,0,0.5), inset -4px -4px 0 rgba(0,0,0,0.15); }
+    .t-a { left: 57px; top: 316px; background: #fff1d6; }
+    .t-b { left: 709px; top: 316px; background: #ff3cc8; }
+    .t-band { position: absolute; left: 0; right: 0; top: 0; height: 52px; border-radius: 0; background: #05100b; display: flex; align-items: center;
+      gap: 16px; padding: 0 18px; font-family: "Oswald", sans-serif; font-weight: 700; font-size: 30px; opacity: 0; }
+    .t-band span { font-family: "IBM Plex Mono", monospace; font-size: 20px; color: #f5f5f0; }
+    .t-or { border: 4px solid #ff9500; color: #ff9500; }
+    .t-ok { border: 4px solid #7ad14f; color: #f5f5f0; }
+    .t-angra { margin-left: auto; border: 2px solid #f5f5f0; border-radius: 8px; padding: 2px 12px; }
+    .t-angra .n { position: relative; display: inline-block; width: 14px; height: 26px; vertical-align: top; font-style: normal; }
+    .t-angra .n i { position: absolute; left: 0; top: 0; font-style: normal; opacity: 0; }
+    .t-rip { position: absolute; width: 70px; height: 70px; border-radius: 50%; border: 4px solid #f5f5f0; opacity: 0; }
+    .t-rem { position: absolute; left: 0; right: 0; bottom: 0; height: 42px; border-top: 2px solid #b8690f; background: #05100b;
+      display: flex; align-items: center; gap: 18px; padding: 0 16px; font-weight: 700; font-size: 18px; color: #c99a5b; white-space: nowrap; }
+    .t-rem .on { color: #ff9500; }
+    .t-rem .tid { margin-left: auto; font-family: "Oswald", sans-serif; font-size: 24px; color: #f5f5f0; }
+    #t-l1 { left: 120px; } #t-l2 { left: 1000px; }
+    .t-blink { position: absolute; top: 732px; width: 800px; height: 14px; border-radius: 7px; background: #ffb340; opacity: 0; box-shadow: 0 0 30px #ff9500; }
+    #t-b1 { left: 120px; } #t-b2 { left: 1000px; }
+  </style>
+  <div id="root" data-composition-id="tavlan" data-width="1920" data-height="1080">
+    <div class="lbl">SKISS · BÅDA SKÄRMARNA</div>
+    <div class="plats">★ · TAVLAN</div>
+    <div id="t-rub1" class="rub">Sist: <b>båda sätter sin nål</b></div>
+    <div id="t-rub2" class="rub">Tror ni olika? Prata ihop er.</div>
+    <div id="t-rub3" class="rub">Överens → <b>UTPEKAD</b>. Ångra inom 5 s.</div>
+    <div id="t-e1" class="etik">LABBET · SIDA A</div>
+    <div id="t-e2" class="etik">FÄLTET · SIDA B</div>
+    <div id="t-sL" class="skarm vL">
+      <div class="t-kork">
+        <div class="t-head">★ VEM ÄR TJUVEN? <span>Sätt er nål.</span></div>
+        <div class="pol t-pol" style="left:130px"><img src="assets/personer/ravi.jpg" alt="" /><span class="cap">RAVI HOLM</span>
+          <div id="t-stL" class="stamp or" data-layout-allow-overlap>UTPEKAD</div></div>
+        <div class="pol t-pol" style="left:410px"><img src="assets/personer/maj.jpg" alt="" /><span class="cap">MAJ LINDKVIST</span></div>
+        <div class="t-not" style="left:130px"><b>✓ hår</b> · 14:10 · 14:24</div>
+        <div class="t-not" style="left:410px">13:55 · 14:24</div>
+        <div class="t-kopp" style="left:24px">LABBET</div><div class="t-kopp" style="left:676px">FÄLTET</div>
+        <div id="t-paL" class="t-nal t-a"></div>
+        <div id="t-pbL" class="t-nal t-b"></div>
+        <div id="t-olikaL" data-layout-allow-overlap class="t-band t-or">NI TROR OLIKA <span>Prata ihop er. Flytta en nål.</span></div>
+        <div id="t-overL" data-layout-allow-overlap class="t-band t-ok">NI ÄR ÖVERENS: RAVI HOLM
+          <span class="t-angra">ÅNGRA <i class="n"><i id="t-a5L">5</i><i id="t-a4L">4</i><i id="t-a3L">3</i><i id="t-a2L">2</i></i></span></div>
+        <div id="t-ripL" class="t-rip"></div>
+      </div>
+      <div class="t-rem"><span>✓ MIKROSKOP ✓ LJUSBORD ✓ RÖRPOST</span><span class="on">● TAVLAN</span><span class="tid">2:51</span></div>
+    </div>
+    <div id="t-sR" class="skarm vR">
+      <div class="t-kork">
+        <div class="t-head">★ VEM ÄR TJUVEN? <span>Sätt er nål.</span></div>
+        <div class="pol t-pol" style="left:130px"><img src="assets/personer/ravi.jpg" alt="" /><span class="cap">RAVI HOLM</span>
+          <div id="t-stR" class="stamp or" data-layout-allow-overlap>UTPEKAD</div></div>
+        <div class="pol t-pol" style="left:410px"><img src="assets/personer/maj.jpg" alt="" /><span class="cap">MAJ LINDKVIST</span></div>
+        <div class="t-not" style="left:130px"><b>✓ hår</b> · 14:10 · 14:24</div>
+        <div class="t-not" style="left:410px">13:55 · 14:24</div>
+        <div class="t-kopp" style="left:24px">LABBET</div><div class="t-kopp" style="left:676px">FÄLTET</div>
+        <div id="t-paR" class="t-nal t-a"></div>
+        <div id="t-pbR" class="t-nal t-b"></div>
+        <div id="t-olikaR" data-layout-allow-overlap class="t-band t-or">NI TROR OLIKA <span>Prata ihop er. Flytta en nål.</span></div>
+        <div id="t-overR" data-layout-allow-overlap class="t-band t-ok">NI ÄR ÖVERENS: RAVI HOLM
+          <span class="t-angra">ÅNGRA <i class="n"><i id="t-a5R">5</i><i id="t-a4R">4</i><i id="t-a3R">3</i><i id="t-a2R">2</i></i></span></div>
+        <div id="t-ripR" class="t-rip"></div>
+      </div>
+      <div class="t-rem"><span>✓ BROTTSPLATSEN ✓ UTREDNINGSBORDET</span><span class="on">● TAVLAN</span><span class="tid">2:51</span></div>
+    </div>
+    <div id="t-l1" class="led"></div><div id="t-l2" class="led"></div>
+    <div id="t-b1" class="t-blink"></div><div id="t-b2" class="t-blink"></div>
+  </div>
+  <script>
+    const tl = gsap.timeline({ paused: true });
+    const B = (id) => ["#" + id + "L", "#" + id + "R"];
+    tl.fromTo(["#t-sL", "#t-sR", "#t-e1", "#t-e2", "#t-l1", "#t-l2"], { opacity: 0 }, { opacity: 1, duration: 0.35 }, 0);
+    tl.fromTo("#t-rub1", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 0.15);
+    tl.set(["#t-a5L", "#t-a5R"], { opacity: 1 }, 0);
+    // tryck på skärmen (ring) → nålen flyttas, syns direkt på båda
+    const rip = (sel, x, y, t) => tl.fromTo(sel, { opacity: 0.9, x: x, y: y, scale: 0.4 }, { opacity: 0, scale: 1.4, duration: 0.5, ease: "power1.out" }, t);
+    rip("#t-ripL", 225, 110, 1.1);
+    tl.to(B("t-pa"), { x: 186, y: -258, duration: 0.35, ease: "power2.out" }, 1.15);
+    rip("#t-ripR", 505, 110, 2.3);
+    tl.to(B("t-pb"), { x: -186, y: -258, duration: 0.35, ease: "power2.out" }, 2.35);
+    // oenighet: orange band + orange blink i ljuset
+    tl.fromTo(B("t-olika"), { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.25, ease: "expo.out" }, 2.9);
+    tl.fromTo(["#t-b1", "#t-b2"], { opacity: 0 }, { opacity: 1, duration: 0.08 }, 2.9);
+    tl.to(["#t-b1", "#t-b2"], { opacity: 0, duration: 0.25 }, 3.1);
+    tl.to(["#t-b1", "#t-b2"], { opacity: 1, duration: 0.08 }, 3.45);
+    tl.to(["#t-b1", "#t-b2"], { opacity: 0, duration: 0.3 }, 3.6);
+    tl.to("#t-rub1", { opacity: 0, duration: 0.2 }, 3.2);
+    tl.fromTo("#t-rub2", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 3.3);
+    // fältet flyttar sin nål → överens
+    rip("#t-ripR", 225, 110, 6.5);
+    tl.to(B("t-pb"), { x: -441, y: -258, duration: 0.45, ease: "power2.inOut" }, 6.55);
+    tl.to(B("t-olika"), { opacity: 0, duration: 0.2 }, 6.9);
+    tl.fromTo(B("t-over"), { opacity: 0, y: -10 }, { opacity: 1, y: 0, duration: 0.25, ease: "expo.out" }, 7.0);
+    tl.fromTo(B("t-st"), { opacity: 0, scale: 1.6, rotation: -10 }, { opacity: 1, scale: 1, rotation: -10, duration: 0.22, ease: "back.out(2)" }, 7.5);
+    tl.to("#t-rub2", { opacity: 0, duration: 0.2 }, 7.9);
+    tl.fromTo("#t-rub3", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.35, ease: "expo.out" }, 8.0);
+    [[5, 4, 9.0], [4, 3, 10.0], [3, 2, 11.0]].forEach(([a, b, t]) => {
+      tl.set(B("t-a" + a), { opacity: 0 }, t);
+      tl.set(B("t-a" + b), { opacity: 1 }, t);
+    });
+    tl.to("#root", { opacity: 0, duration: 0.35 }, 11.6);
+    window.__timelines["tavlan"] = tl;
+  </script>
+</template>

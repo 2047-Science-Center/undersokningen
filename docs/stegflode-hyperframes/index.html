@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <!-- Undersökningen: en sak i taget. Storyboard till ../STEGFLODE-FORSLAG.md (skiss, inte stationsmedia). -->
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: 1920px; height: 1080px; overflow: hidden; background: #05100b; }
+      #root { position: relative; width: 100%; height: 100%; background: #05100b; overflow: hidden; }
+      #bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 45%, #0b1d14 0%, #05100b 70%); }
+      #scan { position: absolute; inset: 0; z-index: 50; pointer-events: none;
+        background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.28) 0 2px, transparent 2px 4px); }
+
+      /* ---------- delat formspråk (st1:s storyboard) ---------- */
+      .lbl { position: absolute; left: 120px; top: 52px; font-family: "IBM Plex Mono", monospace; font-weight: 700;
+        font-size: 26px; letter-spacing: 0.16em; color: #9fb2c0; }
+      .plats { position: absolute; right: 120px; top: 36px; font-family: "Oswald", sans-serif; font-weight: 700;
+        font-size: 54px; color: #ff9500; text-align: right; }
+      .rub { position: absolute; left: 120px; top: 110px; font-family: "Oswald", sans-serif; font-weight: 700;
+        font-size: 60px; color: #f5f5f0; white-space: nowrap; }
+      .rub b { color: #ff9500; }
+      .skarm { position: absolute; border: 3px solid #ff9500; border-radius: 18px; background: #071a10;
+        overflow: hidden; box-shadow: 0 0 40px rgba(255,149,0,0.18); }
+      .skarm.big { left: 260px; top: 222px; width: 1400px; height: 788px; }
+      .skarm.vL { left: 120px; top: 262px; width: 800px; height: 450px; }
+      .skarm.vR { left: 1000px; top: 262px; width: 800px; height: 450px; }
+      .etik { position: absolute; top: 214px; font-family: "IBM Plex Mono", monospace; font-weight: 700; font-size: 28px; letter-spacing: 0.16em; }
+      .led { position: absolute; top: 732px; width: 800px; height: 14px; border-radius: 7px; background: #ff9500; opacity: 0.55; }
+
+      /* arbetsbordet */
+      .bord { position: absolute; left: 0; top: 0; width: 1400px; height: 724px; background-color: #2b1d12;
+        background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 46px),
+          radial-gradient(ellipse at 50% 40%, rgba(255,190,120,0.07), transparent 70%); }
+      .rem { position: absolute; left: 0; right: 0; bottom: 0; height: 64px; border-top: 2px solid #b8690f; background: #05100b;
+        display: flex; align-items: center; gap: 30px; padding: 0 28px; font-family: "IBM Plex Mono", monospace; font-weight: 700;
+        font-size: 26px; color: #c99a5b; white-space: nowrap; }
+      .rem .pr { display: flex; gap: 22px; }
+      .rem .on { color: #ff9500; }
+      .rem .klar { color: #f5f5f0; }
+      .rem .tid { margin-left: auto; font-family: "Oswald", sans-serif; font-size: 36px; color: #f5f5f0; }
+      .rem .tv { border: 2px solid #b8690f; border-radius: 8px; padding: 2px 14px; color: #ff9500; }
+
+      /* föremål */
+      .pol { position: absolute; background: #f3eee2; padding: 12px 12px 48px; box-shadow: 0 10px 22px rgba(0,0,0,0.55); }
+      .pol img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #111; }
+      .pol .cap { position: absolute; left: 14px; right: 14px; bottom: 8px; font-family: "IBM Plex Mono", monospace;
+        font-weight: 700; font-size: 26px; color: #1d1d1d; white-space: nowrap; overflow: hidden; }
+      .stamp { position: absolute; border: 7px solid #d0241b; border-radius: 10px; padding: 4px 22px 8px; font-family: "Oswald", sans-serif;
+        font-weight: 700; font-size: 54px; color: #d0241b; white-space: nowrap; background: rgba(243,238,226,0.15); opacity: 0; }
+      .stamp.or { border-color: #ff9500; color: #ff9500; background: rgba(5,16,11,0.85); }
+      .stamp.gra { border-color: #6f6a60; color: #6f6a60; }
+      .flash { position: absolute; inset: 0; background: #ffffff; opacity: 0; pointer-events: none; }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="69" data-width="1920" data-height="1080">
+      <div id="bg"></div>
+
+      <div id="nulage" data-composition-id="nulage" data-composition-src="compositions/nulage.html"
+        data-start="0" data-duration="7" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="brott" data-composition-id="brott" data-composition-src="compositions/brott.html"
+        data-start="7" data-duration="9" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="labb" data-composition-id="labb" data-composition-src="compositions/labb.html"
+        data-start="16" data-duration="10" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="utred" data-composition-id="utred" data-composition-src="compositions/utred.html"
+        data-start="26" data-duration="11" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="kors" data-composition-id="kors" data-composition-src="compositions/kors.html"
+        data-start="37" data-duration="7" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="rorpost" data-composition-id="rorpost" data-composition-src="compositions/rorpost.html"
+        data-start="44" data-duration="8" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="tavlan" data-composition-id="tavlan" data-composition-src="compositions/tavlan.html"
+        data-start="52" data-duration="12" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+      <div id="slut" data-composition-id="slut" data-composition-src="compositions/slut.html"
+        data-start="64" data-duration="5" data-track-index="1" data-track-kind="graphics" data-width="1920" data-height="1080"></div>
+
+      <div id="scan" class="clip" data-start="0" data-duration="69" data-track-index="2"></div>
+
+      <!-- Ljud: stationens egna sfx (public/Sound/sfx) på synliga händelser, som i st1:s storyboard -->
+      <!-- Brottsplatsen: nytt spår = popup -->
+      <audio id="a-b1" class="clip" src="assets/sfx/sfx-popup.mp3" data-start="9.4" data-duration="0.48" data-track-index="5" data-volume="0.45"></audio>
+      <audio id="a-b2" class="clip" src="assets/sfx/sfx-popup.mp3" data-start="10.0" data-duration="0.48" data-track-index="5" data-volume="0.4"></audio>
+      <audio id="a-b3" class="clip" src="assets/sfx/sfx-popup.mp3" data-start="11.0" data-duration="0.48" data-track-index="5" data-volume="0.4"></audio>
+      <audio id="a-b4" class="clip" src="assets/sfx/sfx-popup.mp3" data-start="12.4" data-duration="0.48" data-track-index="5" data-volume="0.4"></audio>
+      <audio id="a-b5" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="13.75" data-duration="0.6" data-track-index="5" data-volume="0.6"></audio>
+      <!-- Labbet: frys = stamp, i burk = confirm -->
+      <audio id="a-l1" class="clip" src="assets/sfx/sfx-stamp.mp3" data-start="17.0" data-duration="1.0" data-track-index="5" data-volume="0.55"></audio>
+      <audio id="a-l2" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="18.05" data-duration="0.6" data-track-index="5" data-volume="0.55"></audio>
+      <audio id="a-l3" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="21.65" data-duration="0.6" data-track-index="5" data-volume="0.6"></audio>
+      <audio id="a-l4" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="25.05" data-duration="0.6" data-track-index="5" data-volume="0.55"></audio>
+      <!-- Utredningsbordet: stämpel + skicka -->
+      <audio id="a-u1" class="clip" src="assets/sfx/sfx-stamp.mp3" data-start="30.35" data-duration="1.0" data-track-index="5" data-volume="0.6"></audio>
+      <audio id="a-u2" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="31.4" data-duration="0.6" data-track-index="5" data-volume="0.5"></audio>
+      <audio id="a-u3" class="clip" src="assets/sfx/sfx-stamp.mp3" data-start="33.7" data-duration="1.0" data-track-index="5" data-volume="0.5"></audio>
+      <audio id="a-u4" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="35.8" data-duration="0.6" data-track-index="5" data-volume="0.6"></audio>
+      <!-- Korsningen: kapseln landar hos labbet = popup + vitt blink -->
+      <audio id="a-k1" class="clip" src="assets/sfx/sfx-popup.mp3" data-start="38.72" data-duration="0.48" data-track-index="5" data-volume="0.6"></audio>
+      <!-- Rörposten -->
+      <audio id="a-r1" class="clip" src="assets/sfx/sfx-stamp.mp3" data-start="46.65" data-duration="1.0" data-track-index="5" data-volume="0.6"></audio>
+      <audio id="a-r2" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="47.7" data-duration="0.6" data-track-index="5" data-volume="0.5"></audio>
+      <audio id="a-r3" class="clip" src="assets/sfx/sfx-popup.mp3" data-start="48.65" data-duration="0.48" data-track-index="5" data-volume="0.5"></audio>
+      <audio id="a-r4" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="49.85" data-duration="0.6" data-track-index="5" data-volume="0.6"></audio>
+      <!-- Tavlan: nålar, oenighet (deny toppar 0,51 s in), överens -->
+      <audio id="a-t1" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="53.45" data-duration="0.6" data-track-index="5" data-volume="0.5"></audio>
+      <audio id="a-t2" class="clip" src="assets/sfx/sfx-confirm.mp3" data-start="54.65" data-duration="0.6" data-track-index="5" data-volume="0.5"></audio>
+      <audio id="a-t3" class="clip" src="assets/sfx/sfx-deny.mp3" data-start="54.42" data-duration="0.8" data-track-index="6" data-volume="0.45"></audio>
+      <audio id="a-t4" class="clip" src="assets/sfx/sfx-lock-in.mp3" data-start="59.05" data-duration="0.8" data-track-index="5" data-volume="0.6"></audio>
+      <audio id="a-t5" class="clip" src="assets/sfx/sfx-stamp.mp3" data-start="59.55" data-duration="1.0" data-track-index="6" data-volume="0.6"></audio>
+    </div>
+    <script>
+      window.__timelines = window.__timelines || {};
+      const tl = gsap.timeline({ paused: true });
+      window.__timelines["main"] = tl;
+    </script>
+  </body>
+</html>
