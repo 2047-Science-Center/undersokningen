@@ -82,15 +82,15 @@ export const BANDLOST: boolean = bandlostFran(true, import.meta.env.VITE_BANDLOS
  * STATIONSLJUS (station-kit/ljus, XY-FEEDBACK-LJUS-LJUD.md §1.2 + §5.3, SOM.md "Stationsljus"):
  * bas retained på station3/underglow, gester på station3/feedback. Samma broker som rotationen.
  *   A = LABB (lag1, vänster, mikroskopet)   B = FÄLT (lag2, höger: skannare/lyspenna/logg)
- * Pixelintervallen = standardslingan (140 LED, SOM.md "Stationsljus", 2026-11-25): A 0–69, B 70–139.
- * Delarna A.1–A.3 / B.1–B.3 (A.1 0–23 · A.2 24–45 · A.3 46–69 · B.1 70–94 · B.2 95–116 · B.3 117–139)
+ * Pixelintervallen = standardslingan (141 LED 0–140, SOM.md "Stationsljus", 2026-11-26): A 0–69, B 70–140.
+ * Delarna A.1–A.3 / B.1–B.3 (A.1 0–23 · A.2 24–45 · A.3 46–69 · B.1 70–94 · B.2 95–116 · B.3 117–140)
  * läggs till här när Josef bestämt vad de ska visa — aldrig i firmware. ?ljus=1|0|visa / VITE_LJUS överstyr på/av.
  */
 export const LJUS: { valv: Valv; segment: Record<string, [number, number]> } = {
   valv: 'forskning',
   segment: {
     A: [0, 69],
-    B: [70, 139],
+    B: [70, 140],
   },
 }
 
