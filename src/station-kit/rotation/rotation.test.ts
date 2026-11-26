@@ -94,6 +94,19 @@ describe('rotation (stationssidan)', () => {
     expect(f.published.length).toBe(before)
   })
 
+  it('done från andra skärmen tar också en skärm som aldrig fick sitt tryck (står i group) till lek', () => {
+    const f = fakeClient()
+    const r = initRotation({ stationN: N, enabled: true, mqttUrl: '' }, f.client)
+    f.deliver(`station${N}/group`, group(2, 2))
+    expect(r.state.phase).toBe('group')
+    f.deliver(`station${N}/done`, { session_id: 's1', round: 2, group: 2 })
+    expect(r.state.phase).toBe('lek')
+    // och en done för en ANNAN grupp rör inte en skärm som väntar på sin grupp
+    f.deliver(`station${N}/group`, group(3, 3))
+    f.deliver(`station${N}/done`, { session_id: 's1', round: 2, group: 2 })
+    expect(r.state.phase).toBe('group')
+  })
+
   it('delad station (side): egen done med side, lek per sida, andra sidans done ignoreras', () => {
     const f = fakeClient()
     const r = initRotation({ stationN: N, enabled: true, mqttUrl: '', side: 'B' }, f.client)

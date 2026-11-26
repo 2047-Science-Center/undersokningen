@@ -228,6 +228,15 @@ useHoppa(() => {
   store.hoppaFram()
   return true
 })
+// Entrén lämnade väntskärmen i DEN HÄR skärmen utan att den egna rotationen startats (andra sidan
+// eller hörngesten drev entrén vidare) → starta den här också, så att båda skärmarna går till lek
+// tillsammans när gruppen är klar (annars visade den ena "nästa körning", Josef 2026-11-26).
+watch(
+  () => entre.state.step,
+  (st) => {
+    if (st !== 'attract' && rotation.state.phase === 'group') rotation.begin()
+  },
+)
 function goLiveDone(): void {
   showGoLive.value = false
   if (store.leader && store.phase !== 'investigate') store.startLive()

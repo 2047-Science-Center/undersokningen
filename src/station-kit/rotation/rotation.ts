@@ -151,7 +151,10 @@ function onGroup(m: GroupMessage): void {
 
 /** done från stationens andra skärm (eller eko av vår egen) → gå till lek utan att publicera. */
 function onDone(d: { session_id?: SessionId | null; round?: number; group?: number; side?: string }): void {
-  if (state.phase !== 'running') return
+  // Också från 'group': stationens andra skärm kan ha kört gruppen utan att just DEN här skärmen fick sitt
+  // eget tryck (entrén gick vidare via andra sidan, eller hörngesten hoppade förbi väntan). Utan detta
+  // fastnade skärmen på gruppens startskärm ("nästa körning") medan den andra stod i lek (2026-11-26).
+  if (state.phase !== 'running' && state.phase !== 'group') return
   // Delad station: den andra sidans done gäller inte oss (done utan side = hela stationen).
   if (opts!.side && d.side != null && d.side !== opts!.side) return
   if (Number(d.round) !== state.round || Number(d.group) !== state.group) return
