@@ -12,7 +12,7 @@
  * Utvägen "Gå vidare ▸" efter UTVAG_EFTER_SEK och minst 4 klara provglas öppnar samma översikt.
  * Saknas kameran och ?pilot=1 → FRYS visar en reservbild (REF_HAR i tur och ordning) så flödet går att testa.
  */
-import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 import { HAIR_CLASSES, PROV_IDS, REF_HAR, UTVAG_EFTER_SEK, asset, type HairClassId } from '@/config'
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { useLjus } from '@/station-kit/ljus'
@@ -146,6 +146,34 @@ function tummeAvbryt(): void {
   window.removeEventListener('pointercancel', tummeAvbryt)
 }
 
+/* ---- Dra-tipset: första frysta provet (Josef 2026-11-26) — en spökbild + ett finger glider från okularet ut
+ *      över burkarna (utan att peka ut rätt burk) tills de själva börjar dra. ---- */
+const rot = ref<HTMLElement | null>(null)
+const tips = ref<{ x: number; y: number; dx: number; dy: number; bredd: number } | null>(null)
+watch(
+  () => bord.fryst,
+  async (f) => {
+    if (!f || bord.dragTipsVisat || bord.bilder.length) return
+    await nextTick()
+    const r = rot.value?.getBoundingClientRect()
+    const fran = rot.value?.querySelector('.mb__okular')?.getBoundingClientRect()
+    const till = rot.value?.querySelector('.mb__burkrad')?.getBoundingClientRect()
+    if (!r || !fran || !till) return
+    const x = fran.left + fran.width / 2 - r.left
+    const y = fran.top + fran.height * 0.42 - r.top
+    tips.value = { x, y, dx: till.left + till.width * 0.2 - r.left - x, dy: till.top + till.height * 0.55 - r.top - y, bredd: till.width * 0.6 }
+  },
+)
+watch(
+  () => [bord.drar, bord.fryst, bord.bilder.length] as const,
+  ([drar, fryst, n]) => {
+    if (tips.value && (drar || !fryst || n)) {
+      tips.value = null
+      bord.dragTipsVisat = true
+    }
+  },
+)
+
 /* ---- "Är ni nöjda?": alla burkar i helskärm innan ljusbordet ---- */
 const nojd = ref(false)
 const allaKlara = computed(() => klara.value >= PROV_IDS.length)
@@ -207,7 +235,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="mb">
+  <div ref="rot" class="mb">
     <header class="pl-huvud mb__huvud">
       <h2 class="pl-titel">{{ T.mikroskop.titel }}</h2>
       <p class="pl-uppdrag">{{ uppdrag }}</p>
@@ -253,7 +281,7 @@ onBeforeUnmount(() => {
 
       <!-- Burkarna -->
       <div class="mb__burkar">
-        <p class="mb__gor" :class="{ 'mb__gor--dra': !!bord.fryst }">{{ bord.fryst ? T.mikroskop.draHitHit : T.mikroskop.gor }}</p>
+        <p class="mb__gor" :class="{ 'mb__gor--dra': !!bord.fryst, 'mb__gor--tips': !!tips }">{{ bord.fryst ? T.mikroskop.draHitHit : T.mikroskop.gor }}</p>
         <div class="mb__burkrad">
           <div
             v-for="c in HAIR_CLASSES" :key="c.id" class="mb__burk" :data-burk="c.id"
@@ -277,6 +305,14 @@ onBeforeUnmount(() => {
      </div>
       <button v-if="allaKlara" type="button" class="crt-button crt-button--strong mb__klara" @click="oppnaNojd">{{ T.mikroskop.klara }}</button>
       <button v-else-if="utvag" type="button" class="pl-utvag mb__utvag" @click="oppnaNojd">{{ T.utvag }}</button>
+    </div>
+
+    <!-- Dra-tipset (första frysta provet): spökbild + finger glider ut över burkarna -->
+    <div
+      v-if="tips && bord.fryst" class="mb__tips" aria-hidden="true"
+      :style="{ left: tips.x + 'px', top: tips.y + 'px', '--dx': tips.dx + 'px', '--dy': tips.dy + 'px', '--svep': tips.bredd + 'px' }"
+    >
+      <div class="mb__tips-bild"><img :src="bord.fryst.src" alt="" /><span class="mb__tips-finger" /></div>
     </div>
 
     <!-- Drag-spöke -->
@@ -402,6 +438,8 @@ onBeforeUnmount(() => {
 /* Burkarna */
 .mb__burkar { min-width: 0; min-height: 0; display: flex; flex-direction: column; gap: 0.8rem; }
 .mb__gor--dra { color: var(--color-primary) !important; }
+.mb__gor--tips { font-family: var(--font-retro); font-size: clamp(1.2rem, 3cqi, 1.9rem) !important; text-shadow: var(--glow-soft); animation: mb-puls-text 1.2s ease-in-out infinite; }
+@keyframes mb-puls-text { 50% { opacity: 0.55; } }
 .mb__gor { margin: 0; font-family: var(--font-mono); font-size: clamp(0.9rem, 2cqi, 1.25rem); color: var(--color-ink-muted); }
 .mb__burkrad { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: clamp(0.4rem, 1.2cqi, 1rem); align-items: end; }
 .mb__burk {
@@ -438,6 +476,30 @@ onBeforeUnmount(() => {
 .mb__klara { position: absolute; right: 1rem; bottom: 1rem; z-index: 4; font-size: clamp(1.1rem, 2.4cqi, 1.7rem); animation: mb-puls 1.6s ease-in-out infinite; }
 .mb__tumme { touch-action: none; }
 .mb__tumme--dras { opacity: 0.35; }
+
+/* Dra-tipset */
+.mb__tips { position: absolute; z-index: 20; width: 0; height: 0; pointer-events: none; }
+.mb__tips-bild {
+  position: absolute; left: -3rem; top: -2.25rem; width: 6rem; aspect-ratio: 4 / 3; border: 3px solid #efe9da; border-radius: 4px;
+  box-shadow: var(--glow-strong); animation: mb-tips 2.4s cubic-bezier(0.45, 0, 0.3, 1) infinite;
+}
+.mb__tips-bild img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: 0.85; }
+.mb__tips-finger {
+  position: absolute; right: -0.9rem; bottom: -1.1rem; width: 2.2rem; height: 2.2rem; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85); box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.25);
+}
+.mb__tips-text {
+  position: absolute; left: 50%; top: 3.4rem; translate: -50% 0; margin: 0; white-space: nowrap; padding: 0.3em 0.8em;
+  border-radius: 999px; background: rgba(2, 6, 4, 0.85); font-family: var(--font-retro); font-size: clamp(1.1rem, 2.6cqi, 1.7rem);
+  color: var(--color-ink-strong); text-shadow: var(--glow-soft);
+}
+@keyframes mb-tips {
+  0% { transform: translate(0, 0) scale(1); opacity: 0; }
+  10% { opacity: 1; }
+  55% { transform: translate(var(--dx), var(--dy)) scale(0.8); }
+  80% { transform: translate(calc(var(--dx) + var(--svep)), var(--dy)) scale(0.8); opacity: 1; }
+  100% { transform: translate(calc(var(--dx) + var(--svep)), var(--dy)) scale(0.8); opacity: 0; }
+}
 
 /* "Är ni nöjda?" (helskärm över platsen) */
 .mb__nojd {

@@ -39,6 +39,7 @@ export const LABB_TEXT = {
     draHitHit: 'Dra bilden hit ▾',
     burkTryck: 'Tryck på en bild för att granska den · dra den till en annan burk om ni ändrar er',
     klara: 'Vi är klara ▸',
+    dragTips: 'Dra bilden till den burk du tror ▾',
     nojdFraga: 'Är ni nöjda?',
     nojdSub: 'Så här har ni sorterat proven. Ändrar ni er — dra bilden till en annan burk.',
     nojdJa: 'JA, VI ÄR NÖJDA ▸',

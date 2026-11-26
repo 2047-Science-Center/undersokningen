@@ -33,6 +33,8 @@ export const labbBord = reactive({
   vald: null as string | null,
   /** Bilden (id) som matchningen gjordes med — lokalt, bilderna lämnar inte labbet. */
   matchBild: null as string | null,
+  /** Dra-tipset (animation) har visats den här rundan — bara första frysta provet. */
+  dragTipsVisat: false,
   /** Senast hanterade store.resetSignal. */
   resetSett: -1,
 })
@@ -91,6 +93,7 @@ export function nollstall(): void {
   slappFryst()
   labbBord.vald = null
   labbBord.matchBild = null
+  labbBord.dragTipsVisat = false
 }
 
 /** Nollställ bordet när storen nollställs (även om det skedde medan labbet inte var monterat). */
