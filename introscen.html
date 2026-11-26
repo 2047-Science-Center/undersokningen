@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Undersökningen · introscenen (testsida)</title>
+<style>
+  html, body { margin: 0; height: 100%; background: #05100b; color: #9aa; font: 13px ui-monospace, Menlo, monospace; }
+  canvas { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #info { position: fixed; top: 8px; left: 10px; }
+  #meny { position: fixed; bottom: 10px; left: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  #meny a { color: #ffa040; border: 1px solid #ffa04066; padding: 2px 8px; border-radius: 4px; text-decoration: none; }
+</style>
+</head>
+<body>
+<!--
+  Testsida för src/stations/undersokningen/onboarding/introfilm/introScene.ts (ingår inte i appens bygge).
+    /introscen.html                         → hela filmen (8 beats) i loop, fasta längder ur introFilm.ts
+    /introscen.html?beat=utredning&t=0.6    → frys en filmbild (beat + progress)
+    /introscen.html?moment=brottsplats      → momentet i loop (lage 'moment'); &s=8 = sekunder per varv
+    /introscen.html?moment=rorpost&t=0.5    → frys en momentbild
+    &accent=%2335a0ff                       → annan accent (blått = genomgången)
+    /introscen.html?ark=film&t=0.2,0.5,0.8  → kontaktark: alla beats × tiderna (granskning)
+    /introscen.html?ark=moment              → kontaktark för momenten
+-->
+<canvas id="c"></canvas>
+<div id="info"></div>
+<div id="meny"></div>
+<script type="module">
+import { createIntroScene, MOMENT } from '/src/stations/undersokningen/onboarding/introfilm/introScene.ts'
+import { FILM, FILM_TOTAL, beatAt } from '/src/stations/undersokningen/onboarding/introfilm/introFilm.ts'
+const q = new URLSearchParams(location.search)
+if (q.get('ark')) { await ark(q.get('ark')); throw 'ark' }
+async function ark(lage) {
+  const ts = (q.get('t') || '0.15,0.5,0.85').split(',').map(Number)
+  const ids = (q.get("ids") || "").split(",").filter(Boolean).length ? q.get("ids").split(",") : lage === "moment" ? MOMENT : FILM.map((b) => b.id)
+  const ett = ts.length * ids.length === 1
+  const W = ett ? 1280 : 480, H = ett ? 720 : 270
+  const out = document.createElement('canvas')
+  out.width = W * ts.length; out.height = H * ids.length
+  Object.assign(out.style, { position: 'fixed', inset: '0', width: '100%', height: '100%', objectFit: 'contain' })
+  const g = out.getContext('2d')
+  g.fillStyle = '#05100b'; g.fillRect(0, 0, out.width, out.height)
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H
+  const sc = createIntroScene(cv, { lage })
+  sc.setAccent(q.get('accent') || '#ffa040'); sc.resize(W, H)
+  ids.forEach((id, r) => ts.forEach((t, k) => {
+    sc.render(3, id, t)
+    g.drawImage(cv, k * W, r * H, W, H)
+    g.fillStyle = '#ffa040'; g.font = '14px monospace'; g.fillText(`${id} ${t}`, k * W + 6, r * H + 16)
+  }))
+  document.body.replaceChildren(out)
+}
+const moment = q.get('moment')
+const c = document.getElementById('c')
+const s = createIntroScene(c, { lage: moment ? 'moment' : 'film' })
+s.setAccent(q.get('accent') || '#ffa040')
+const fit = () => s.resize(c.clientWidth, c.clientHeight)
+new ResizeObserver(fit).observe(c); fit()
+const info = document.getElementById('info')
+const meny = document.getElementById('meny')
+meny.innerHTML = ['<a href="?">film</a>', ...MOMENT.map((m) => `<a href="?moment=${m}">${m}</a>`)].join('')
+const varv = Number(q.get('s') || 8)
+const t0 = performance.now()
+function loop(now) {
+  const e = (now - t0) / 1000
+  if (moment) {
+    const p = q.has('t') ? Number(q.get('t')) : (e % varv) / varv
+    s.render(e, moment, p)
+    info.textContent = `moment ${moment} ${p.toFixed(2)}`
+  } else if (q.get('beat')) {
+    s.render(e, q.get('beat'), Number(q.get('t') ?? 0.5))
+    info.textContent = `${q.get('beat')} ${q.get('t') ?? 0.5}`
+  } else {
+    const at = beatAt(e % (FILM_TOTAL + 1.5))
+    s.render(e, at.beat.id, at.progress)
+    info.textContent = `${at.beat.id} ${at.progress.toFixed(2)} (${FILM.map((b) => b.dur.toFixed(1)).join(' · ')})`
+  }
+  requestAnimationFrame(loop)
+}
+requestAnimationFrame(loop)
+</script>
+</body>
+</html>

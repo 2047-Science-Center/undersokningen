@@ -46,7 +46,7 @@
   {
    "id": "f3",
    "kapitel": "fall",
-   "beat": "forensik",
+   "beat": "brottsplats",
    "fas": "falt1",
    "text": "Forensikerna, steg ett: brottsplatsen. Här finns avtryck från alla som varit där – tjuven också.",
    "tts": "Forensikerna, steg ett: brottsplatsen. Här finns avtryck från alla som varit där. Tjuven också.",
@@ -56,7 +56,7 @@
   {
    "id": "f4",
    "kapitel": "fall",
-   "beat": "uv",
+   "beat": "brottsplats",
    "fas": "falt1",
    "text": "Lys över ytan med UV-pennan. Där något tänds, där finns ett avtryck.",
    "tts": "Lys över ytan med U V-pennan. Där något tänds… där finns ett avtryck.",
@@ -66,7 +66,7 @@
   {
    "id": "f5",
    "kapitel": "fall",
-   "beat": "skanna",
+   "beat": "brottsplats",
    "fas": "falt1",
    "text": "Håll skannern mot avtrycket. Varje avtryck hamnar i en bevispåse – hitta alla nio.",
    "tts": "Håll skannern mot avtrycket. Varje avtryck hamnar i en bevispåse. Hitta alla nio.",
@@ -76,7 +76,7 @@
   {
    "id": "f6",
    "kapitel": "fall",
-   "beat": "markera",
+   "beat": "utredning",
    "fas": "falt2",
    "text": "Steg två: utredningsbordet. En person i taget – ringa in raderna i loggen som handlar om personen.",
    "tts": "Steg två: utredningsbordet. En person i taget. Ringa in raderna i loggen som handlar om personen.",
@@ -86,7 +86,7 @@
   {
    "id": "f7",
    "kapitel": "fall",
-   "beat": "lista",
+   "beat": "utredning",
    "fas": "falt2",
    "text": "Stämpla sen: misstänkt eller avskriven. De misstänkta skickas med rörposten till labbet.",
    "tts": "Stämpla sen: misstänkt, eller avskriven. De misstänkta skickas med rörposten till labbet.",
@@ -96,7 +96,7 @@
   {
    "id": "f8",
    "kapitel": "fall",
-   "beat": "panlabb",
+   "beat": "mikroskop",
    "fas": "labb1",
    "text": "Labbteknikerna, steg ett: mikroskopbordet. Sex hårprov – ett av dem är tjuvens.",
    "tts": "Labbteknikerna, steg ett: mikroskopbordet. Sex hårprov. Ett av dem är tjuvens.",
@@ -106,7 +106,7 @@
   {
    "id": "f9",
    "kapitel": "fall",
-   "beat": "sortera",
+   "beat": "mikroskop",
    "fas": "labb1",
    "text": "Frys varje prov i mikroskopet och sortera det: människohår, djurhår eller fiber.",
    "tts": "Frys varje prov i mikroskopet, och sortera det: människohår… djurhår… eller fiber.",
@@ -116,7 +116,7 @@
   {
    "id": "f10",
    "kapitel": "fall",
-   "beat": "sortera",
+   "beat": "ljusbord",
    "fas": "labb2",
    "text": "Steg två: ljusbordet. Sätt en färgetikett på varje människohår.",
    "tts": "Steg två: ljusbordet. Sätt en färgetikett på varje människohår.",
@@ -126,7 +126,7 @@
   {
    "id": "f11",
    "kapitel": "fall",
-   "beat": "samarbete",
+   "beat": "rorpost",
    "fas": "labb3",
    "text": "Steg tre: rörposten. När fältets misstänkta kommer – lägg håret som matchar på polaroiden.",
    "tts": "Steg tre: rörposten. När fältets misstänkta kommer, lägg håret som matchar på polaroiden.",
@@ -136,7 +136,7 @@
   {
    "id": "f12",
    "kapitel": "fall",
-   "beat": "samarbete",
+   "beat": "tavlan",
    "fas": "tavlan",
    "text": "Sist möts ni vid tavlan. Båda sidor sätter sin nål – tror ni olika, prata ihop er.",
    "tts": "Sist möts ni vid tavlan. Båda sidor sätter sin nål. Tror ni olika… prata ihop er.",
