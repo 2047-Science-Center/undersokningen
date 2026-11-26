@@ -62,7 +62,7 @@
   {
    "id": "f3",
    "kapitel": "fall",
-   "beat": "forensik",
+   "beat": "brottsplats",
    "fas": "falt1",
    "t": 30.63,
    "slut": 39.06,
@@ -72,7 +72,7 @@
   {
    "id": "f4.1",
    "kapitel": "fall",
-   "beat": "uv",
+   "beat": "brottsplats",
    "fas": "falt1",
    "t": 39.33,
    "slut": 42.79,
@@ -82,7 +82,7 @@
   {
    "id": "f4.2",
    "kapitel": "fall",
-   "beat": "uv",
+   "beat": "brottsplats",
    "fas": "falt1",
    "t": 42.81,
    "slut": 46.64,
@@ -92,7 +92,7 @@
   {
    "id": "f5",
    "kapitel": "fall",
-   "beat": "skanna",
+   "beat": "brottsplats",
    "fas": "falt1",
    "t": 46.91,
    "slut": 54.82,
@@ -102,7 +102,7 @@
   {
    "id": "f6",
    "kapitel": "fall",
-   "beat": "markera",
+   "beat": "utredning",
    "fas": "falt2",
    "t": 55.29,
    "slut": 64.92,
@@ -112,7 +112,7 @@
   {
    "id": "f7.1",
    "kapitel": "fall",
-   "beat": "lista",
+   "beat": "utredning",
    "fas": "falt2",
    "t": 65.19,
    "slut": 70.66,
@@ -122,7 +122,7 @@
   {
    "id": "f7.2",
    "kapitel": "fall",
-   "beat": "lista",
+   "beat": "utredning",
    "fas": "falt2",
    "t": 70.68,
    "slut": 74.17,
@@ -132,7 +132,7 @@
   {
    "id": "f8",
    "kapitel": "fall",
-   "beat": "panlabb",
+   "beat": "mikroskop",
    "fas": "labb1",
    "t": 74.74,
    "slut": 83.35,
@@ -142,7 +142,7 @@
   {
    "id": "f9",
    "kapitel": "fall",
-   "beat": "sortera",
+   "beat": "mikroskop",
    "fas": "labb1",
    "t": 83.62,
    "slut": 92.09,
@@ -152,7 +152,7 @@
   {
    "id": "f10.1",
    "kapitel": "fall",
-   "beat": "sortera",
+   "beat": "ljusbord",
    "fas": "labb2",
    "t": 92.46,
    "slut": 95.41,
@@ -162,7 +162,7 @@
   {
    "id": "f10.2",
    "kapitel": "fall",
-   "beat": "sortera",
+   "beat": "ljusbord",
    "fas": "labb2",
    "t": 95.43,
    "slut": 98.93,
@@ -172,7 +172,7 @@
   {
    "id": "f11.1",
    "kapitel": "fall",
-   "beat": "samarbete",
+   "beat": "rorpost",
    "fas": "labb3",
    "t": 99.3,
    "slut": 102.3,
@@ -182,7 +182,7 @@
   {
    "id": "f11.2",
    "kapitel": "fall",
-   "beat": "samarbete",
+   "beat": "rorpost",
    "fas": "labb3",
    "t": 102.32,
    "slut": 108.33,
@@ -192,7 +192,7 @@
   {
    "id": "f12",
    "kapitel": "fall",
-   "beat": "samarbete",
+   "beat": "tavlan",
    "fas": "tavlan",
    "t": 108.8,
    "slut": 116.16,

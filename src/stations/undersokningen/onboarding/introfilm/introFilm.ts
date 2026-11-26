@@ -8,22 +8,21 @@
  */
 import { beatLangder } from '../introvo/introVo'
 
-/** Kamera-inramningar (definieras i introScene). */
-export type CamKey = 'overview' | 'faltWide' | 'faltClose' | 'labbWide' | 'labbClose' | 'both'
+/** Kamera-inramningar (definieras i introScene: FILM_FRAME per beat). */
+export type CamKey = 'overview' | 'faltClose' | 'labbClose' | 'board'
 
-/** Vilken scen-animation som är aktiv under beaten. */
+/** Vilken scen-animation som är aktiv under beaten (stegflödets platser). */
 export type ActionKey =
-  | 'establish' // hela stationen, lugn
-  | 'uvsweep' // UV-pennan sveper → ett märke tänds
-  | 'scan' // skannern förs över → bipp
-  | 'readlog' // fält-UI uppe, läs logg + markera
-  | 'fill' // fler avtryck skannas i följd
-  | 'panlabb' // panorera över till labbet
-  | 'hairsort' // mikroskop + sortera hår
-  | 'talk' // båda sidor vänder sig mot varandra, pratbubblor
-  | 'finale' // hela stationen lyser
+  | 'establish' // hela stationen; de fem platserna tänds en i taget
+  | 'brottsplats' // UV → avtryck → skanner → bevispåsen fylls (9 påsar)
+  | 'utredning' // röd penna ringar in, MISSTÄNKT, polaroiden med rörposten genom porthålet
+  | 'mikroskop' // provglas Q1–Q6 under mikroskopet → bilden ner i rätt burk
+  | 'ljusbord' // färgetiketter på människohåren
+  | 'rorpost' // kapseln landar, hår på polaroiden, HÅRET MATCHAR
+  | 'tavlan' // två nålar på olika polaroider → prat → samma polaroid
+  | 'finale' // UTPEKAD + hela stationen lyser
 
-/** UI-kort som tonas in ovanpå scenen (trogen mock av riktiga skärmen). */
+/** UI-kort som tonas in ovanpå scenen (används inte i stegflödet). */
 export type UiKey = 'scan' | 'mark' | 'sort'
 
 export interface FilmBeat {
@@ -35,64 +34,20 @@ export interface FilmBeat {
   ui?: UiKey
 }
 
+/** En beat per fas i stegflödet (docs/bestallning-introfilm-3js-stegflode.md). */
 const BILD: Omit<FilmBeat, 'dur'>[] = [
-  {
-    id: 'open',
-    cam: 'overview',
-    action: 'establish',
-  },
-  {
-    id: 'forensik',
-    cam: 'faltWide',
-    action: 'establish',
-  },
-  {
-    id: 'uv',
-    cam: 'faltClose',
-    action: 'uvsweep',
-  },
-  {
-    id: 'skanna',
-    cam: 'faltClose',
-    action: 'scan',
-    ui: 'scan',
-  },
-  {
-    id: 'markera',
-    cam: 'faltClose',
-    action: 'readlog',
-    ui: 'mark',
-  },
-  {
-    id: 'lista',
-    cam: 'faltWide',
-    action: 'fill',
-  },
-  {
-    id: 'panlabb',
-    cam: 'labbWide',
-    action: 'panlabb',
-  },
-  {
-    id: 'sortera',
-    cam: 'labbClose',
-    action: 'hairsort',
-    ui: 'sort',
-  },
-  {
-    id: 'samarbete',
-    cam: 'both',
-    action: 'talk',
-  },
-  {
-    id: 'slut',
-    cam: 'overview',
-    action: 'finale',
-  },
+  { id: 'open', cam: 'overview', action: 'establish' },
+  { id: 'brottsplats', cam: 'faltClose', action: 'brottsplats' },
+  { id: 'utredning', cam: 'faltClose', action: 'utredning' },
+  { id: 'mikroskop', cam: 'labbClose', action: 'mikroskop' },
+  { id: 'ljusbord', cam: 'labbClose', action: 'ljusbord' },
+  { id: 'rorpost', cam: 'labbClose', action: 'rorpost' },
+  { id: 'tavlan', cam: 'board', action: 'tavlan' },
+  { id: 'slut', cam: 'overview', action: 'finale' },
 ]
 
 /** Den gamla, fasta tidslinjen (s) — reserv om en beat saknar replik. */
-const RESERV: Record<string, number> = { open: 9, forensik: 7, uv: 8, skanna: 8, markera: 14, lista: 10, panlabb: 7, sortera: 11, samarbete: 11, slut: 5 }
+const RESERV: Record<string, number> = { open: 17, brottsplats: 24, utredning: 19, mikroskop: 17, ljusbord: 6.5, rorpost: 9, tavlan: 11, slut: 4 }
 const DUR = beatLangder(BILD.map((b) => b.id), RESERV)
 
 export const FILM: FilmBeat[] = BILD.map((b) => ({ ...b, dur: DUR[b.id] }))
