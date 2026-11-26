@@ -31,6 +31,16 @@ export const FALT_TEXT = {
   sentAvtryck: (namn: string) => `Nytt avtryck: ${namn} · lagt i kön`,
   sentSmet: 'Nytt avtryck: utsmetat',
 
+  /** Skanningen som moment (SkanningAnalys): analys → svar → ner i påsen. */
+  analys: {
+    analyserar: 'ANALYSERAR AVTRYCK …',
+    jamfor: 'jämför med övervakningsarkivet',
+    tillhor: 'AVTRYCKET TILLHÖR',
+    oanvandbart: 'OANVÄNDBART AVTRYCK',
+    utsmetat: 'UTSMETAT',
+    smetUnder: 'Avtrycket går inte att läsa — leta vidare.',
+    paseNr: (n: number) => `→ bevispåse ${n}`,
+  },
   brott: {
     titel: '1 · BROTTSPLATSEN',
     uppdrag: 'Hitta alla 9 avtryck',

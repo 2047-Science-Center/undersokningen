@@ -23,6 +23,7 @@ import { FALT } from '../ljus'
 import PlatsRemsa from './platser/PlatsRemsa.vue'
 import Brottsplatsen from './platser/falt/Brottsplatsen.vue'
 import Utredningsbordet from './platser/falt/Utredningsbordet.vue'
+import SkanningAnalys from './platser/falt/SkanningAnalys.vue'
 import { FALT_TEXT, fornamn } from './platser/falt/faltText'
 
 const R = FALT_TEXT.remsa
@@ -190,6 +191,8 @@ const granskade = computed(() =>
       </Transition>
     </div>
 
+    <!-- Skanningen som moment: analys → "avtrycket tillhör" → ner i påsen (helskärm, över alla bord) -->
+    <SkanningAnalys />
     <PlatsRemsa
       sida="B" :roll="R.roll" :platser="platser" :aktiv="aktiv" :annan="annan"
       @tavlan="store.openVerdict()"

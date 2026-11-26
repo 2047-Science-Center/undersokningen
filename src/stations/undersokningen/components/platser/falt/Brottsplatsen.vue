@@ -124,6 +124,7 @@ function pilotSkanna(): void {
           v-for="(p, i) in pasar" :key="i"
           :type="!p && pilot ? 'button' : undefined"
           class="pase"
+          :data-pase="p ? p.spotId : undefined"
           :class="{ 'pase--tom': !p, 'pase--aktiv': p && p.spotId === aktivId, 'pase--pilot': !p && pilot }"
           :title="!p && pilot ? T.pilotTryck : undefined"
           @click="!p && pilot ? pilotSkanna() : undefined"

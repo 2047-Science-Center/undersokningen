@@ -3,7 +3,7 @@ import { initLjus, useLjus, __resetLjusForTest, type LjusClient } from '@/statio
 import { audio } from '@/station-kit/audio/AudioEngine'
 import { LJUS, SPOTS } from '@/config'
 import { initialState, reduce } from './engine/gameEngine'
-import { KANON_SFX, appLage, klassaScan, scanFeedback, utfallVid, varningsNiva } from './ljus'
+import { KANON_SFX, appLage, klassaScan, scanFeedback, analysSvar, utfallVid, varningsNiva } from './ljus'
 
 type Msg = { topic: string; payload: any; retain: boolean }
 
@@ -53,16 +53,25 @@ describe('Undersökningen → ljus: skanningar', () => {
     })
     const fb = () => f.sent.filter((m) => m.topic === 'station3/feedback').at(-1)!.payload
 
-    it('ny skanning: kvitto på B, appens popup-ljud i stället för kanon (inte dubbelt)', () => {
+    it('ny skanning: kvitto på B + render-svepet (analysen börjar), inte dubbelt', () => {
       scanFeedback(useLjus(), 'ny')
       expect(fb().gest).toBe('kvitto')
       expect(fb().segments.map((s: { id: string }) => s.id)).toEqual(['B'])
-      expect(spelat).toEqual(['popup'])
+      expect(spelat).toEqual(['render'])
     })
-    it('smudge: fel på B med kanon-ljudet fel', () => {
+    it('smudge: också "hittade något" vid skanningen — rött först när analysen svarat', () => {
       scanFeedback(useLjus(), 'smudge')
+      expect(fb().gest).toBe('kvitto')
+      expect(spelat).toEqual(['render'])
+    })
+    it('analysens svar: person = grönt (ratt) + kanon inom; utsmetat = rött (fel) + kanon fel', () => {
+      analysSvar(useLjus(), 'person')
+      expect(fb().gest).toBe('ratt')
+      expect(spelat).toContain('kanon:inom')
+      vi.advanceTimersByTime(5000)
+      analysSvar(useLjus(), 'smudge')
       expect(fb().gest).toBe('fel')
-      expect(spelat).toEqual(['kanon:fel'])
+      expect(spelat).toContain('kanon:fel')
     })
     it('okänd UID: fel på B + kanon kvitto-fel', () => {
       scanFeedback(useLjus(), 'okand')

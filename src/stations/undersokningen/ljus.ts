@@ -102,10 +102,23 @@ export function klassaScan(state: GameState, spot: Spot | undefined): ScanUtfall
  *   okand    fel + kanon 'kvitto-fel' (ignorerades tyst förut → gruppen trodde läsaren var trasig)
  */
 export const SCAN_GEST: Record<ScanUtfall, { gest: 'kvitto' | 'fel'; ljud?: Sfx; kanon?: LjudNamn }> = {
-  ny: { gest: 'kvitto', ljud: 'popup' },
+  // Nytt avtryck (person ELLER utsmetat): "skannern hittade något" = vitt blink + render-svepet, sedan
+  // analysen i helskärm (SkanningAnalys) — svaret (grönt/rött) kommer när analysen är klar (analysSvar).
+  ny: { gest: 'kvitto', ljud: 'render' },
   dubblett: { gest: 'kvitto' },
-  smudge: { gest: 'fel' },
+  smudge: { gest: 'kvitto', ljud: 'render' },
   okand: { gest: 'fel', kanon: 'kvitto-fel' },
+}
+
+/** Analysens svar (SkanningAnalys, ~1,3 s efter skanningen): person = grönt blink + kanon 'inom' ("yes, du
+ *  hittade"); utsmetat = rött blink + kanon 'fel'. Bara på fältets segment. */
+export function analysSvar(ljus: StationLjus, svar: 'person' | 'smudge'): void {
+  if (svar === 'person') {
+    ljus.gest('ratt', [FALT], { tyst: true })
+    ljus.ljud('inom')
+  } else {
+    ljus.gest('fel', [FALT])
+  }
 }
 
 export function scanFeedback(ljus: StationLjus, u: ScanUtfall): void {
