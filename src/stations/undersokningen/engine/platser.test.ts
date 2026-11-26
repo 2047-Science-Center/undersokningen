@@ -43,6 +43,8 @@ describe('labbets platser', () => {
     let s = started()
     expect(labbPlats(s, 6)).toBe('mikroskop')
     s = run([{ type: 'labbProgress', prov: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'], manniska: 3, etiketter: 1 }], s)
+    expect(labbPlats(s, 6)).toBe('mikroskop') // alla sorterade, men "Är ni nöjda?" inte besvarat
+    s = run([{ type: 'gaVidare', plats: 'mikroskop' }], s)
     expect(labbPlats(s, 6)).toBe('ljusbord')
     s = run([{ type: 'labbProgress', prov: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'], manniska: 3, etiketter: 3 }], s)
     expect(labbPlats(s, 6)).toBe('rorpost')
@@ -50,7 +52,7 @@ describe('labbets platser', () => {
     expect(labbPlats(s, 6)).toBe('klar')
   })
   it('inga människohår → hoppar ljusbordet', () => {
-    const s = run([{ type: 'labbProgress', prov: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'], manniska: 0, etiketter: 0 }], started())
+    const s = run([{ type: 'labbProgress', prov: ['Q1', 'Q2', 'Q3', 'Q4', 'Q5', 'Q6'], manniska: 0, etiketter: 0 }, { type: 'gaVidare', plats: 'mikroskop' }], started())
     expect(labbPlats(s, 6)).toBe('rorpost')
   })
   it('tavlan redo först när fältet är klart och labbet matchat', () => {

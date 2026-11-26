@@ -33,7 +33,10 @@ export function faltPlats(s: GameState, avtryckTotalt: number): FaltPlats {
 
 export function labbPlats(s: GameState, provTotalt: number): LabbPlats {
   const l = s.labb ?? { prov: [], manniska: 0, etiketter: 0 }
-  if (l.prov.length < provTotalt && !s.vidare?.mikroskop) return 'mikroskop'
+  // Mikroskopbordet släpps först när labbet svarat JA på "Är ni nöjda?" (översikten över alla burkar,
+  // Josef 2026-11-26) — eller via utvägen/hörnet. `vidare.mikroskop` sätts i alla tre fallen.
+  void provTotalt
+  if (!s.vidare?.mikroskop) return 'mikroskop'
   if (l.etiketter < l.manniska && !s.vidare?.ljusbord) return 'ljusbord'
   if (!s.hairMatch) return 'rorpost'
   return 'klar'
