@@ -23,6 +23,8 @@ import LabbRoleTutorial from './LabbRoleTutorial.vue'
 import FaltRoleTutorial from './FaltRoleTutorial.vue'
 
 const props = defineProps<{ team: ValvId; shared?: boolean }>()
+/** tutorial = rollgenomgången börjar (efter spellägeskortet + intro-rösten) → appen startar bakgrundsmusiken. */
+const emit = defineEmits<{ tutorial: [] }>()
 const store = useUndersokningenStore()
 const { t } = useI18n()
 
@@ -33,6 +35,7 @@ const leader = computed(() => props.shared || me.value === 'lag1')
 const isFalt = computed(() => props.team === 'lag2')
 
 const phase = ref<'kort' | 'intro' | 'role' | 'gate'>('kort')
+watch(phase, (p) => p === 'role' && emit('tutorial'))
 const iAmReady = ref(false)
 
 const bothReady = computed(() => store.onbReady[me.value] && (props.shared || store.onbReady[other.value]))

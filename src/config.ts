@@ -149,7 +149,7 @@ export const ROLE_ATTRACT: Record<RoleId, { image: string; role: string }> = {
 
 export const MUSIC = {
   track: 'Ljud/background track undersokningen.mp3',
-  attract: 0.7,
+  // Ingen musik före tutorialen (entré/rollintro/spellägeskort/intro-röst är tysta), Josef 2026-11-26.
   tutorial: 0.14,
   live: 0.5,
 }

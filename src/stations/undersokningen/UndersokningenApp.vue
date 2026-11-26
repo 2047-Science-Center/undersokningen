@@ -148,13 +148,23 @@ watch(
   stationMode,
   (m) => {
     setMode(m)
-    // Musik-nivån (svag i tutorial, högre skarpt) rampas BARA av ledar-fönstret
-    // (samma fönster som äger uppspelningen) — annars "följer" volymen båda
-    // skärmarna osynkat. setMode (blått/orange) körs däremot per skärm.
-    if (store.leader) audio.setMusicLevel(m === 'live' ? MUSIC.live : MUSIC.tutorial)
   },
   { immediate: true },
 )
+
+// --- Bakgrundsmusik (Josef 2026-11-26): tyst under entrén, rollintrot, spellägeskortet och
+//     intro-rösten; börjar från början när TUTORIALEN (rollgenomgången) börjar, svag där och
+//     högre skarpt. EN källa: bara ledar-fönstret spelar, annars dubbelspelas den osynkat. ---
+const tutorialStartad = ref(false)
+const musikNiva = computed(() =>
+  !entered.value || !(tutorialStartad.value || onboarded.value) ? 0 : onboarded.value ? MUSIC.live : MUSIC.tutorial,
+)
+watch(musikNiva, (n, old) => {
+  if (!store.leader) return
+  if (n > 0 && !(old > 0)) audio.startMusic(asset(MUSIC.track), n)
+  else if (n > 0) audio.setMusicLevel(n)
+  else audio.stopMusic()
+})
 
 const mmss = computed(() => {
   const s = store.secondsLeft
@@ -193,12 +203,7 @@ function enter(): void {
 }
 watch(entered, (v) => {
   store.setSessionActive(v)
-  // Bakgrundsmusik: EN källa. Bara ledar-fönstret (lag1/shared) startar/stoppar
-  // loopen, så den inte dubbelspelas osynkat från båda skärmarna. Attract-
-  // klicket (begin) har låst upp ljudkontexten i varje fönster (för lokala SFX).
-  if (!store.leader) return
-  if (v) audio.startMusic(asset(MUSIC.track), MUSIC.attract)
-  else audio.stopMusic()
+  if (!v) tutorialStartad.value = false // ny grupp → musiken väntar på nästa tutorial
 })
 
 watch(onboarded, (v) => {
@@ -269,7 +274,7 @@ onUnmounted(() => {
 
     <!-- Tutorial -->
     <CrtScreen v-else-if="!onboarded">
-      <Onboarding :team="onboardTeam" :shared="isShared" />
+      <Onboarding :team="onboardTeam" :shared="isShared" @tutorial="tutorialStartad = true" />
     </CrtScreen>
 
     <!-- Skarpt -->
