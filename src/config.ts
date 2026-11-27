@@ -530,6 +530,8 @@ export const ENTRE: EntreConfig = {
     },
   ],
   station3d: 'unders',
+  /** Spellägesmärket ① i ankomsten (xy-produktion/ankomst/UTVARDERING.md, spellage/FORSLAG ①). */
+  lage: 'samarbete',
   sides: {
     A: { id: 'A', label: 'Labbtekniker' },
     B: { id: 'B', label: 'Forensiker' },
