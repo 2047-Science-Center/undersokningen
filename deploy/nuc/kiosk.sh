@@ -33,6 +33,17 @@ PROFILE_DIR="${PROFILE_DIR:-$HOME/.undersokningen-kiosk}"
 VALV="${VALV:-both}"
 WATCH_PID=""    # pid för självläkande touch-bevakning (om TOUCH_WATCH satt)
 
+# Skärm monterad upp och ner/på sidan: ROTATE_LEFT/ROTATE_RIGHT = normal | inverted | left | right,
+# för skärmen i OUTPUT_LEFT/OUTPUT_RIGHT. Görs före fönster och touch; `xinput map-to-output`
+# tar hänsyn till rotationen, så touchen följer med.
+for _sida in LEFT RIGHT; do
+  _rot="$(eval echo "\${ROTATE_${_sida}:-}")"; _out="$(eval echo "\${OUTPUT_${_sida}:-}")"
+  if [ -n "$_rot" ] && [ -n "$_out" ] && command -v xrandr >/dev/null 2>&1; then
+    xrandr --output "$_out" --rotate "$_rot" && echo "kiosk.sh: $_out roterad $_rot" \
+      || echo "kiosk.sh: kunde inte rotera $_out ($_rot)" >&2
+  fi
+done
+
 # Fönsterpositioner. Sätter du inget explicit (SCREEN_W / LEFT_POS / RIGHT_POS)
 # läser vi skärmarna ur `xrandr --listmonitors`: vänstraste = Valv Syd, högraste
 # = Valv Nord. Hittas bara EN skärm (eller xrandr saknas) används gamla defaulten:
