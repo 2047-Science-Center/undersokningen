@@ -31,7 +31,7 @@ import { initResultat, resultatOptions } from '@/station-kit/resultat'
 import LekStandalone from '@/station-kit/lek/LekStandalone.vue'
 import { lekPreviewFromUrl } from '@/station-kit/lek/lekSync'
 import VadArDetLek from './lek/VadArDetLek.vue'
-import { initLjus, ljusOptions, lageFranRotation, LjusRemsa, type Lage } from '@/station-kit/ljus'
+import { initLjus, ljusOptions, lageFranRotation, medSaHarBlevDet, LjusRemsa, type Lage } from '@/station-kit/ljus'
 import { initFilm, filmOptions, FilmOverlay } from '@/station-kit/film'
 import { initIncheckning, incheckningOptions } from '@/station-kit/incheckning/incheckning'
 import IncheckningScreen from '@/station-kit/incheckning/IncheckningScreen.vue'
@@ -182,9 +182,12 @@ const showTimer = computed(() => onboarded.value && (store.phase === 'investigat
 //     egna faser (attract = vila, tutorial, skarpt). Utfallet (vinst/förlust) håller sin bas
 //     tills läget byts. Övergång till lek → 'klar'-gesten (bara skrivaren, en gång). ---
 const ljusLage = computed<Lage | null>(() =>
-  rotation.state.phase !== 'off'
-    ? lageFranRotation(rotation.state.phase, rotation.state.mode)
-    : appLage({ entered: entered.value, entreDone: entreDone.value, onboarded: onboarded.value }),
+  medSaHarBlevDet(
+    entre.state.step,
+    rotation.state.phase !== 'off'
+      ? lageFranRotation(rotation.state.phase, rotation.state.mode)
+      : appLage({ entered: entered.value, entreDone: entreDone.value, onboarded: onboarded.value }),
+  ),
 )
 watch(
   ljusLage,
