@@ -282,3 +282,63 @@ describe('farg (egen färg per segment)', () => {
     expect(body.segments.find((s: { id: string }) => s.id === 'A.lur1').color).toBe('#ff9500')
   })
 })
+
+describe('fasbäddens spår (reveal-badd, XY-OVERGANG-REVEAL §6.4)', () => {
+  beforeEach(() => {
+    __resetLjusForTest()
+    vi.useFakeTimers()
+    vi.setSystemTime(1_000_000)
+  })
+  afterEach(() => vi.useRealTimers())
+
+  const BADD = {
+    namn: 'reveal-badd',
+    forskjut_ms: 0,
+    period_s: 10,
+    slut_s: 10,
+    rader: [
+      { t: 0, mal: 'alla', color: 'stal', effekt: 'static' },
+      { t: 2, mal: 'alla', gest: 'kvitto' },
+    ],
+  }
+  const REVEAL = { namn: 'reveal', forskjut_ms: 0, slut_s: 3, rader: [{ t: 0, mal: 'alla', effekt: 'av' }] }
+
+  function starta(startMs: number) {
+    const f = fakeClient()
+    const hamtat: string[] = []
+    initLjus(
+      {
+        enabled: true, mqttUrl: 'ws://x:9001', stationN: 3, valv: 'forskning', segment: SEG, regiUrl: 'http://x:8090',
+        hamtaSpar: async (n) => (hamtat.push(n), n === 'reveal-badd' ? BADD : n === 'reveal' ? REVEAL : null),
+        hamtaBadd: async () => ({ fas: 'reveal', start_ms: startMs, period_s: 10 }),
+      },
+      f.c,
+    )
+    f.connect()
+    return { f, hamtat, kvitton: () => f.sent.filter((m) => m.topic === 'station3/feedback' && m.payload.gest === 'kvitto').length }
+  }
+
+  it('loopar i fas med regis ankare, viker för reveal-filmen och tar vid efteråt', async () => {
+    const { f, kvitton } = starta(1_000_000 - 1_000) // bädden började 1 s före stationens fasbyte
+    f.msg('regi/phase', { phase: 'rotation' })
+    f.msg('regi/phase', { phase: 'reveal' })
+    await vi.advanceTimersByTimeAsync(1_100) // t = 2,1 s i varvet → kvittot vid 2 s har gått
+    expect(useLjus().state.spar?.namn).toBe('reveal-badd')
+    expect(kvitton()).toBe(1)
+    await vi.advanceTimersByTimeAsync(10_000) // nästa varv
+    expect(kvitton()).toBe(2)
+    f.msg('reveal/film/start', { start_at_ms: Date.now() })
+    await vi.advanceTimersByTimeAsync(10)
+    expect(useLjus().state.spar?.namn).toBe('reveal')
+    await vi.advanceTimersByTimeAsync(3_100) // filmens spår slut → bädden tillbaka
+    expect(useLjus().state.spar?.namn).toBe('reveal-badd')
+  })
+
+  it('ingen bädd utanför reveal', async () => {
+    const { f } = starta(1_000_000)
+    f.msg('regi/phase', { phase: 'rotation' })
+    f.msg('regi/phase', { phase: 'sortering' })
+    await vi.advanceTimersByTimeAsync(100)
+    expect(useLjus().state.spar?.namn).not.toBe('reveal-badd')
+  })
+})

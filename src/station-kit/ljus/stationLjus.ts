@@ -98,6 +98,8 @@ export interface LjusOptions {
   regiUrl?: string
   /** Hämta ett spår (test/överstyrning). Default: GET <regiUrl>/film/<namn>/underglow.json. */
   hamtaSpar?: (namn: string) => Promise<unknown>
+  /** Hämta fasbäddens ankare (test/överstyrning). Default: GET <regiUrl>/badd → {fas, start_ms, period_s} | null. */
+  hamtaBadd?: () => Promise<unknown>
 }
 
 interface FxState {
@@ -142,9 +144,10 @@ const state = reactive({
   offsetMs: 0,
 })
 
-type Opts = Required<Omit<LjusOptions, 'spela' | 'hamtaSpar'>> & {
+type Opts = Required<Omit<LjusOptions, 'spela' | 'hamtaSpar' | 'hamtaBadd'>> & {
   spela?: (l: LjudNamn) => void
   hamtaSpar?: (namn: string) => Promise<unknown>
+  hamtaBadd?: () => Promise<unknown>
 }
 let opts: Opts | null = null
 let client: LjusClient | null = null
@@ -546,11 +549,55 @@ async function spela(namn: string, t0: number, fas: string): Promise<void> {
     const slut = start + spar.slut_s * 1000 - nu
     if (slut <= 0) {
       stoppaSpar()
+      void spelaBadd()
       return
     }
-    sparTimers.push(setTimeout(() => stoppaSpar(), slut))
+    sparTimers.push(
+      setTimeout(() => {
+        stoppaSpar()
+        void spelaBadd() // spåret slut (reveal-filmens, eller bäddens varv) → bäddens nästa varv
+      }, slut),
+    )
   }
   publiceraBas()
+}
+
+// --- fasbäddens spår (XY-OVERGANG-REVEAL §6.4) -----------------------------------------------------
+// Reveal-bädden loopar i regis /ljud från ankaret start_ms (regi-klockan). Stationen spelar
+// film/<spår>/underglow.json varje period_s från samma ankare, så att vagnen träffar bäddens knaster,
+// svep och pling. Filmens spår (reveal) går före; efter filmen tar bädden vid i rätt fas.
+const FAS_BADD: Record<string, string> = { reveal: 'reveal-badd' }
+let badd: { fas: string; start_ms: number; period_s: number } | null = null
+
+async function hamtaBadd(): Promise<void> {
+  try {
+    let d: unknown = null
+    if (opts!.hamtaBadd) d = await opts!.hamtaBadd()
+    else if (opts!.regiUrl && typeof fetch !== 'undefined') {
+      const r = await fetch(`${opts!.regiUrl}/badd`, { cache: 'no-store' })
+      d = r.ok ? await r.json() : null
+    }
+    const o = d as { fas?: unknown; start_ms?: unknown; period_s?: unknown } | null
+    const start = Number(o?.start_ms)
+    const per = Number(o?.period_s)
+    badd = o && typeof o.fas === 'string' && Number.isFinite(start) && per > 0 ? { fas: o.fas, start_ms: start, period_s: per } : null
+  } catch {
+    badd = null
+  }
+}
+
+/** Spela bäddens spår för innevarande varv, om fasen har en bädd och inget annat spår spelar. */
+async function spelaBadd(hamtaOm = false): Promise<void> {
+  if (!opts?.spar || !opts.skrivare) return
+  const fas = state.regiFas
+  const namn = fas ? FAS_BADD[fas] : undefined
+  if (!fas || !namn) return
+  if (hamtaOm || !badd || badd.fas !== fas) await hamtaBadd()
+  if (!badd || badd.fas !== fas || state.regiFas !== fas) return
+  if (state.spar && state.spar.namn !== namn) return // reveal-filmens spår går före
+  const per = badd.period_s * 1000
+  const t0 = badd.start_ms + Math.floor((regiNu() - badd.start_ms) / per) * per
+  await spela(namn, t0, fas)
 }
 
 /** En rad som passerats med mindre än så här (hämtning, nätet) spelas ändå, gesten också. */
@@ -622,7 +669,10 @@ function onMessage(topic: string, raw: string): void {
       /* tom → stoppa ändå */
     }
     const sp = state.spar
-    if (sp && (topic === 'reveal/film/stop' ? sp.namn === 'reveal' : !film || film === sp.namn)) stoppaSpar()
+    if (sp && (topic === 'reveal/film/stop' ? sp.namn === 'reveal' : !film || film === sp.namn)) {
+      stoppaSpar()
+      void spelaBadd()
+    }
     return
   }
   if (topic === 'reveal/film/start') {
@@ -662,6 +712,8 @@ function onMessage(topic: string, raw: string): void {
     // Live-byte (inte det retained läget vid anslutning): bron startar med sorteringen, capstone med klart.
     if (forra !== null && state.regiFas === 'sortering') void spela('bron', regiNu(), 'sortering')
     if (forra !== null && state.regiFas === 'klart') void spela('capstone', regiNu() + CAPSTONE_FORSPRANG_MS, 'klart')
+    // Fasbädden (reveal): ankaret ur regi, så även det retained läget vid anslutning hamnar i fas.
+    if (state.regiFas && FAS_BADD[state.regiFas]) void spelaBadd(true)
     planeraVag()
   }
   publiceraBas()
@@ -770,6 +822,7 @@ export function __resetLjusForTest(): void {
   vagTimer = snurrTimer = domTimer = null
   klockTimer = null
   sparCache.clear()
+  badd = null
   state.spar = null
   state.extra = []
   state.snurr = null
