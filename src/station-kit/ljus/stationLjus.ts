@@ -710,7 +710,8 @@ function onMessage(topic: string, raw: string): void {
     if (state.spar && state.spar.fas !== state.regiFas) stoppaSpar()
     if (state.snurr) stoppaSnurr()
     // Live-byte (inte det retained läget vid anslutning): bron startar med sorteringen, capstone med klart.
-    if (forra !== null && state.regiFas === 'sortering') void spela('bron', regiNu(), 'sortering')
+    // Bron: spelas i filmfasen bron (film/start) sedan 2026-11-28. Bara om fasen hoppades över (äldre regi) här.
+    if (forra !== null && forra !== 'bron' && state.regiFas === 'sortering') void spela('bron', regiNu(), 'sortering')
     if (forra !== null && state.regiFas === 'klart') void spela('capstone', regiNu() + CAPSTONE_FORSPRANG_MS, 'klart')
     // Fasbädden (reveal): ankaret ur regi, så även det retained läget vid anslutning hamnar i fas.
     if (state.regiFas && FAS_BADD[state.regiFas]) void spelaBadd(true)

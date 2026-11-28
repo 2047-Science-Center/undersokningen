@@ -277,7 +277,7 @@ export const GEST: Record<Gest, GestDef> = {
  * eget läge gäller (XY-UNDERGLOW-MANUS §4.10, Josef 2026-11-27). Trailer/sortering = dämpad amber fast
  * (2026-11-25) med underglow-spåren ovanpå; utan listan låg t.ex. lila lek kvar in i reveal/SYV.
  */
-export const REGI_FORE: readonly string[] = ['idle', 'attract', 'trailer', 'intro', 'samling', 'reveal', 'sortering', 'syv', 'klart']
+export const REGI_FORE: readonly string[] = ['idle', 'attract', 'trailer', 'intro', 'samling', 'reveal', 'bron', 'sortering', 'syv', 'klart']
 
 export function regiLook(fas: string | null, valv: Valv): Look | null {
   const v = VALVFARG[valv]
@@ -301,6 +301,9 @@ export function regiLook(fas: string | null, valv: Valv): Look | null {
       return { color: FARG.amberDim, effekt: 'static' }
     case 'reveal':
       return { color: FARG.stal, effekt: 'static' }
+    case 'bron':
+      // "Löftet" (SOM.md 2026-11-28): mörker, filmens spår (film/bron/underglow.json) tänder stämplarna i valvfärg.
+      return { color: '#000000', effekt: 'av' }
     case 'sortering':
       // Dämpad orange fast (Josef 2026-11-25): VALdis hjärtslag blinkar fullt amber ovanpå, domen ger valvfärgen.
       return { color: FARG.amberDim, effekt: 'static' }

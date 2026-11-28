@@ -220,6 +220,7 @@ describe('station-kit/ljus', () => {
     expect(regiLook('klart', 'drift')).toEqual({ color: VALVFARG.drift, effekt: 'puls' }) // reserv utan capstone-spår
     expect(regiLook('rotation', 'drift')).toBeNull()
     expect(regiLook('samling', 'drift')).toEqual({ color: FARG.amberDim, effekt: 'static' }) // Spola tillbaka: filmens spår bär
+    expect(regiLook('bron', 'drift')).toEqual({ color: '#000000', effekt: 'av' }) // Löftet: mörker, filmens spår tänder stämplarna
   })
 
   it('kanon: "Så här blev det" (entrén utfall) → sidorna blinkar i sidfärgerna (Josef 2026-11-28)', () => {
@@ -333,6 +334,15 @@ describe('fasbäddens spår (reveal-badd, XY-OVERGANG-REVEAL §6.4)', () => {
     expect(useLjus().state.spar?.namn).toBe('reveal')
     await vi.advanceTimersByTimeAsync(3_100) // filmens spår slut → bädden tillbaka
     expect(useLjus().state.spar?.namn).toBe('reveal-badd')
+  })
+
+  it('bron-spåret spelas inte om när filmfasen bron går över i sortering', async () => {
+    const { f, hamtat } = starta(1_000_000)
+    f.msg('regi/phase', { phase: 'reveal' })
+    f.msg('regi/phase', { phase: 'bron' })
+    f.msg('regi/phase', { phase: 'sortering' })
+    await vi.advanceTimersByTimeAsync(100)
+    expect(hamtat.filter((n) => n === 'bron')).toHaveLength(0)
   })
 
   it('ingen bädd utanför reveal', async () => {
