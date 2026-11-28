@@ -219,6 +219,7 @@ describe('station-kit/ljus', () => {
     expect(regiLook('idle', 'drift')).toEqual({ color: FARG.amber, effekt: 'puls' }) // manus §4.1: bärnsten + vågen
     expect(regiLook('klart', 'drift')).toEqual({ color: VALVFARG.drift, effekt: 'puls' }) // reserv utan capstone-spår
     expect(regiLook('rotation', 'drift')).toBeNull()
+    expect(regiLook('samling', 'drift')).toEqual({ color: FARG.amberDim, effekt: 'static' }) // Spola tillbaka: filmens spår bär
   })
 
   it('kanon: "Så här blev det" (entrén utfall) → sidorna blinkar i sidfärgerna (Josef 2026-11-28)', () => {
